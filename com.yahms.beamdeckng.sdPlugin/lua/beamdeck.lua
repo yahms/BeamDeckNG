@@ -19,10 +19,20 @@ local function dmCtrls()
   return BNGS._dmCache
 end
 
+-- The colour the game gives a drive mode on its own button (simpleControlButton setting), e.g.
+-- Comfort 238BE6, Sport FFC300, ESC & TC Off 999999.
+local function modeColor(c, key)
+  local d = key and c.getDriveModeData and c.getDriveModeData(key)
+  for _, st in pairs(d and d.settings or {}) do
+    if type(st) == "table" and st.type == "simpleControlButton" and st.color then return st.color end
+  end
+end
+
 local function liveMode(cc)
   local cur = cc.c.getCurrentDriveModeKey and cc.c.getCurrentDriveModeKey()
   local m = cur and cc.modes[cur]
-  return { ctrl = cc.name, key = cur, name = m and m.name or cur }
+  local okc, color = pcall(modeColor, cc.c, cur)
+  return { ctrl = cc.name, key = cur, name = m and m.name or cur, color = okc and color or nil }
 end
 
 local function tcCtrl()
