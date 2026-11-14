@@ -216,6 +216,7 @@ export class Traction extends DeckAction {
 }
 
 const DIFF_LABEL = { front: "Front diff", rear: "Rear diff", center: "Centre diff", all: "Diff locks" };
+const DIFF_TAG = { front: "FRONT", rear: "REAR", center: "CENTRE" };
 
 function allDiffs(s: VehicleStatus): DiffState {
 	const v = [s.diff?.front, s.diff?.rear, s.diff?.center].filter((x) => x);
@@ -225,25 +226,40 @@ function allDiffs(s: VehicleStatus): DiffState {
 	return "partial";
 }
 
+/** "F+R", "R", "OPEN"... which diffs on this vehicle are locked. */
+function lockedList(s: VehicleStatus): string {
+	const parts: string[] = [];
+	if (s.diff?.front === "locked") parts.push("F");
+	if (s.diff?.center === "locked") parts.push("C");
+	if (s.diff?.rear === "locked") parts.push("R");
+	return parts.length ? parts.join("+") : "OPEN";
+}
+
+// Icons are shared across scopes (imgs/states/diff/), with the scope or locked list as an overlay:
+// locked = solid centre, open = empty centre, lsd = X (an open centre diff = full-time 4WD).
 @action({ UUID: "com.yahms.beamdeckng.difflock" })
 export class DiffLock extends DeckAction {
 	face(s: VehicleStatus, st: Settings): Face {
 		const scope = st.scope ?? "rear";
 		const key = `diff_${scope}`;
+		const base = "diff";
 		const label = DIFF_LABEL[scope];
 		const cur = scope === "all" ? allDiffs(s) : s.diff?.[scope];
+		const overlay = scope === "all" ? lockedList(s) : DIFF_TAG[scope];
 		const sub = scope === "center" ? (s.centerMode?.name ?? undefined) : undefined;
+		const f = { key, base, label, overlay, sub };
+		const unlocked = scope === "center" ? { state: "lsd", alt: ["open"] } : { state: "open" };
 		switch (cur) {
 			case "locked":
-				return { key, state: "locked", label, value: "LOCKED", sub, color: C.warn };
+				return { ...f, state: "locked", value: "LOCKED", color: C.warn };
 			case "open":
-				return { key, state: "open", label, value: "OPEN", sub, color: C.off };
+				return { ...f, ...unlocked, value: "OPEN", color: C.off };
 			case "auto":
-				return { key, state: "auto", alt: ["open"], label, value: "AUTO", sub, color: C.off };
+				return { ...f, ...unlocked, value: "AUTO", color: C.off };
 			case "partial":
-				return { key, state: "partial", label, value: "PARTIAL", sub, color: C.acc };
+				return { ...f, state: "partial", value: "PARTIAL", color: C.acc };
 		}
-		return unsupported(key, label, ["open"]);
+		return { ...unsupported(key, label, [unlocked.state, "open"]), base, overlay };
 	}
 	command(s: VehicleStatus, st: Settings): Command {
 		const scope = st.scope ?? "rear";

@@ -1,21 +1,22 @@
+// Renders button faces through the real icon code into a contact sheet (needs test/build, see README).
 import { render, C } from "./build/bin/icons.js";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, mkdirSync } from "node:fs";
 const F = (key, state, extra = {}) => ({ key, state, label: key, value: state.toUpperCase(), color: C.off, ...extra });
+const D = (scope, state, overlay, extra = {}) => F(`diff_${scope}`, state, { base: "diff", overlay, ...extra });
 const faces = [
-  ["ign off", F("ignition", "off")], ["ign acc", F("ignition", "acc")], ["ign on", F("ignition", "on")],
-  ["cranking", F("ignition", "cranking", { flash: true })], ["crank flash", F("ignition", "cranking", { flash: true }), 1],
-  ["running", F("ignition", "running")], ["TC on", F("traction", "on")], ["TC off", F("traction", "off")],
-  ["mode sport", F("traction", "mode_sport", { alt: ["on"] })], ["mode other", F("traction", "mode_xyz", { alt: ["on"] })],
-  ["F locked", F("diff_front", "locked")], ["F open", F("diff_front", "open")], ["R locked", F("diff_rear", "locked")],
-  ["R open", F("diff_rear", "open")], ["R partial", F("diff_rear", "partial")], ["C locked", F("diff_center", "locked")],
-  ["C open", F("diff_center", "open")], ["C auto", F("diff_center", "auto")], ["all locked", F("diff_all", "locked")],
-  ["all open", F("diff_all", "open")], ["all partial", F("diff_all", "partial")], ["range high", F("range", "high")],
-  ["range low", F("range", "low")], ["2wd", F("drive", "2wd")], ["4wd", F("drive", "4wd")],
-  ["C n/a (dim)", { ...F("diff_center", "unsupported", { alt: ["open"], dim: true, value: "N/A", color: C.none }) }],
-  ["paused", F("range", "low", { dim: true, sub: "PAUSED" })], ["busy flash", F("diff_rear", "open", { flash: true }), 1],
-  ["no game", { key: "common", state: "offline", label: "BeamDeckNG", value: "NO GAME", color: C.none }],
+  ["ign off", F("ignition", "off")], ["running", F("ignition", "running")],
+  ["TC on", F("traction", "on")], ["TC off", F("traction", "off")], ["mode sport", F("traction", "mode_sport", { alt: ["on"] })],
+  ["F locked", D("front", "locked", "FRONT")], ["F open", D("front", "open", "FRONT")],
+  ["R locked", D("rear", "locked", "REAR")], ["R open", D("rear", "open", "REAR")],
+  ["C locked", D("center", "locked", "CENTRE")], ["C fulltime", D("center", "lsd", "CENTRE", { alt: ["open"] })],
+  ["all F+R", D("all", "partial", "F+R")], ["all locked", D("all", "locked", "F+C+R")], ["all open", D("all", "open", "OPEN")],
+  ["R busy 0", D("rear", "open", "REAR", { flash: true })], ["R busy 1", D("rear", "open", "REAR", { flash: true }), 1],
+  ["C n/a", D("center", "unsupported", "CENTRE", { alt: ["lsd", "open"], dim: true })],
+  ["range high", F("range", "high")], ["range low", F("range", "low")], ["low busy", F("range", "low", { flash: true }), 1],
+  ["2wd", F("drive", "2wd")], ["4wd", F("drive", "4wd")], ["paused", F("drive", "4wd", { dim: true })],
 ];
+mkdirSync("/tmp/pv", { recursive: true });
 faces.forEach(([n, f, ph = 0], i) => {
-  const url = render(f, ph); const [h, b] = url.split(",");
+  const [h, b] = render(f, ph).split(",");
   writeFileSync(`/tmp/pv/${String(i).padStart(2, "0")}_${n.replace(/\W+/g, "_")}.${h.includes("png") ? "png" : "svg"}`, Buffer.from(b, "base64"));
 });

@@ -23,6 +23,8 @@ export type Face = {
 	key: string; // icon folder, e.g. "diff_rear" (or "common")
 	state: string; // file name, e.g. "locked"
 	alt?: string[]; // fallback file names if <state>.png is missing
+	base?: string; // shared icon folder tried after <key>, e.g. "diff"
+	overlay?: string; // text drawn over a PNG icon (which diff, which are locked)
 	label: string; // top line on the placeholder
 	value: string; // big middle text
 	sub?: string; // small bottom line (mode name, "PAUSED"...)
@@ -59,29 +61,34 @@ ${f.sub ? `<text x="72" y="126" font-family="Arial, Helvetica, sans-serif" font-
 </svg>`;
 }
 
-/** Wrap a PNG in an SVG with a dark overlay, for flash frames and the paused look. */
-function dimmed(pngUrl: string, amount: number): string {
+/** Wrap a PNG in an SVG: optional dark overlay (flash/paused/unsupported) and a text label at the bottom. */
+function compose(pngUrl: string, dim: number, text?: string): string {
+	if (!dim && !text) return pngUrl;
+	const label = text
+		? `<text x="72" y="136" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="bold" fill="#fff" stroke="#000" stroke-width="5" paint-order="stroke" stroke-linejoin="round" text-anchor="middle">${esc(clip(text.toUpperCase(), 12))}</text>`
+		: "";
 	return svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="144" height="144" viewBox="0 0 144 144">
 <image x="0" y="0" width="144" height="144" xlink:href="${pngUrl}" href="${pngUrl}"/>
-<rect x="0" y="0" width="144" height="144" fill="#000" fill-opacity="${amount}"/>
+${dim ? `<rect x="0" y="0" width="144" height="144" fill="#000" fill-opacity="${dim}"/>` : ""}
+${label}
 </svg>`);
 }
 
 /** Image for a face; `phase` alternates 0/1 while flashing. */
 export function render(f: Face, phase: number): string {
 	const altFrame = f.flash && phase === 1;
-	let p: string | null = null;
-	let used = f.state;
-	for (const st of [f.state, ...(f.alt ?? [])]) {
-		p = png(f.key, st);
-		if (p) {
-			used = st;
-			break;
+	// Look in imgs/states/<key>/ first, then the shared folder (e.g. "diff"), for state then alt states.
+	for (const key of [f.key, ...(f.base ? [f.base] : [])]) {
+		for (const st of [f.state, ...(f.alt ?? [])]) {
+			const p = png(key, st);
+			if (!p) continue;
+			if (altFrame) {
+				const fl = png(key, `${st}_flash`);
+				return fl ? compose(fl, 0, f.overlay) : compose(p, 0.65, f.overlay);
+			}
+			// Not on this vehicle: a bit darker than the paused look.
+			return compose(p, f.dim ? (f.state === "unsupported" ? 0.68 : 0.55) : 0, f.overlay);
 		}
-	}
-	if (p) {
-		if (altFrame) return png(f.key, `${used}_flash`) ?? dimmed(p, 0.65);
-		return f.dim ? dimmed(p, 0.5) : p;
 	}
 	return svgUrl(placeholder(f.state === "unsupported" ? { ...f, dim: false } : f, !!altFrame));
 }

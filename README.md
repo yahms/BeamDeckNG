@@ -52,11 +52,16 @@ frame when that button flashes. Otherwise the plugin dims your PNG for that fram
 |---|---|
 | `ignition` | `off` `acc` `on` `cranking` `running` `unsupported` |
 | `traction` | `on` `off` `unsupported`; in cycle mode `mode_<key>` first (e.g. `mode_comfort`, `mode_sport`, `mode_off`), falling back to `on`/`off` |
-| `diff_front` `diff_rear` `diff_center` `diff_all` | `locked` `open` `partial` `auto` (falls back to `open`) `unsupported` |
+| `diff` (shared by every diff button) | `locked` (solid centre) `open` (empty centre) `lsd` (X: an open centre diff, i.e. full-time 4WD) `partial` (orange centre: some locked) |
+| `diff_front` `diff_rear` `diff_center` `diff_all` | optional per-button overrides of `diff/`; the button draws its scope (FRONT / REAR / CENTRE) or, for "all", which diffs are locked (F+R, OPEN...) over the icon |
 | `range` | `high` `low` `partial` `unsupported` |
 | `drive` | `2wd` `4wd` `partial` `unsupported` |
 | `common` | `offline` `novehicle` `loading` |
 | any key | `error` (shown after a failed press) |
+
+Colour scheme: white icons, as in the game. Orange is kept for flash frames while a command is
+pending, TC off, and mixed states. A button whose feature this vehicle doesn't have shows its
+unlocked/off icon dimmed.
 
 PNGs are read once at plugin start, so restart the plugin after adding them:
 `streamdeck restart com.yahms.beamdeckng`, or restart the Stream Deck app.
