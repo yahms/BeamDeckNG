@@ -1,0 +1,5 @@
+node_modules/
+dist/
+test/build/
+com.yahms.beamdeckng.sdPlugin/bin/
+com.yahms.beamdeckng.sdPlugin/logs/

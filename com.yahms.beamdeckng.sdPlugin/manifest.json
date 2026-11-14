@@ -1,0 +1,112 @@
+{
+	"Name": "BeamDeckNG",
+	"Version": "0.1.0.0",
+	"Author": "yahms",
+	"Description": "Live BeamNG.drive vehicle controls: ignition, traction control, diff locks, range and 4WD. Talks to the game's MCP server on 127.0.0.1.",
+	"Category": "BeamDeckNG",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"Icon": "imgs/plugin/marketplace",
+	"CodePath": "bin/plugin.js",
+	"SDKVersion": 3,
+	"Software": {
+		"MinimumVersion": "7.1"
+	},
+	"OS": [
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		},
+		{
+			"Platform": "mac",
+			"MinimumVersion": "12"
+		}
+	],
+	"Nodejs": {
+		"Version": "24"
+	},
+	"UUID": "com.yahms.beamdeckng",
+	"Actions": [
+		{
+			"Name": "Ignition",
+			"UUID": "com.yahms.beamdeckng.ignition",
+			"Icon": "imgs/actions/ignition-icon",
+			"Tooltip": "Shows ignition / engine state. Press to start or stop the engine.",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/ignition",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Traction control",
+			"UUID": "com.yahms.beamdeckng.traction",
+			"Icon": "imgs/actions/traction-icon",
+			"Tooltip": "Shows traction control and drive mode. Press to toggle TC, or cycle drive modes.",
+			"PropertyInspectorPath": "ui/traction.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/traction",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Diff lock",
+			"UUID": "com.yahms.beamdeckng.difflock",
+			"Icon": "imgs/actions/difflock-icon",
+			"Tooltip": "Shows front / rear / centre diff lock state. Press to lock or unlock.",
+			"PropertyInspectorPath": "ui/difflock.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/difflock",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Range (high / low)",
+			"UUID": "com.yahms.beamdeckng.range",
+			"Icon": "imgs/actions/range-icon",
+			"Tooltip": "Shows the transfer case range. Press to switch high / low.",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/range",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "2WD / 4WD",
+			"UUID": "com.yahms.beamdeckng.drive",
+			"Icon": "imgs/actions/drive-icon",
+			"Tooltip": "Shows whether front drive is engaged. Press to switch 2WD / 4WD.",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/drive",
+					"ShowTitle": false
+				}
+			]
+		}
+	]
+}
