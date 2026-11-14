@@ -1,7 +1,6 @@
 // Game-level functions: menus, pause, repair, map, camera, replay... These use the game's own input
 // actions (trigger_action, the same names as in the controls menu) or MCP tools, so they work
-// without a vehicle too. Every one is available as its own button ("Game function", picked in the
-// button settings) and as a tab slot.
+// without a vehicle too. One button type ("Game function"); the function is picked in its settings.
 
 import { action } from "@elgato/streamdeck";
 import { Command, DeckAction, Settings } from "./actions";
@@ -126,9 +125,6 @@ export class GameFunction extends DeckAction {
 			overlay: s.overlay,
 			flash: s.flash,
 		};
-	}
-	override available(): boolean {
-		return true;
 	}
 	command(_s: VehicleStatus, st: Settings, ge: GeStatus = {}): Command {
 		const [, f] = GameFunction.fn(st);

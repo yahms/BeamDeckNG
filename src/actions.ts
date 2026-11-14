@@ -13,9 +13,6 @@ import { C, colorName, Face, render } from "./icons";
 
 export type Settings = {
 	fn?: string; // game function buttons: which function
-	tab?: string; // tab buttons: which tab
-	slot?: string; // slot buttons: position on the tab page (1-based)
-	pin?: string; // slot buttons: "" = follow the Tab buttons, or a tab name (one Stream Deck page per tab)
 	action?: string; // custom game action: the game's input action name
 	label?: string; // custom game action: text on the key
 	index?: string; // powertrain buttons: which button of the game's bar (1-based)
@@ -39,10 +36,6 @@ export type Entry = {
 	held?: boolean; // hold-type buttons: key is down
 	note?: { face: Partial<Face>; until: number }; // short-lived result overlay (N/A, ERROR)
 	lastImg?: string;
-	/** Slot buttons: pick the function to show/run before drawing or pressing. */
-	resolve?: (e: Entry) => void;
-	/** Slot buttons: keep the current function until the key is released. */
-	locked?: boolean;
 };
 
 export const entries = new Map<string, Entry>();
@@ -67,10 +60,7 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 	vehicle = true;
 	/** Face for the current vehicle status (ge = game-engine state, for game-level functions). */
 	abstract face(s: VehicleStatus, settings: Settings, held?: boolean, ge?: GeStatus): Face;
-	/** Whether this vehicle has the function at all (used to pack tab pages). */
-	available(s: VehicleStatus, settings: Settings): boolean {
-		return this.face(s, settings).state !== "unsupported";
-	}
+
 	/** What a press does, given the current status (null = nothing to do on this vehicle). */
 	abstract command(s: VehicleStatus, settings: Settings, ge?: GeStatus): Command;
 	/** Hold-type buttons (horn, air suspension): command sent on key up. Presses are fire-and-forget. */
@@ -158,7 +148,6 @@ export async function run(cmd: NonNullable<Command>): Promise<void> {
 }
 
 export async function keyUp(e: Entry) {
-	e.locked = false;
 	if (!e.held || !e.impl.release) return;
 	e.held = false;
 	redraw(true);
@@ -177,7 +166,6 @@ export function note(e: Entry, face: Partial<Face>, ms: number) {
 let phase = 0;
 
 function faceFor(e: Entry, snap: Snapshot): Face {
-	if (e.resolve && !e.locked && !e.held && !e.busy) e.resolve(e);
 	const common = (state: string, value: string): Face => ({ key: "common", state, label: "BeamDeckNG", value, color: C.none });
 	let f: Face;
 	if (snap.link === "offline") f = common("offline", "NO GAME");
