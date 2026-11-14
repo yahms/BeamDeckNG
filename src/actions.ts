@@ -264,24 +264,32 @@ export class Ignition extends DeckAction {
 
 @action({ UUID: "com.yahms.beamdeckng.traction" })
 export class Traction extends DeckAction {
+	/** Default: cycle the car's drive modes (Comfort > Sport > ESC & TC Off...), like the game's own button.
+	 *  Cars with TC but no drive modes fall back to TC on/off; "toggle" in the settings forces on/off. */
+	private cycles(s: VehicleStatus, st: Settings) {
+		return st.press !== "toggle" && !!s.tcMode;
+	}
 	face(s: VehicleStatus, st: Settings): Face {
 		if (!s.hasTC && !s.tcMode) return unsupported("traction", "Traction", ["on"]);
 		const mode = s.tcMode?.name ?? undefined;
 		const on = s.tc !== false;
-		// In cycle mode, imgs/states/traction/mode_<key>.png wins over on/off.png.
-		const state = st.press === "cycle" && s.tcMode?.key ? `mode_${s.tcMode.key}` : on ? "on" : "off";
-		return {
-			key: "traction",
-			state,
-			alt: [on ? "on" : "off"],
-			label: "Traction",
-			value: st.press === "cycle" && mode ? mode : on ? "TC ON" : "TC OFF",
-			sub: st.press === "cycle" ? (on ? "TC on" : "TC off") : mode,
-			color: on ? C.on : C.alert,
-		};
+		if (this.cycles(s, st)) {
+			// imgs/states/traction/mode_<key>.png wins (mode_comfort, mode_sport, mode_off...), then on/off.png
+			return {
+				key: "traction",
+				state: `mode_${s.tcMode!.key}`,
+				alt: [on ? "on" : "off"],
+				label: "Drive mode",
+				value: mode ?? "?",
+				sub: on ? "TC on" : "TC off",
+				color: on ? C.on : C.alert,
+				overlay: mode,
+			};
+		}
+		return { key: "traction", state: on ? "on" : "off", label: "Traction", value: on ? "TC ON" : "TC OFF", sub: mode, color: on ? C.on : C.alert };
 	}
 	command(s: VehicleStatus, st: Settings): Command {
-		if (st.press === "cycle") return s.tcMode ? { action: "drive_mode_step", args: { which: "tc", dir: 1 } } : null;
+		if (this.cycles(s, st)) return { action: "drive_mode_step", args: { which: "tc", dir: 1 } };
 		if (!s.hasTC) return null;
 		return { action: "traction", args: { state: s.tc === false ? "on" : "off" } };
 	}

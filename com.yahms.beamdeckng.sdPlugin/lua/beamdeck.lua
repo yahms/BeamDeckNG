@@ -209,6 +209,92 @@ function BNGS.cruise()
   if cc and cc.getConfiguration then return cc end
 end
 
+-- Step a driveModes controller to its next (or previous) mode. Uses the controller's own
+-- next/previousDriveMode, so it cycles exactly the modes the game cycles for this config (disabled
+-- modes in the vehicle data are skipped, as in game).
+-- args: which = "tc" | "center" | <controller name>, dir = 1 | -1
+BNGS.actions.drive_mode_step = function(args)
+  local cc
+  if args.which == "tc" then cc = tcCtrl()
+  elseif args.which == "center" then cc = centerCtrl()
+  else cc = dmCtrls()[args.which] end
+  if not cc then return { action = "drive_mode_step", status = "unsupported", targets = {}, detail = "no matching drive mode controller" } end
+  local c = cc.c
+  local cur = c.getCurrentDriveModeKey()
+  local step = (args.dir or 1) < 0 and c.previousDriveMode or c.nextDriveMode
+  if step then
+    step()
+  else
+    -- older controllers: walk the modes in the game's order
+    local list = {}
+    for _, m in pairs(cc.modes) do table.insert(list, m) end
+    table.sort(list, function(x, y) return (x.order or 0) < (y.order or 0) end)
+    local idx = 0
+    for i, m in ipairs(list) do if m.key == cur then idx = i end end
+    c.setDriveMode(list[((idx - 1 + (args.dir or 1)) % #list) + 1].key)
+  end
+  local now = c.getCurrentDriveModeKey()
+  local m = cc.modes[now]
+  return { action = "drive_mode_step", status = (now ~= cur) and "applied" or "already", side = {},
+           targets = { { role = "controller", device = cc.name, ui = m and m.name or now, from = cur, to = now, ok = now ~= cur } } }
+end
+
+-- Mirror of the game's simple powertrain control bar. Controllers push their buttons to the UI
+-- through ui_simplePowertrainControl.setButton; we wrap it once per vehicle VM to keep the latest
+-- state of each button, then ask everything to re-send.
+function BNGS.ptStore()
+  local store = rawget(_G, "BNGSD_PT")
+  if store then return store end
+  local spc = extensions.ui_simplePowertrainControl
+  if not spc and extensions.load then pcall(extensions.load, "ui_simplePowertrainControl"); spc = extensions.ui_simplePowertrainControl end
+  if not spc or not spc.setButton then return nil end
+  store = { order = {}, byId = {} }
+  rawset(_G, "BNGSD_PT", store)
+  local orig = spc.setButton
+  spc.setButton = function(id, uiName, icon, color, ringValue, onClick, remove, active)
+    if remove then store.byId[id] = nil
+    else
+      if not store.byId[id] then table.insert(store.order, id) end
+      store.byId[id] = { id = id, name = uiName, icon = icon, color = color, ring = ringValue, click = onClick, active = active }
+    end
+    return orig(id, uiName, icon, color, ringValue, onClick, remove, active)
+  end
+  pcall(spc.updateButtons)
+  return store
+end
+
+function BNGS.ptButtons()
+  local store = BNGS.ptStore()
+  if not store then return nil end
+  local out = {}
+  for _, id in ipairs(store.order) do
+    local b = store.byId[id]
+    if b then table.insert(out, { id = b.id, name = b.name, icon = b.icon, color = b.color, ring = b.ring }) end
+  end
+  return out
+end
+
+-- Press one of the game's powertrain buttons: runs exactly what the game's own button runs.
+BNGS.actions.pt_click = function(args)
+  local store = BNGS.ptStore()
+  local b = store and store.byId[args.id]
+  if not b or type(b.click) ~= "string" then return { action = "pt_click", status = "unsupported", targets = {}, detail = "no such button" } end
+  local fn, err = loadstring(b.click)
+  if not fn then return { action = "pt_click", status = "failed", targets = {}, detail = tostring(err) } end
+  fn()
+  return { action = "pt_click", status = "applied", targets = { { role = "pt", device = b.id, ui = b.name, ok = true } } }
+end
+
+-- cruiseControl is a vehicle extension; load it on demand.
+function BNGS.cruise()
+  local cc = rawget(_G, "cruiseControl") or (extensions and extensions.cruiseControl)
+  if not cc and extensions and extensions.load then
+    pcall(extensions.load, "cruiseControl")
+    cc = rawget(_G, "cruiseControl") or extensions.cruiseControl
+  end
+  if cc and cc.getConfiguration then return cc end
+end
+
 -- Step a driveModes controller to its next (or previous) mode, in the game's mode order.
 -- args: which = "tc" | "center" | <controller name>, dir = 1 | -1
 BNGS.actions.drive_mode_step = function(args)
