@@ -8,7 +8,7 @@ A standalone Stream Deck plugin. It only talks to the game's built-in MCP server
 | Action | Shows | Press |
 |---|---|---|
 | Ignition | OFF / ACC / ON / START (flashes while cranking) / RUN | start or stop the engine |
-| Traction control | TC ON / TC OFF + drive mode name | toggle TC, or (setting) cycle drive modes |
+| Traction control | the current drive mode (Comfort / Sport / ESC & TC Off...) and whether TC is on | cycles the car's drive modes, the same ones the game's own button cycles; TC on/off on cars without drive modes, or by setting |
 | Diff lock | LOCKED / OPEN / PARTIAL / AUTO; setting picks front, rear, centre or all | lock / unlock |
 | Range | HIGH / LOW | switch range |
 | 2WD / 4WD | 2WD / 4WD | engage / disengage front drive |
@@ -128,7 +128,7 @@ frame when that button flashes. Otherwise the plugin dims your PNG for that fram
 | key | states |
 |---|---|
 | `ignition` | `off` `acc` `stalled` (ignition on, engine not running) `cranking` `running` `unsupported` |
-| `traction` | `on` `off` `unsupported`; in cycle mode `mode_<key>` first (e.g. `mode_comfort`, `mode_sport`, `mode_off`), falling back to `on`/`off` |
+| `traction` | `mode_<key>` for each drive mode (e.g. `mode_comfort`, `mode_sport`, `mode_drift`, `mode_off`), falling back to `on` / `off`; the mode name is drawn on the key |
 | `diff` (shared by every diff button) | `locked` (solid centre) `open` (empty centre) `lsd` (X: an open centre diff, i.e. full-time 4WD) `partial` (orange centre: some locked) |
 | `diff_front` `diff_rear` `diff_center` `diff_all` | optional per-button overrides of `diff/`; the button draws its scope (FRONT / REAR / CENTRE) or, for "all", which diffs are locked (F+R, OPEN...) over the icon |
 | `range` | `high` `low` `partial` `unsupported` |
