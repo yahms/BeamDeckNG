@@ -1,17 +1,19 @@
 import streamDeck from "@elgato/streamdeck";
 
-import { DiffLock, Drive, Ignition, Range, start, Traction } from "./actions";
+import * as A from "./actions";
 import { Game } from "./game";
 
 streamDeck.logger.setLevel("info");
 
-streamDeck.actions.registerAction(new Ignition());
-streamDeck.actions.registerAction(new Traction());
-streamDeck.actions.registerAction(new DiffLock());
-streamDeck.actions.registerAction(new Range());
-streamDeck.actions.registerAction(new Drive());
+for (const Action of [
+	A.Ignition, A.Traction, A.DiffLock, A.Range, A.Drive,
+	A.ParkingBrake, A.Headlights, A.FogLights, A.Hazards, A.Indicator, A.Lightbar, A.Horn,
+	A.Cruise, A.EngineBrake, A.Retarder, A.AirSuspension, A.Doors,
+]) {
+	streamDeck.actions.registerAction(new Action());
+}
 
 // Only ever talks to the game's own MCP listener on this PC.
-start(new Game("127.0.0.1", 29292, "/mcp"));
+A.start(new Game("127.0.0.1", 29292, "/mcp"));
 
 streamDeck.connect();

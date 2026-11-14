@@ -2,7 +2,7 @@
 	"Name": "BeamDeckNG",
 	"Version": "0.1.0.0",
 	"Author": "yahms",
-	"Description": "Live BeamNG.drive vehicle controls: ignition, traction control, diff locks, range and 4WD. Talks to the game's MCP server on 127.0.0.1.",
+	"Description": "Live BeamNG.drive vehicle controls with state on every button: ignition, traction, diff locks, range, 4WD, lights, indicators, parking brake, horn, cruise, truck brakes, air suspension and doors. Talks to the game's MCP server on 127.0.0.1.",
 	"Category": "BeamDeckNG",
 	"CategoryIcon": "imgs/plugin/category-icon",
 	"Icon": "imgs/plugin/marketplace",
@@ -107,6 +107,203 @@
 					"ShowTitle": false
 				}
 			]
+		},
+		{
+			"Name": "Parking brake",
+			"UUID": "com.yahms.beamdeckng.parkingbrake",
+			"Icon": "imgs/actions/parkingbrake-icon",
+			"Tooltip": "Shows the parking brake. Press to set or release.",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/parkingbrake",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Headlights",
+			"UUID": "com.yahms.beamdeckng.headlights",
+			"Icon": "imgs/actions/headlights-icon",
+			"Tooltip": "Shows off / low / high beam. Press to cycle (or set in the button settings).",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/headlights",
+					"ShowTitle": false
+				}
+			],
+			"PropertyInspectorPath": "ui/headlights.html"
+		},
+		{
+			"Name": "Fog lights",
+			"UUID": "com.yahms.beamdeckng.fog",
+			"Icon": "imgs/actions/fog-icon",
+			"Tooltip": "Shows fog lights. Press to toggle.",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/fog",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Hazards",
+			"UUID": "com.yahms.beamdeckng.hazards",
+			"Icon": "imgs/actions/hazards-icon",
+			"Tooltip": "Shows hazard lights (blinks while on). Press to toggle.",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/hazards",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Indicator",
+			"UUID": "com.yahms.beamdeckng.indicator",
+			"Icon": "imgs/actions/indicator-icon",
+			"Tooltip": "Left or right indicator (blinks while on). Press to toggle.",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/indicator",
+					"ShowTitle": false
+				}
+			],
+			"PropertyInspectorPath": "ui/indicator.html"
+		},
+		{
+			"Name": "Lightbar",
+			"UUID": "com.yahms.beamdeckng.lightbar",
+			"Icon": "imgs/actions/lightbar-icon",
+			"Tooltip": "Shows the lightbar mode. Press to cycle off / mode 1 / mode 2.",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/lightbar",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Horn",
+			"UUID": "com.yahms.beamdeckng.horn",
+			"Icon": "imgs/actions/horn-icon",
+			"Tooltip": "Sounds the horn while held.",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/horn",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Cruise control",
+			"UUID": "com.yahms.beamdeckng.cruise",
+			"Icon": "imgs/actions/cruise-icon",
+			"Tooltip": "Cruise on/off with set speed, or set / + / - buttons.",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/cruise",
+					"ShowTitle": false
+				}
+			],
+			"PropertyInspectorPath": "ui/cruise.html"
+		},
+		{
+			"Name": "Engine brake",
+			"UUID": "com.yahms.beamdeckng.enginebrake",
+			"Icon": "imgs/actions/enginebrake-icon",
+			"Tooltip": "Shows the engine (compression) brake level. Press to cycle off / 1 / 2 / 3.",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/enginebrake",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Retarder",
+			"UUID": "com.yahms.beamdeckng.retarder",
+			"Icon": "imgs/actions/retarder-icon",
+			"Tooltip": "Shows the retarder setting. Press to cycle off / auto / 20-100 %.",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/retarder",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Air suspension",
+			"UUID": "com.yahms.beamdeckng.airsuspension",
+			"Icon": "imgs/actions/airsuspension-icon",
+			"Tooltip": "Raises or lowers the air suspension while held.",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/airsuspension",
+					"ShowTitle": false
+				}
+			],
+			"PropertyInspectorPath": "ui/airsuspension.html"
+		},
+		{
+			"Name": "Doors / bonnet / boot",
+			"UUID": "com.yahms.beamdeckng.doors",
+			"Icon": "imgs/actions/doors-icon",
+			"Tooltip": "Shows whether doors, bonnet or boot are open. Press to open or close.",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/doors",
+					"ShowTitle": false
+				}
+			],
+			"PropertyInspectorPath": "ui/doors.html"
 		}
 	]
 }

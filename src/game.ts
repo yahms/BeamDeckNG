@@ -29,6 +29,22 @@ export type VehicleStatus = {
 	diff?: { front?: DiffState; rear?: DiffState; center?: DiffState };
 	range?: "low" | "high" | "partial" | null;
 	drive?: "4wd" | "2wd" | "partial" | null;
+	pbrake?: boolean;
+	lights?: number; // 0 off, 1 low, 2 high
+	fog?: number;
+	hazard?: number;
+	sigL?: number;
+	sigR?: number;
+	lightbar?: number;
+	horn?: number;
+	cruise?: { on: boolean; speed?: number }; // speed in m/s
+	ebrake?: number; // 0 off, 1..3
+	retarder?: number; // 1 auto, 2 off, 3..7 = 20..100 %
+	air?: boolean;
+	doors?: Record<string, boolean>; // FL/FR/RL/RR -> open
+	doorsOpen?: number;
+	hood?: boolean;
+	trunk?: boolean;
 };
 
 export type Link = "offline" | "novehicle" | "loading" | "paused" | "ok";
@@ -196,6 +212,16 @@ return ""`;
 			if (r && r.startsWith("{")) return JSON.parse(r) as ResolverResult;
 		}
 		throw new Error("no response from vehicle");
+	}
+
+	/**
+	 * Fire-and-forget for held buttons (horn, air suspension): uses the library already installed
+	 * in the vehicle VM, so it's one small run_lua with no waiting.
+	 */
+	async fire(action: string, args: object): Promise<void> {
+		const veh = `local B = rawget(_G, "BNGSD_BNGS")
+if B then B.call(${luaStr(action)}, ${luaLit(args)}, nil, "") end`;
+		await this.mcp.runLua(geQueue(veh));
 	}
 
 	/** Resolver action plus the deferred verify passes (same flow as beam-assist's lua::resolve). */

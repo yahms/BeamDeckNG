@@ -88,7 +88,60 @@ function BNGS.status()
   end
   s.range = agg(range, "low", "high", "partial")
   s.drive = agg(drive, "4wd", "2wd", "partial")
+
+  -- lights and signals (nil = this vehicle doesn't have it)
+  if e.parkingbrake ~= nil then s.pbrake = e.parkingbrake > 0.5 end
+  s.lights = e.lights_state
+  s.fog = e.fog
+  s.hazard = e.hazard_enabled
+  s.sigL = e.signal_left_input
+  s.sigR = e.signal_right_input
+  s.lightbar = e.lightbar
+  s.horn = e.horn
+
+  -- cruise control (vehicle extension; may not be loaded until first used)
+  local cc = BNGS.cruise()
+  if cc then
+    local ok, c = pcall(cc.getConfiguration)
+    if ok and type(c) == "table" then s.cruise = { on = c.isEnabled == true, speed = c.targetSpeed } end
+  end
+
+  -- trucks
+  local cb = controller.getController("compressionBrake")
+  if cb and cb.getState then
+    local st = cb.getState() or {}
+    local coef = st.compressionBrakeCoef or 0
+    local lvl = 0
+    for i, v in ipairs({ 0.33, 0.66, 1 }) do if math.abs(coef - v) < 0.05 then lvl = i end end
+    s.ebrake = lvl
+  end
+  local rc = controller.getController("retarderControl")
+  if rc and rc.getState then s.retarder = (rc.getState() or {}).retarderControl_settingIndex end
+  s.air = controller.getController("airSuspension") ~= nil or nil
+
+  -- doors, bonnet, boot: open state per panel (closing re-latches over ~1.5 s)
+  local doors, open, any = {}, 0, false
+  for _, p in ipairs(BNGS.panels()) do
+    local isOpen = p.c.getGroupState() ~= "attached"
+    if p.kind == "door" then
+      any = true
+      if p.pos ~= "" then doors[p.pos] = isOpen end
+      if isOpen then open = open + 1 end
+    elseif p.kind == "hood" then s.hood = (s.hood or false) or isOpen
+    elseif p.kind == "trunk" then s.trunk = (s.trunk or false) or isOpen end
+  end
+  if any then s.doors = doors; s.doorsOpen = open end
   return s
+end
+
+-- cruiseControl is a vehicle extension; load it on demand.
+function BNGS.cruise()
+  local cc = rawget(_G, "cruiseControl") or (extensions and extensions.cruiseControl)
+  if not cc and extensions and extensions.load then
+    pcall(extensions.load, "cruiseControl")
+    cc = rawget(_G, "cruiseControl") or extensions.cruiseControl
+  end
+  if cc and cc.getConfiguration then return cc end
 end
 
 -- Step a driveModes controller to its next (or previous) mode, in the game's mode order.
@@ -110,6 +163,41 @@ BNGS.actions.drive_mode_step = function(args)
   local now = cc.c.getCurrentDriveModeKey()
   return { action = "drive_mode_step", status = (now == nextM.key) and "applied" or "failed", side = {},
            targets = { { role = "controller", device = cc.name, ui = nextM.name, from = cur, to = now, want = nextM.key, ok = now == nextM.key } } }
+end
+
+-- Lightbar: 0 off, 1 lights, 2 lights + siren (vehicle dependent). args: state = 0..2
+BNGS.actions.lightbar = function(args)
+  if electrics.values.lightbar == nil then return { action = "lightbar", status = "unsupported", targets = {} } end
+  local n = tonumber(args.state) or 0
+  return eTarget("lightbar", "lightbar", electrics.values.lightbar, n, function() electrics.set_lightbar_signal(n) end)
+end
+
+-- Horn, held from the button. args: state = 1 | 0. Fire-and-forget, no verify.
+BNGS.actions.horn = function(args)
+  local on = tonumber(args.state) == 1
+  if electrics.horn then electrics.horn(on) else electrics.values.horn = on and 1 or 0 end
+  return { action = "horn", status = "applied", targets = {} }
+end
+
+-- Cruise control. args: op = toggle | set | plus | minus, step (m/s, for plus/minus)
+BNGS.actions.cruise = function(args)
+  local cc = BNGS.cruise()
+  if not cc then return { action = "cruise", status = "unsupported", targets = {}, detail = "no cruise control" } end
+  local c = cc.getConfiguration() or {}
+  local op = args.op or "toggle"
+  if op == "toggle" then
+    if c.isEnabled then cc.setEnabled(false) elseif (c.targetSpeed or 0) > 0.5 then cc.setEnabled(true) else cc.holdCurrentSpeed() end
+  elseif op == "set" then cc.holdCurrentSpeed()
+  elseif op == "plus" or op == "minus" then
+    if not c.isEnabled then
+      if op == "plus" and (c.targetSpeed or 0) > 0.5 then cc.setEnabled(true) else cc.holdCurrentSpeed() end
+    else
+      cc.changeSpeed((op == "plus" and 1 or -1) * (tonumber(args.step) or 1.389))
+    end
+  end
+  local n = cc.getConfiguration() or {}
+  return { action = "cruise", status = "applied", side = {},
+           targets = { { role = "cruise", device = "cruiseControl", from = c.isEnabled, to = n.isEnabled, ok = true, speed = n.targetSpeed } } }
 end
 
 rawset(_G, "BNGSD_BNGS", BNGS)

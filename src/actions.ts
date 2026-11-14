@@ -3,6 +3,7 @@ import streamDeck, {
 	DidReceiveSettingsEvent,
 	KeyAction,
 	KeyDownEvent,
+	KeyUpEvent,
 	SingletonAction,
 	WillAppearEvent,
 	WillDisappearEvent,
@@ -10,7 +11,16 @@ import streamDeck, {
 import { DiffState, Game, ResolverResult, Snapshot, VehicleStatus } from "./game";
 import { C, Face, render } from "./icons";
 
-type Settings = { scope?: "front" | "rear" | "center" | "all"; press?: "toggle" | "cycle" };
+type Settings = {
+	scope?: "front" | "rear" | "center" | "all";
+	press?: string; // traction: toggle | cycle; lights: cycle | low | high
+	side?: "left" | "right";
+	part?: "doors" | "FL" | "FR" | "RL" | "RR" | "hood" | "trunk";
+	op?: "toggle" | "set" | "plus" | "minus";
+	step?: string; // cruise +/- step, in the display unit
+	units?: "kmh" | "mph";
+	dir?: "raise" | "lower";
+};
 type Command = { action: string; args: object } | null;
 
 type Entry = {
@@ -18,6 +28,7 @@ type Entry = {
 	impl: DeckAction;
 	settings: Settings;
 	busy: boolean;
+	held?: boolean; // hold-type buttons: key is down
 	note?: { face: Partial<Face>; until: number }; // short-lived result overlay (N/A, ERROR)
 	lastImg?: string;
 };
@@ -41,9 +52,11 @@ const unsupported = (key: string, label: string, alt: string[] = []): Face => ({
 
 abstract class DeckAction extends SingletonAction<Settings> {
 	/** Face for the current vehicle status. */
-	abstract face(s: VehicleStatus, settings: Settings): Face;
+	abstract face(s: VehicleStatus, settings: Settings, held?: boolean): Face;
 	/** What a press does, given the current status (null = nothing to do on this vehicle). */
 	abstract command(s: VehicleStatus, settings: Settings): Command;
+	/** Hold-type buttons (horn, air suspension): command sent on key up. Presses are fire-and-forget. */
+	release?(s: VehicleStatus, settings: Settings): Command;
 
 	override onWillAppear(ev: WillAppearEvent<Settings>): void {
 		if (!ev.action.isKey()) return;
@@ -54,7 +67,14 @@ abstract class DeckAction extends SingletonAction<Settings> {
 	}
 
 	override onWillDisappear(ev: WillDisappearEvent<Settings>): void {
+		const e = entries.get(ev.action.id);
+		if (e?.held) keyUp(e);
 		entries.delete(ev.action.id);
+	}
+
+	override async onKeyUp(ev: KeyUpEvent<Settings>): Promise<void> {
+		const e = entries.get(ev.action.id);
+		if (e) await keyUp(e);
 	}
 
 	override onDidReceiveSettings(ev: DidReceiveSettingsEvent<Settings>): void {
@@ -75,6 +95,13 @@ abstract class DeckAction extends SingletonAction<Settings> {
 			return;
 		}
 		const cmd = this.command(snap.status, e.settings);
+		if (this.release) {
+			if (!cmd) return note(e, { value: "N/A", color: C.none }, 1500);
+			e.held = true;
+			redraw(true);
+			await game.fire(cmd.action, cmd.args).catch(() => undefined);
+			return;
+		}
 		if (!cmd) {
 			note(e, { value: "N/A", color: C.none }, 1500);
 			return;
@@ -97,6 +124,15 @@ abstract class DeckAction extends SingletonAction<Settings> {
 	}
 }
 
+async function keyUp(e: Entry) {
+	if (!e.held) return;
+	e.held = false;
+	redraw(true);
+	const rel = e.impl.release?.(game.snapshot.status ?? {}, e.settings);
+	// Always send the release, even if the game link dropped meanwhile, so nothing stays held.
+	if (rel) await game.fire(rel.action, rel.args).catch(() => undefined);
+}
+
 function note(e: Entry, face: Partial<Face>, ms: number) {
 	e.note = { face, until: Date.now() + ms };
 	redraw(true);
@@ -113,7 +149,7 @@ function faceFor(e: Entry, snap: Snapshot): Face {
 	else if (snap.link === "novehicle") f = common("novehicle", "NO CAR");
 	else if (!snap.status) f = common("loading", "…");
 	else {
-		f = e.impl.face(snap.status, e.settings);
+		f = e.impl.face(snap.status, e.settings, e.held);
 		if (snap.link === "paused") f = { ...f, dim: true, sub: "PAUSED" };
 	}
 	if (e.busy) f = { ...f, flash: true };
@@ -296,5 +332,219 @@ export class Drive extends DeckAction {
 	command(s: VehicleStatus): Command {
 		if (!s.drive) return null;
 		return { action: "drive", args: { state: s.drive === "4wd" ? "2wd" : "4wd" } };
+	}
+}
+
+// ---------------------------------------------------------------- group 1: lights, brakes, body, cruise
+
+/** Two-state button: white `off` icon, orange `on` icon (imgs/states/<key>/on.png / off.png). */
+function binary(key: string, label: string, on: boolean | undefined, extra: Partial<Face> = {}): Face {
+	if (on === undefined) return unsupported(key, label, ["off"]);
+	return on
+		? { key, label, state: "on", value: "ON", color: C.warn, ...extra }
+		: { key, label, state: "off", value: "OFF", color: C.off, ...extra };
+}
+const isOn = (v: number | boolean | undefined) => (v === undefined || v === null ? undefined : v === true || Number(v) >= 0.5);
+
+@action({ UUID: "com.yahms.beamdeckng.parkingbrake" })
+export class ParkingBrake extends DeckAction {
+	face(s: VehicleStatus): Face {
+		return binary("pbrake", "Park brake", s.pbrake);
+	}
+	command(s: VehicleStatus): Command {
+		if (s.pbrake === undefined) return null;
+		return { action: "parking_brake", args: { state: s.pbrake ? "off" : "on" } };
+	}
+}
+
+const LIGHT_STATES = ["off", "low", "high"] as const;
+
+@action({ UUID: "com.yahms.beamdeckng.headlights" })
+export class Headlights extends DeckAction {
+	face(s: VehicleStatus): Face {
+		if (s.lights === undefined) return unsupported("lights", "Headlights", ["off"]);
+		const st = LIGHT_STATES[s.lights] ?? "off";
+		const color = { off: C.off, low: C.on, high: C.busy }[st];
+		return { key: "lights", label: "Headlights", state: st, value: st.toUpperCase(), color };
+	}
+	command(s: VehicleStatus, st: Settings): Command {
+		if (s.lights === undefined) return null;
+		const cur = s.lights;
+		let next: number;
+		if (st.press === "low") next = cur === 0 ? 1 : 0; // low beam on/off
+		else if (st.press === "high") next = cur === 2 ? 1 : 2; // high beam flick
+		else next = (cur + 1) % 3; // off -> low -> high -> off
+		return { action: "lights", args: { state: LIGHT_STATES[next] } };
+	}
+}
+
+@action({ UUID: "com.yahms.beamdeckng.fog" })
+export class FogLights extends DeckAction {
+	face(s: VehicleStatus): Face {
+		return binary("fog", "Fog lights", isOn(s.fog));
+	}
+	command(s: VehicleStatus): Command {
+		if (s.fog === undefined) return null;
+		return { action: "fog", args: { state: isOn(s.fog) ? "off" : "on" } };
+	}
+}
+
+@action({ UUID: "com.yahms.beamdeckng.hazards" })
+export class Hazards extends DeckAction {
+	face(s: VehicleStatus): Face {
+		const on = isOn(s.hazard);
+		return binary("hazard", "Hazards", on, { flash: on }); // blinks while on
+	}
+	command(s: VehicleStatus): Command {
+		return { action: "hazard", args: { state: isOn(s.hazard) ? "off" : "on" } };
+	}
+}
+
+@action({ UUID: "com.yahms.beamdeckng.indicator" })
+export class Indicator extends DeckAction {
+	face(s: VehicleStatus, st: Settings): Face {
+		const side = st.side ?? "left";
+		const on = isOn(side === "left" ? s.sigL : s.sigR);
+		return binary(`indicator_${side}`, side === "left" ? "Left" : "Right", on, { flash: on });
+	}
+	command(s: VehicleStatus, st: Settings): Command {
+		const side = st.side ?? "left";
+		const on = isOn(side === "left" ? s.sigL : s.sigR);
+		if (on === undefined) return null;
+		return { action: "signal", args: { side: on ? "off" : side } };
+	}
+}
+
+@action({ UUID: "com.yahms.beamdeckng.lightbar" })
+export class Lightbar extends DeckAction {
+	face(s: VehicleStatus): Face {
+		if (s.lightbar === undefined) return unsupported("lightbar", "Lightbar", ["off"]);
+		const n = Math.round(s.lightbar);
+		const state = n === 0 ? "off" : `mode${n}`;
+		return { key: "lightbar", label: "Lightbar", state, alt: ["mode1"], value: n === 0 ? "OFF" : `MODE ${n}`, color: n ? C.warn : C.off };
+	}
+	command(s: VehicleStatus): Command {
+		if (s.lightbar === undefined) return null;
+		return { action: "lightbar", args: { state: (Math.round(s.lightbar) + 1) % 3 } };
+	}
+}
+
+@action({ UUID: "com.yahms.beamdeckng.horn" })
+export class Horn extends DeckAction {
+	face(_s: VehicleStatus, _st: Settings, held?: boolean): Face {
+		return binary("horn", "Horn", !!held);
+	}
+	command(): Command {
+		return { action: "horn", args: { state: 1 } };
+	}
+	override release(): Command {
+		return { action: "horn", args: { state: 0 } };
+	}
+}
+
+const unitOf = (st: Settings) => (st.units === "mph" ? { k: 2.23694, name: "mph" } : { k: 3.6, name: "km/h" });
+
+@action({ UUID: "com.yahms.beamdeckng.cruise" })
+export class Cruise extends DeckAction {
+	face(s: VehicleStatus, st: Settings): Face {
+		const op = st.op ?? "toggle";
+		const key = op === "toggle" ? "cruise" : `cruise_${op}`;
+		const label = { toggle: "Cruise", set: "Cruise set", plus: "Cruise +", minus: "Cruise −" }[op];
+		if (!s.cruise) return unsupported(key, label, ["off", "idle"]);
+		const u = unitOf(st);
+		const spd = s.cruise.speed && s.cruise.speed > 0.5 ? String(Math.round(s.cruise.speed * u.k)) : undefined;
+		if (op !== "toggle") return { key, label, state: "idle", value: op.toUpperCase(), color: C.off, overlay: s.cruise.on ? spd : undefined };
+		return s.cruise.on
+			? { key, label, state: "on", value: spd ?? "ON", sub: u.name, color: C.warn, overlay: spd }
+			: { key, label, state: "off", value: "OFF", sub: spd ? `set ${spd}` : undefined, color: C.off };
+	}
+	command(s: VehicleStatus, st: Settings): Command {
+		if (!s.cruise) return null;
+		const op = st.op ?? "toggle";
+		const step = (Number(st.step) || 5) / unitOf(st).k; // display units -> m/s
+		return { action: "cruise", args: { op, step } };
+	}
+}
+
+const RET_NAMES = ["", "AUTO", "OFF", "20%", "40%", "60%", "80%", "100%"];
+
+@action({ UUID: "com.yahms.beamdeckng.enginebrake" })
+export class EngineBrake extends DeckAction {
+	face(s: VehicleStatus): Face {
+		if (s.ebrake === undefined) return unsupported("ebrake", "Engine brake", ["off"]);
+		const n = s.ebrake;
+		return { key: "ebrake", label: "Engine brake", state: n ? `level${n}` : "off", alt: n ? ["on"] : [], value: n ? `LVL ${n}` : "OFF", color: n ? C.warn : C.off, overlay: n ? String(n) : undefined };
+	}
+	command(s: VehicleStatus): Command {
+		if (s.ebrake === undefined) return null;
+		const next = (s.ebrake + 1) % 4; // off -> 1 -> 2 -> 3 -> off
+		return { action: "engine_brake", args: next ? { state: "on", level: next } : { state: "off" } };
+	}
+}
+
+@action({ UUID: "com.yahms.beamdeckng.retarder" })
+export class Retarder extends DeckAction {
+	face(s: VehicleStatus): Face {
+		if (s.retarder === undefined) return unsupported("retarder", "Retarder", ["off"]);
+		const i = s.retarder;
+		const name = RET_NAMES[i] ?? String(i);
+		const state = i === 1 ? "auto" : i === 2 ? "off" : "on";
+		return { key: "retarder", label: "Retarder", state, value: name, color: i === 2 ? C.off : C.warn, overlay: i === 2 ? undefined : name };
+	}
+	command(s: VehicleStatus): Command {
+		if (s.retarder === undefined) return null;
+		const i = s.retarder;
+		const next = i === 2 ? 1 : i === 1 ? 3 : i >= 7 ? 2 : i + 1; // off -> auto -> 20..100% -> off
+		const args = next === 1 ? { state: "auto" } : next === 2 ? { state: "off" } : { percent: (next - 2) * 20 };
+		return { action: "retarder", args };
+	}
+}
+
+@action({ UUID: "com.yahms.beamdeckng.airsuspension" })
+export class AirSuspension extends DeckAction {
+	face(s: VehicleStatus, st: Settings, held?: boolean): Face {
+		const dir = st.dir ?? "raise";
+		const key = `air_${dir}`;
+		const label = dir === "raise" ? "Air up" : "Air down";
+		if (!s.air) return unsupported(key, label, ["off"]);
+		return { ...binary(key, label, !!held), value: dir === "raise" ? "RAISE" : "LOWER", overlay: "AIR" };
+	}
+	command(s: VehicleStatus, st: Settings): Command {
+		if (!s.air) return null;
+		return { action: "air_suspension", args: { state: st.dir ?? "raise" } };
+	}
+	override release(): Command {
+		return { action: "air_suspension", args: { state: "stop" } };
+	}
+}
+
+@action({ UUID: "com.yahms.beamdeckng.doors" })
+export class Doors extends DeckAction {
+	private cur(s: VehicleStatus, part: string): boolean | undefined {
+		if (part === "hood") return s.hood;
+		if (part === "trunk") return s.trunk;
+		if (!s.doors) return undefined;
+		if (part === "doors") return (s.doorsOpen ?? 0) > 0;
+		return s.doors[part];
+	}
+	face(s: VehicleStatus, st: Settings): Face {
+		const part = st.part ?? "doors";
+		const key = part.length === 2 ? "door" : part;
+		const label = { doors: "Doors", hood: "Bonnet", trunk: "Boot" }[part as string] ?? `${part} door`;
+		const open = this.cur(s, part);
+		if (open === undefined) return unsupported(key, label, ["closed"]);
+		const overlay = part.length === 2 ? part : part === "doors" && open && s.doorsOpen ? `${s.doorsOpen} OPEN` : undefined;
+		return open
+			? { key, label, state: "open", value: "OPEN", color: C.warn, overlay }
+			: { key, label, state: "closed", value: "SHUT", color: C.off, overlay };
+	}
+	command(s: VehicleStatus, st: Settings): Command {
+		const part = st.part ?? "doors";
+		const open = this.cur(s, part);
+		if (open === undefined) return null;
+		const state = open ? "close" : "open";
+		if (part === "hood" || part === "trunk") return { action: "body", args: { part, state } };
+		if (part === "doors") return { action: "body", args: { part: "doors", which: "all", state } };
+		return { action: "body", args: { part: "door", which: part, state } };
 	}
 }

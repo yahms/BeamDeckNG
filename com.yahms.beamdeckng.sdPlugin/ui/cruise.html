@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+	<head lang="en">
+		<title>Cruise control</title>
+		<meta charset="utf-8" />
+		<script src="https://sdpi-components.dev/releases/v4/sdpi-components.js"></script>
+	</head>
+	<body>
+		<sdpi-item label="Button">
+			<sdpi-select setting="op" default="toggle">
+				<option value="toggle">On / off (shows set speed)</option>
+				<option value="set">Set current speed</option>
+				<option value="plus">Speed + (resume)</option>
+				<option value="minus">Speed -</option>
+			</sdpi-select>
+		</sdpi-item>
+		<sdpi-item label="Step">
+			<sdpi-textfield setting="step" default="5" placeholder="5"></sdpi-textfield>
+		</sdpi-item>
+		<sdpi-item label="Units">
+			<sdpi-select setting="units" default="kmh">
+				<option value="kmh">km/h</option>
+				<option value="mph">mph</option>
+			</sdpi-select>
+		</sdpi-item>
+	</body>
+</html>
