@@ -1,7 +1,7 @@
-# BeamDeckNG: Stream Deck plugin for BeamNG.drive (tester, v0.1)
+# BeamDeckNG: Stream Deck plugin for BeamNG.drive (0.1.0 alpha)
 
 A standalone Stream Deck plugin. It only talks to the game's built-in MCP server at
-`http://127.0.0.1:29292/mcp` and doesn't need beam-assist.
+`http://127.0.0.1:29292/mcp`; nothing else is needed.
 
 ## Buttons
 
@@ -52,11 +52,12 @@ the buttons from the **BeamDeckNG** category.
 
 ## How it talks to the game
 
-The vehicle Lua comes from beam-assist's `resolver.lua` (copied unchanged), plus
+The vehicle-side Lua is `lua/resolver.lua` (a stateless library that finds and switches a vehicle's
+diffs, transfer case, lights, couplers and so on), plus
 `lua/beamdeck.lua`, which adds `BNGS.status()` and a `drive_mode_step` action.
 
 The plugin never calls `run_lua_vehicle`. That tool returns the previous run's result, and the
-result slot is shared with every other MCP client, so polling it would steal beam-assist's
+result slot is shared with every other MCP client, so polling it would steal other tools'
 results. Instead everything goes through the synchronous game-engine VM:
 
 1. `run_lua`: `be:getPlayerVehicle(0):queueLuaCommand(<code>)`
@@ -66,14 +67,14 @@ results. Instead everything goes through the synchronous game-engine VM:
 Polling runs every ~250 ms, and only while a BeamDeckNG button is on screen. The library is
 installed into each vehicle VM once (as the global `BNGSD_BNGS`), and is re-installed
 automatically after a vehicle switch or reload. Presses send the full library and use the same
-act-then-verify flow as beam-assist.
+act-then-verify flow (set, then check a moment later that the change took).
 
 ## Icons
 
-The button icons are in `com.yahms.beamdeckng.sdPlugin/imgs/states/`, picked from your icon set
+The button icons are in `com.yahms.beamdeckng.sdPlugin/imgs/states/`, in the plugin's icon set
 (288×288 PNGs). To change one, replace the file. To add more, put PNGs (144×144 or larger) in `com.yahms.beamdeckng.sdPlugin/imgs/states/<key>/<state>.png`. Any missing PNG
 falls back to the drawn placeholder. If you add `<state>_flash.png`, it's used as the alternate
-frame when that button flashes. Otherwise the plugin dims your PNG for that frame.
+frame when that button flashes. Otherwise the plugin dims the PNG for that frame.
 
 | key | states |
 |---|---|

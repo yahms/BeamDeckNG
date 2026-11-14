@@ -1,7 +1,7 @@
 // Talks to the player vehicle without run_lua_vehicle.
 //
 // run_lua_vehicle returns the *previous* run's result, and that slot is shared with every other
-// MCP client (e.g. beam-assist). Polling it from here would steal beam-assist's results. Instead
+// MCP client. Polling it from here would steal other clients' results. Instead
 // we use the synchronous game-engine VM (run_lua) as a relay:
 //   GE:      be:getPlayerVehicle(0):queueLuaCommand(<vehicle code>)
 //   vehicle: obj:queueGameEngineLua("BNGSD.<slot> = <result string>")
@@ -254,7 +254,7 @@ if B then B.call(${luaStr(action)}, ${luaLit(args)}, nil, "") end`;
 		return this.mcp.call(name, args);
 	}
 
-	/** Resolver action plus the deferred verify passes (same flow as beam-assist's lua::resolve). */
+	/** Resolver action plus the deferred verify passes (act, then check a moment later). */
 	async resolve(action: string, args: object): Promise<ResolverResult> {
 		const r = await this.callOnce(action, args);
 		if (r.status !== "pending" || !r.checks) return r;
