@@ -13,10 +13,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Mcp } from "./mcp";
 
-export const DECK_VERSION = "0.1.0";
+export const DECK_VERSION = "0.1.1"; // bump when the vehicle Lua changes, so vehicles reload it
 
 export type DiffState = "locked" | "open" | "partial" | "auto" | null | undefined;
-export type ModeInfo = { ctrl: string; key: string | null; name: string | null };
+export type ModeInfo = { ctrl: string; key: string | null; name: string | null; color?: string };
 
 /** What the vehicle-side BNGS.status() reports. Missing fields mean "this vehicle doesn't have it". */
 export type VehicleStatus = {

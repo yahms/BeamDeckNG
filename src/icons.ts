@@ -111,3 +111,24 @@ export function render(f: Face, phase: number): string {
 	}
 	return svgUrl(placeholder(f.state === "unsupported" ? { ...f, dim: false } : f, !!altFrame));
 }
+
+/**
+ * Nearest named colour for one of the game's hex colours, for picking a coloured icon variant
+ * (esc_blue.png, esc_yellow.png...): grey / black for unsaturated colours, otherwise by hue.
+ */
+export function colorName(hex?: string): string | undefined {
+	const m = hex?.replace("#", "").match(/^([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+	if (!m) return undefined;
+	const [r, g, b] = [m[1], m[2], m[3]].map((x) => parseInt(x, 16) / 255);
+	const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+	if (max < 0.15) return "black";
+	if (d / max < 0.2) return "grey";
+	let h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+	h = (h * 60 + 360) % 360;
+	if (h < 15 || h >= 345) return "red";
+	if (h < 40) return "orange";
+	if (h < 70) return "yellow";
+	if (h < 170) return "green";
+	if (h < 260) return "blue";
+	return "purple";
+}

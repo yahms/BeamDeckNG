@@ -128,7 +128,7 @@ frame when that button flashes. Otherwise the plugin dims your PNG for that fram
 | key | states |
 |---|---|
 | `ignition` | `off` `acc` `stalled` (ignition on, engine not running) `cranking` `running` `unsupported` |
-| `traction` | `mode_<key>` for each drive mode (e.g. `mode_comfort`, `mode_sport`, `mode_drift`, `mode_off`), falling back to `on` / `off`; the mode name is drawn on the key |
+| `traction` | `esc_<colour>` from the colour the game gives each drive mode on its own button (Comfort blue, Sport yellow, Drift green, Savage red, ESC & TC Off grey, Caged purple; any car's colours map to the nearest of blue / yellow / green / red / orange / purple / grey / black). Add `mode_<key>.png` (e.g. `mode_sport.png`) to give one mode its own icon. The mode name is drawn on the key. |
 | `diff` (shared by every diff button) | `locked` (solid centre) `open` (empty centre) `lsd` (X: an open centre diff, i.e. full-time 4WD) `partial` (orange centre: some locked) |
 | `diff_front` `diff_rear` `diff_center` `diff_all` | optional per-button overrides of `diff/`; the button draws its scope (FRONT / REAR / CENTRE) or, for "all", which diffs are locked (F+R, OPEN...) over the icon |
 | `range` | `high` `low` `partial` `unsupported` |

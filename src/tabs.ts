@@ -12,7 +12,7 @@ import * as A from "./actions";
 import { Command, DeckAction, Entry, entries, game, redraw, Settings } from "./actions";
 import { GeStatus, PtButton, VehicleStatus } from "./game";
 import { GameFunction, GAME_FUNCS } from "./gamefns";
-import { C, Face } from "./icons";
+import { C, colorName, Face } from "./icons";
 
 // ---------------------------------------------------------------- the game's powertrain bar
 
@@ -21,6 +21,11 @@ const ptColor = (b: PtButton) => (b.color && /^#?[0-9a-f]{6}$/i.test(b.color) ? 
 function ptFace(b: PtButton | undefined, label: string): Face {
 	if (!b) return A.unsupported("pt", label, []);
 	const color = ptColor(b);
+	// the game's ESC / drive mode button: coloured icon (esc_blue, esc_yellow...) instead of a ring
+	const cname = b.icon === "powertrain_esc" ? colorName(color) : undefined;
+	if (cname) {
+		return { key: "pt", state: `powertrain_esc_${cname}`, alt: ["powertrain_esc"], label: b.name ?? label, value: (b.name ?? b.id).toUpperCase(), color: color ?? C.off };
+	}
 	return {
 		key: "pt",
 		state: b.icon ?? "unknown",

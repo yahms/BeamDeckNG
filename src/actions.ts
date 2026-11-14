@@ -9,7 +9,7 @@ import streamDeck, {
 	WillDisappearEvent,
 } from "@elgato/streamdeck";
 import { DiffState, Game, GeStatus, ResolverResult, Snapshot, VehicleStatus } from "./game";
-import { C, Face, render } from "./icons";
+import { C, colorName, Face, render } from "./icons";
 
 export type Settings = {
 	fn?: string; // game function buttons: which function
@@ -273,12 +273,15 @@ export class Traction extends DeckAction {
 		if (!s.hasTC && !s.tcMode) return unsupported("traction", "Traction", ["on"]);
 		const mode = s.tcMode?.name ?? undefined;
 		const on = s.tc !== false;
+		// coloured ESC icon from the game's own colour for the mode: esc_blue (Comfort), esc_yellow (Sport),
+		// esc_green (Drift), esc_grey (ESC & TC Off)...; cars without mode colours: blue = TC on, grey = off
+		const esc = `esc_${(this.cycles(s, st) && colorName(s.tcMode?.color)) || (on ? "blue" : "grey")}`;
 		if (this.cycles(s, st)) {
-			// imgs/states/traction/mode_<key>.png wins (mode_comfort, mode_sport, mode_off...), then on/off.png
+			// imgs/states/traction/mode_<key>.png wins if you add one, then the coloured icon
 			return {
 				key: "traction",
 				state: `mode_${s.tcMode!.key}`,
-				alt: [on ? "on" : "off"],
+				alt: [esc, on ? "on" : "off"],
 				label: "Drive mode",
 				value: mode ?? "?",
 				sub: on ? "TC on" : "TC off",
@@ -286,7 +289,7 @@ export class Traction extends DeckAction {
 				overlay: mode,
 			};
 		}
-		return { key: "traction", state: on ? "on" : "off", label: "Traction", value: on ? "TC ON" : "TC OFF", sub: mode, color: on ? C.on : C.alert };
+		return { key: "traction", state: esc, alt: [on ? "on" : "off"], label: "Traction", value: on ? "TC ON" : "TC OFF", sub: mode, color: on ? C.on : C.alert };
 	}
 	command(s: VehicleStatus, st: Settings): Command {
 		if (this.cycles(s, st)) return { action: "drive_mode_step", args: { which: "tc", dir: 1 } };
