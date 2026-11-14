@@ -26,6 +26,7 @@ export type VehicleStatus = {
 	tc?: boolean;
 	tcMode?: ModeInfo;
 	centerMode?: ModeInfo;
+	centerModes?: { key: string; name?: string }[]; // centre diff controller modes, in the game's order
 	diff?: { front?: DiffState; rear?: DiffState; center?: DiffState };
 	range?: "low" | "high" | "partial" | null;
 	drive?: "4wd" | "2wd" | "partial" | null;

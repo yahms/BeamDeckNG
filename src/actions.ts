@@ -19,7 +19,7 @@ export type Settings = {
 	action?: string; // custom game action: the game's input action name
 	label?: string; // custom game action: text on the key
 	index?: string; // powertrain buttons: which button of the game's bar (1-based)
-	scope?: "front" | "rear" | "center" | "all";
+	scope?: "front" | "rear" | "center" | "all" | "cycle";
 	press?: string; // traction: toggle | cycle; lights: cycle | low | high; n2o: combined | arm | spray; jato: hold | toggle
 	side?: "left" | "right";
 	part?: "doors" | "FL" | "FR" | "RL" | "RR" | "hood" | "trunk";
@@ -298,7 +298,50 @@ export class Traction extends DeckAction {
 	}
 }
 
-const DIFF_LABEL = { front: "Front diff", rear: "Rear diff", center: "Centre diff", all: "Diff locks" };
+const DIFF_LABEL = { front: "Front diff", rear: "Rear diff", center: "Centre diff", all: "Diff locks", cycle: "Diff locks" };
+
+// ---------------------------------------------------------------- diff cycle
+
+/** One step of the diff cycle. center: "locked" / "open" for a lockable centre diff, or a controller mode key. */
+export type DiffStep = { rear: boolean; front: boolean; center?: string; name?: string };
+
+const CENTER_LOCK_KEYS = ["lock100", "locked", "lock"];
+const CENTER_OPEN_KEYS = ["auto", "lock0", "unlocked", "open"];
+
+/**
+ * The cycle for this vehicle: rear only -> both -> front only -> none (each axle group = its diffs plus
+ * the inter-axle diff between them; the centre locks whenever an axle is locked), then, if the centre
+ * diff has several modes, each of those with the axles open, then round again.
+ */
+export function diffCycle(s: VehicleStatus): DiffStep[] {
+	const hasR = !!s.diff?.rear, hasF = !!s.diff?.front;
+	const modes = s.centerModes?.map((m) => m.key) ?? [];
+	const ctrl = modes.length > 0;
+	const hasC = !!s.diff?.center || ctrl;
+	const lockKey = ctrl ? CENTER_LOCK_KEYS.find((k) => modes.includes(k)) ?? modes[modes.length - 1] : "locked";
+	const openKey = ctrl ? CENTER_OPEN_KEYS.find((k) => modes.includes(k)) ?? modes[0] : "open";
+	const c = (locked: boolean) => (hasC ? (locked ? lockKey : openKey) : undefined);
+	const steps: DiffStep[] = [];
+	if (hasR) steps.push({ rear: true, front: false, center: c(true) });
+	if (hasR && hasF) steps.push({ rear: true, front: true, center: c(true) });
+	if (hasF) steps.push({ rear: false, front: true, center: c(true) });
+	if (steps.length || hasC) steps.push({ rear: false, front: false, center: c(false) });
+	if (!hasR && !hasF && hasC && !ctrl) steps.unshift({ rear: false, front: false, center: "locked" }); // centre only: lock / open
+	if (ctrl && modes.length > 2) {
+		for (const m of s.centerModes!) {
+			if (m.key !== openKey) steps.push({ rear: false, front: false, center: m.key, name: m.name });
+		}
+	} else if (ctrl && !hasR && !hasF) {
+		steps.unshift({ rear: false, front: false, center: lockKey });
+	}
+	return steps;
+}
+
+function stepIndex(s: VehicleStatus, steps: DiffStep[]): number {
+	const rL = s.diff?.rear === "locked", fL = s.diff?.front === "locked";
+	const ck = s.centerModes?.length ? s.centerMode?.key ?? undefined : s.diff?.center === "locked" ? "locked" : s.diff?.center ? "open" : undefined;
+	return steps.findIndex((st) => st.rear === rL && st.front === fL && (st.center === undefined || st.center === ck));
+}
 const DIFF_TAG = { front: "FRONT", rear: "REAR", center: "CENTRE" };
 
 function allDiffs(s: VehicleStatus): DiffState {
@@ -327,8 +370,16 @@ export class DiffLock extends DeckAction {
 		const key = `diff_${scope}`;
 		const base = "diff";
 		const label = DIFF_LABEL[scope];
-		const cur = scope === "all" ? allDiffs(s) : s.diff?.[scope];
-		const overlay = scope === "all" ? lockedList(s) : DIFF_TAG[scope];
+		const multi = scope === "all" || scope === "cycle";
+		const cur = multi ? allDiffs(s) : s.diff?.[scope];
+		let overlay = multi ? lockedList(s) : DIFF_TAG[scope];
+		if (scope === "cycle") {
+			if (diffCycle(s).length < 2) return { ...unsupported(key, label, ["open"]), base, overlay };
+			// centre-mode steps: show the centre mode (e.g. "LOCK 50%") instead of OPEN
+			const steps = diffCycle(s);
+			const i = stepIndex(s, steps);
+			if (i >= 0 && steps[i].name) overlay = steps[i].name;
+		}
 		const sub = scope === "center" ? (s.centerMode?.name ?? undefined) : undefined;
 		const f = { key, base, label, overlay, sub };
 		const unlocked = scope === "center" ? { state: "lsd", alt: ["open"] } : { state: "open" };
@@ -346,6 +397,13 @@ export class DiffLock extends DeckAction {
 	}
 	command(s: VehicleStatus, st: Settings): Command {
 		const scope = st.scope ?? "rear";
+		if (scope === "cycle") {
+			const steps = diffCycle(s);
+			if (steps.length < 2) return null;
+			const next = steps[(stepIndex(s, steps) + 1) % steps.length]; // unknown state (-1) -> first step
+			const { name: _n, ...args } = next;
+			return { action: "diff_combo", args };
+		}
 		const cur = scope === "all" ? allDiffs(s) : s.diff?.[scope];
 		if (!cur) return null;
 		return { action: "diff_lock", args: { scope, state: cur === "locked" ? "open" : "locked" } };

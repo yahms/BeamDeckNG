@@ -75,7 +75,7 @@ const ign = new A.Ignition(), trac = new A.Traction(), diff = new A.DiffLock(), 
 const ind = new A.Indicator(), cru = new A.Cruise(), air = new A.AirSuspension(), doors = new A.Doors();
 def("ignition", ign);
 def("traction", trac);
-for (const scope of ["front", "rear", "center", "all"] as const) def(`diff_${scope}`, diff, { scope });
+for (const scope of ["front", "rear", "center", "all", "cycle"] as const) def(`diff_${scope}`, diff, { scope });
 def("range", rng);
 def("drive", drv);
 def("pbrake", new A.ParkingBrake());
@@ -129,7 +129,7 @@ export const TABS: Record<string, { label: string; items: string[] }> = {
 			"g:look_back", "g:replay", "g:slower", "g:faster"],
 	},
 };
-const OWN_POWERTRAIN = ["traction", "diff_rear", "diff_front", "diff_center", "range", "drive"];
+const OWN_POWERTRAIN = ["traction", "diff_cycle", "range", "drive"];
 
 /** Functions on a tab for the current vehicle, in order, without the ones it doesn't have. */
 function tabItems(tab: string, s: VehicleStatus | undefined): Fn[] {

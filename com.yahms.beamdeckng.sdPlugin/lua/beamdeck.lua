@@ -94,6 +94,12 @@ function BNGS.status()
       elseif has(R.centerCtrlModes.open, m.key) then s.diff.center = (k == "auto") and "auto" or "open"
       else s.diff.center = "partial" end
       s.centerMode = m
+      -- all the centre controller's modes in the game's order, for the diff cycle button
+      local list = {}
+      for k, md in pairs(cc.modes) do table.insert(list, { key = k, name = md.name, order = md.order or 0 }) end
+      table.sort(list, function(a, b) return a.order < b.order end)
+      for _, md in ipairs(list) do md.order = nil end
+      s.centerModes = list
     end
   end
   s.range = agg(range, "low", "high", "partial")
@@ -161,6 +167,47 @@ function BNGS.status()
     s.jato = { on = (e.jatoInput or 0) >= 0.5, firing = (e.jato or 0) > 0, fuel = e.jatofuel }
   end
   return s
+end
+
+-- Set front group, rear group and centre in one go, for the diff cycle button.
+-- args: rear = bool, front = bool (each group = its axle diffs plus the inter-axle diff between
+-- them), center = "locked" | "open" | <centre controller mode key> | nil (leave alone)
+BNGS.actions.diff_combo = function(args)
+  local groups = { diff_rear = args.rear, inter_rear = args.rear, diff_front = args.front, inter_front = args.front }
+  local devs = powertrain.getDevices()
+  local want, roles = {}, {}
+  local centerDevice = false
+  for n, c in pairs(BNGS.switchables()) do
+    if c.role == "diff" then
+      local state
+      if groups[c.cls] ~= nil then state = groups[c.cls] and "locked" or "open"
+      elseif c.cls == "center" and (args.center == "locked" or args.center == "open") then state = args.center; centerDevice = true end
+      if state then
+        local m = pickMode(devs[n], state)
+        if m then want[n] = m; roles[n] = c.cls end
+      end
+    end
+  end
+  local res = next(want) and applyDeviceTargets("diff_combo", want, roles) or { action = "diff_combo", targets = {}, side = {} }
+  -- centre diffs that are a driveModes controller (e.g. Sunburst centerDiffModes)
+  if args.center and not centerDevice then
+    local cc = centerCtrl()
+    if cc then
+      local key = args.center
+      if key == "locked" or key == "open" then
+        key = nil
+        for _, k in ipairs(R.centerCtrlModes[args.center]) do if cc.modes[k] then key = k break end end
+      end
+      if key and cc.modes[key] then
+        local from = cc.c.getCurrentDriveModeKey()
+        if from ~= key then cc.c.setDriveMode(key) end
+        local now = cc.c.getCurrentDriveModeKey()
+        table.insert(res.targets, { role = "center", device = cc.name, ui = cc.modes[key].name, from = from, to = now, want = key, ok = now == key })
+      end
+    end
+  end
+  res.status = nil
+  return finish(res)
 end
 
 -- Mirror of the game's simple powertrain control bar. Controllers push their buttons to the UI
@@ -247,6 +294,47 @@ BNGS.actions.drive_mode_step = function(args)
   local m = cc.modes[now]
   return { action = "drive_mode_step", status = (now ~= cur) and "applied" or "already", side = {},
            targets = { { role = "controller", device = cc.name, ui = m and m.name or now, from = cur, to = now, ok = now ~= cur } } }
+end
+
+-- Set front group, rear group and centre in one go, for the diff cycle button.
+-- args: rear = bool, front = bool (each group = its axle diffs plus the inter-axle diff between
+-- them), center = "locked" | "open" | <centre controller mode key> | nil (leave alone)
+BNGS.actions.diff_combo = function(args)
+  local groups = { diff_rear = args.rear, inter_rear = args.rear, diff_front = args.front, inter_front = args.front }
+  local devs = powertrain.getDevices()
+  local want, roles = {}, {}
+  local centerDevice = false
+  for n, c in pairs(BNGS.switchables()) do
+    if c.role == "diff" then
+      local state
+      if groups[c.cls] ~= nil then state = groups[c.cls] and "locked" or "open"
+      elseif c.cls == "center" and (args.center == "locked" or args.center == "open") then state = args.center; centerDevice = true end
+      if state then
+        local m = pickMode(devs[n], state)
+        if m then want[n] = m; roles[n] = c.cls end
+      end
+    end
+  end
+  local res = next(want) and applyDeviceTargets("diff_combo", want, roles) or { action = "diff_combo", targets = {}, side = {} }
+  -- centre diffs that are a driveModes controller (e.g. Sunburst centerDiffModes)
+  if args.center and not centerDevice then
+    local cc = centerCtrl()
+    if cc then
+      local key = args.center
+      if key == "locked" or key == "open" then
+        key = nil
+        for _, k in ipairs(R.centerCtrlModes[args.center]) do if cc.modes[k] then key = k break end end
+      end
+      if key and cc.modes[key] then
+        local from = cc.c.getCurrentDriveModeKey()
+        if from ~= key then cc.c.setDriveMode(key) end
+        local now = cc.c.getCurrentDriveModeKey()
+        table.insert(res.targets, { role = "center", device = cc.name, ui = cc.modes[key].name, from = from, to = now, want = key, ok = now == key })
+      end
+    end
+  end
+  res.status = nil
+  return finish(res)
 end
 
 -- Mirror of the game's simple powertrain control bar. Controllers push their buttons to the UI
