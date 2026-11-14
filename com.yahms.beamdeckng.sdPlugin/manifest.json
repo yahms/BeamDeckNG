@@ -304,6 +304,40 @@
 				}
 			],
 			"PropertyInspectorPath": "ui/doors.html"
+		},
+		{
+			"Name": "Nitrous (N2O)",
+			"UUID": "com.yahms.beamdeckng.nitrous",
+			"Icon": "imgs/actions/nitrous-icon",
+			"Tooltip": "Tap to arm / disarm, hold to spray. Shows armed, spraying and bottle level.",
+			"PropertyInspectorPath": "ui/nitrous.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/nitrous",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "JATO",
+			"UUID": "com.yahms.beamdeckng.jato",
+			"Icon": "imgs/actions/jato-icon",
+			"Tooltip": "Hold to fire the JATO rockets (or toggle). Shows remaining fuel.",
+			"PropertyInspectorPath": "ui/jato.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/jato",
+					"ShowTitle": false
+				}
+			]
 		}
 	]
 }

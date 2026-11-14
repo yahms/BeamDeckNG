@@ -45,6 +45,8 @@ export type VehicleStatus = {
 	doorsOpen?: number;
 	hood?: boolean;
 	trunk?: boolean;
+	n2o?: { armed: boolean; override: boolean; active: boolean; bottle?: number };
+	jato?: { on: boolean; firing: boolean; fuel?: number };
 };
 
 export type Link = "offline" | "novehicle" | "loading" | "paused" | "ok";

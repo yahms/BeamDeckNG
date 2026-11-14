@@ -13,7 +13,7 @@ import { C, Face, render } from "./icons";
 
 type Settings = {
 	scope?: "front" | "rear" | "center" | "all";
-	press?: string; // traction: toggle | cycle; lights: cycle | low | high
+	press?: string; // traction: toggle | cycle; lights: cycle | low | high; n2o: combined | arm | spray; jato: hold | toggle
 	side?: "left" | "right";
 	part?: "doors" | "FL" | "FR" | "RL" | "RR" | "hood" | "trunk";
 	op?: "toggle" | "set" | "plus" | "minus";
@@ -212,8 +212,8 @@ export class Ignition extends DeckAction {
 		switch (s.ign) {
 			case 3:
 				return { ...base, state: "cranking", value: "START", color: C.warn, flash: true };
-			case 2:
-				return { ...base, state: "on", value: "ON", color: C.warn };
+			case 2: // ignition on, engine not running: stalled (or not started yet)
+				return { ...base, state: "stalled", alt: ["on"], value: "STALL", color: C.alert };
 			case 1:
 				return { ...base, state: "acc", value: "ACC", color: C.acc };
 			case 0:
@@ -546,5 +546,107 @@ export class Doors extends DeckAction {
 		if (part === "hood" || part === "trunk") return { action: "body", args: { part, state } };
 		if (part === "doors") return { action: "body", args: { part: "doors", which: "all", state } };
 		return { action: "body", args: { part: "door", which: part, state } };
+	}
+}
+
+// ---------------------------------------------------------------- boost: nitrous and JATO
+
+const pct = (r?: number) => (typeof r === "number" ? `${Math.round(r * 100)}%` : undefined);
+const HOLD_MS = 350;
+
+/**
+ * Nitrous, default "combined": tap = arm/disarm (armed nitrous sprays by itself at full throttle above
+ * the cut-in rpm), hold = manual spray (override) for as long as the key is down.
+ */
+@action({ UUID: "com.yahms.beamdeckng.nitrous" })
+export class Nitrous extends DeckAction {
+	private timers = new Map<string, { t: ReturnType<typeof setTimeout>; spraying: boolean }>();
+
+	face(s: VehicleStatus, _st: Settings, held?: boolean): Face {
+		if (!s.n2o) return unsupported("n2o", "Nitrous", ["off"]);
+		const spraying = s.n2o.active || s.n2o.override || !!held;
+		const overlay = pct(s.n2o.bottle);
+		if (spraying) return { key: "n2o", label: "Nitrous", state: "spray", alt: ["armed"], value: "SPRAY", color: C.warn, flash: true, overlay };
+		if (s.n2o.armed) return { key: "n2o", label: "Nitrous", state: "armed", value: "ARMED", color: C.on, overlay };
+		return { key: "n2o", label: "Nitrous", state: "off", value: "OFF", color: C.off, overlay };
+	}
+	command(s: VehicleStatus): Command {
+		return s.n2o ? { action: "n2o", args: { op: "toggle" } } : null;
+	}
+
+	override async onKeyDown(ev: KeyDownEvent<Settings>): Promise<void> {
+		const e = entries.get(ev.action.id);
+		const s = game.snapshot.status;
+		if (!e || e.busy) return;
+		if (game.snapshot.link !== "ok" || !s?.n2o) return void (s && !s.n2o ? note(e, { value: "N/A", color: C.none }, 1500) : ev.action.showAlert());
+		const mode = e.settings.press ?? "combined";
+		if (mode === "arm") return super.onKeyDown(ev);
+		const startSpray = () => {
+			const h = this.timers.get(ev.action.id);
+			if (h) h.spraying = true;
+			e.held = true;
+			redraw(true);
+			game.fire("n2o", { op: "spray", state: 1 }).catch(() => undefined);
+		};
+		if (mode === "spray") {
+			this.timers.set(ev.action.id, { t: setTimeout(() => undefined, 0), spraying: true });
+			return startSpray();
+		}
+		this.timers.set(ev.action.id, { t: setTimeout(startSpray, HOLD_MS), spraying: false });
+	}
+
+	override async onKeyUp(ev: KeyUpEvent<Settings>): Promise<void> {
+		const e = entries.get(ev.action.id);
+		const h = this.timers.get(ev.action.id);
+		if (!e || !h) return;
+		clearTimeout(h.t);
+		this.timers.delete(ev.action.id);
+		if (h.spraying) {
+			e.held = false;
+			redraw(true);
+			await game.fire("n2o", { op: "spray", state: 0 }).catch(() => undefined);
+			return;
+		}
+		// short tap: arm / disarm through the normal verified path
+		await super.onKeyDown(ev as unknown as KeyDownEvent<Settings>);
+	}
+
+	override onWillDisappear(ev: WillDisappearEvent<Settings>): void {
+		const h = this.timers.get(ev.action.id);
+		if (h) {
+			clearTimeout(h.t);
+			if (h.spraying) game.fire("n2o", { op: "spray", state: 0 }).catch(() => undefined);
+			this.timers.delete(ev.action.id);
+		}
+		super.onWillDisappear(ev);
+	}
+}
+
+/** JATO rockets: hold to fire (default) or toggle. Shows remaining fuel. */
+@action({ UUID: "com.yahms.beamdeckng.jato" })
+export class Jato extends DeckAction {
+	face(s: VehicleStatus, _st: Settings, held?: boolean): Face {
+		if (!s.jato) return unsupported("jato", "JATO", ["off"]);
+		const on = s.jato.on || s.jato.firing || !!held;
+		const empty = (s.jato.fuel ?? 1) <= 0;
+		return {
+			key: "jato",
+			label: "JATO",
+			state: empty ? "empty" : on ? "on" : "off",
+			alt: ["off"],
+			value: empty ? "EMPTY" : on ? "FIRE" : "READY",
+			color: on ? C.warn : C.off,
+			flash: on && !empty,
+			dim: empty,
+			overlay: pct(s.jato.fuel),
+		};
+	}
+	command(s: VehicleStatus, st: Settings): Command {
+		if (!s.jato) return null;
+		if (st.press === "toggle") return { action: "jato", args: { state: s.jato.on ? "off" : "on" } };
+		return { action: "jato", args: { state: "on" } };
+	}
+	override release(_s: VehicleStatus, st: Settings): Command {
+		return st.press === "toggle" ? null : { action: "jato", args: { state: "off" } };
 	}
 }

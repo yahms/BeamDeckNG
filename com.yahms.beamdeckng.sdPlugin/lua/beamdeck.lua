@@ -131,6 +131,22 @@ function BNGS.status()
     elseif p.kind == "trunk" then s.trunk = (s.trunk or false) or isOpen end
   end
   if any then s.doors = doors; s.doorsOpen = open end
+
+  -- nitrous: armed (sprays by itself above cut-in rpm at full throttle), override (manual spray), active (spraying)
+  local n2o = controller.getController("nitrousOxideInjection")
+  if n2o then
+    local bottle
+    for _, st in pairs(energyStorage.getStorages() or {}) do
+      if st.type == "n2oTank" then bottle = st.remainingRatio end
+    end
+    s.n2o = { armed = (e.nitrousOxideArm or 0) >= 1, override = (e.nitrousOxideOverride or 0) >= 1,
+              active = e.nitrousOxideActive == true or e.nitrousOxideActive == 1, bottle = bottle }
+  end
+
+  -- JATO: jatoInput is the switch, jato the actual thrust, jatofuel 0..1
+  if controller.getController("jato") then
+    s.jato = { on = (e.jatoInput or 0) >= 0.5, firing = (e.jato or 0) > 0, fuel = e.jatofuel }
+  end
   return s
 end
 
@@ -163,6 +179,26 @@ BNGS.actions.drive_mode_step = function(args)
   local now = cc.c.getCurrentDriveModeKey()
   return { action = "drive_mode_step", status = (now == nextM.key) and "applied" or "failed", side = {},
            targets = { { role = "controller", device = cc.name, ui = nextM.name, from = cur, to = now, want = nextM.key, ok = now == nextM.key } } }
+end
+
+-- Nitrous, the way the game's own N2O button does it.
+-- args: op = toggle | arm | disarm (arming purges the lines), or op = spray with state = 1 | 0 (manual override)
+BNGS.actions.n2o = function(args)
+  local c = controller.getController("nitrousOxideInjection")
+  if not c then return { action = "n2o", status = "unsupported", targets = {}, detail = "no nitrous fitted" } end
+  local op = args.op or "toggle"
+  if op == "spray" then
+    c.setOverride(tonumber(args.state) == 1)
+    return { action = "n2o", status = "applied", targets = {} }
+  end
+  local armed = (electrics.values.nitrousOxideArm or 0) >= 1
+  local want = (op == "toggle" and not armed) or op == "arm"
+  local res = { action = "n2o", side = {}, targets = { { role = "boost", device = "nitrousOxideArm", ui = "nitrous", from = armed and 1 or 0, want = want and 1 or 0 } } }
+  if armed == want then res.targets[1].to = res.targets[1].from; res.targets[1].ok = true; res.status = "already"; return res end
+  c.toggleActive()
+  res.status = "pending"
+  res.checks = { { src = "e", key = "nitrousOxideArm", expect = want and 1 or 0 } }
+  return res
 end
 
 -- Lightbar: 0 off, 1 lights, 2 lights + siren (vehicle dependent). args: state = 0..2
