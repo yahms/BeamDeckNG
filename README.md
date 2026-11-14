@@ -9,7 +9,7 @@ A standalone Stream Deck plugin. It only talks to the game's built-in MCP server
 |---|---|---|
 | Ignition | OFF / ACC / ON / START (flashes while cranking) / RUN | start or stop the engine |
 | Traction control | the current drive mode (Comfort / Sport / ESC & TC Off...) and whether TC is on | cycles the car's drive modes, the same ones the game's own button cycles; TC on/off on cars without drive modes, or by setting |
-| Diff lock | LOCKED / OPEN / PARTIAL / AUTO; setting picks front, rear, centre or all | lock / unlock |
+| Diff lock | LOCKED / OPEN / PARTIAL / AUTO; setting picks front, rear, centre, all, or cycle | lock / unlock; **cycle**: rear only > both > front only > none (each axle group = its diffs plus the inter-axle diff between them; the centre locks whenever an axle is locked), then each centre diff mode if the car has several (e.g. Sunburst auto / open / 50% / locked) |
 | Range | HIGH / LOW | switch range |
 | 2WD / 4WD | 2WD / 4WD | engage / disengage front drive |
 | Parking brake | on / off | set / release |
