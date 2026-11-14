@@ -566,8 +566,8 @@ export class Nitrous extends DeckAction {
 		if (!s.n2o) return unsupported("n2o", "Nitrous", ["off"]);
 		const spraying = s.n2o.active || s.n2o.override || !!held;
 		const overlay = pct(s.n2o.bottle);
-		if (spraying) return { key: "n2o", label: "Nitrous", state: "spray", alt: ["armed"], value: "SPRAY", color: C.warn, flash: true, overlay };
-		if (s.n2o.armed) return { key: "n2o", label: "Nitrous", state: "armed", value: "ARMED", color: C.on, overlay };
+		if (spraying) return { key: "n2o", label: "Nitrous", state: "spray", alt: ["armed"], value: "SPRAY", color: C.on, flash: true, overlay };
+		if (s.n2o.armed) return { key: "n2o", label: "Nitrous", state: "armed", value: "ARMED", color: C.busy, overlay };
 		return { key: "n2o", label: "Nitrous", state: "off", value: "OFF", color: C.off, overlay };
 	}
 	command(s: VehicleStatus): Command {

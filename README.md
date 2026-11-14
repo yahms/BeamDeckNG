@@ -12,6 +12,18 @@ A standalone Stream Deck plugin. It only talks to the game's built-in MCP server
 | Diff lock | LOCKED / OPEN / PARTIAL / AUTO; setting picks front, rear, centre or all | lock / unlock |
 | Range | HIGH / LOW | switch range |
 | 2WD / 4WD | 2WD / 4WD | engage / disengage front drive |
+| Parking brake | on / off | set / release |
+| Headlights | off / low / high (black / green / blue) | cycle, or low-beam / high-beam toggle (setting) |
+| Fog lights, Hazards | on / off (hazards blink) | toggle |
+| Indicator | left or right (setting), blinks while on | toggle |
+| Lightbar | off / mode 1 / mode 2 | cycle |
+| Horn | sounding while held | hold |
+| Cruise control | on/off + set speed, or set / + / - (setting) | toggle / set / adjust |
+| Engine brake, Retarder | level | cycle levels |
+| Air suspension | raise or lower (setting) | hold |
+| Doors / bonnet / boot | open / shut (all doors, one door, bonnet or boot) | open / close |
+| Nitrous | off / armed (blue) / spraying (green), bottle % | tap: arm/disarm, hold: spray (setting) |
+| JATO | ready / firing, fuel % | hold to fire, or toggle (setting) |
 
 Common faces: **NO GAME** (MCP not reachable), **NO CAR**, **…** (loading), **PAUSED** (dimmed
 last state while the vehicle isn't answering), **N/A** (this vehicle doesn't have it).
@@ -50,16 +62,24 @@ frame when that button flashes. Otherwise the plugin dims your PNG for that fram
 
 | key | states |
 |---|---|
-| `ignition` | `off` `acc` `on` `cranking` `running` `unsupported` |
+| `ignition` | `off` `acc` `stalled` (ignition on, engine not running) `cranking` `running` `unsupported` |
 | `traction` | `on` `off` `unsupported`; in cycle mode `mode_<key>` first (e.g. `mode_comfort`, `mode_sport`, `mode_off`), falling back to `on`/`off` |
 | `diff` (shared by every diff button) | `locked` (solid centre) `open` (empty centre) `lsd` (X: an open centre diff, i.e. full-time 4WD) `partial` (orange centre: some locked) |
 | `diff_front` `diff_rear` `diff_center` `diff_all` | optional per-button overrides of `diff/`; the button draws its scope (FRONT / REAR / CENTRE) or, for "all", which diffs are locked (F+R, OPEN...) over the icon |
 | `range` | `high` `low` `partial` `unsupported` |
 | `drive` | `2wd` `4wd` `partial` `unsupported` |
+| `pbrake` `fog` `hazard` `horn` `indicator_left` `indicator_right` `air_raise` `air_lower` | `off` `on` |
+| `lights` | `off` `low` `high` |
+| `lightbar` | `off` `mode1` `mode2` |
+| `cruise` / `cruise_set` `cruise_plus` `cruise_minus` | `off` `on` / `idle` |
+| `ebrake` `retarder` | placeholders for now (level as text) |
+| `doors` `door` `hood` `trunk` | `closed` `open` |
+| `n2o` | `off` `armed` `spray` |
+| `jato` | `off` `on` `empty` |
 | `common` | `offline` `novehicle` `loading` |
 | any key | `error` (shown after a failed press) |
 
-Colour scheme: white icons, as in the game. Orange is kept for flash frames while a command is
+Colour scheme: white icons, as in the game; orange marks "on" for two-state buttons. Orange is kept for flash frames while a command is
 pending, TC off, and mixed states. A button whose feature this vehicle doesn't have shows its
 unlocked/off icon dimmed.
 
@@ -74,6 +94,12 @@ npm run build          # -> com.yahms.beamdeckng.sdPlugin/bin/plugin.js
 npm run pack           # -> dist/com.yahms.beamdeckng.streamDeckPlugin
 npx streamdeck link com.yahms.beamdeckng.sdPlugin   # dev: run from this folder
 ```
+
+## Test against the running game
+
+`test/rollup.browser.mjs` builds `test/build/browser.js`, the real `src/game.ts` for a browser page served from
+`http://127.0.0.1:29292` (open that URL; the 405 page is fine), so it can POST to `/mcp` with no CORS issues.
+Set `window.__LUA = { resolver, beamdeck }` (fetched from the repo) before loading it.
 
 ## Test without the game
 
