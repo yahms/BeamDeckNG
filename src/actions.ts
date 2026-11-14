@@ -69,7 +69,7 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 		return this.face(s, settings).state !== "unsupported";
 	}
 	/** What a press does, given the current status (null = nothing to do on this vehicle). */
-	abstract command(s: VehicleStatus, settings: Settings): Command;
+	abstract command(s: VehicleStatus, settings: Settings, ge?: GeStatus): Command;
 	/** Hold-type buttons (horn, air suspension): command sent on key up. Presses are fire-and-forget. */
 	release?(s: VehicleStatus, settings: Settings): Command;
 
@@ -110,7 +110,7 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 			await ev.action.showAlert();
 			return;
 		}
-		const cmd = this.command(snap.status ?? {}, e.settings);
+		const cmd = this.command(snap.status ?? {}, e.settings, snap.ge ?? {});
 		if (this.release || cmd?.tool) {
 			if (!cmd) return note(e, { value: "N/A", color: C.none }, 1500);
 			e.held = true;

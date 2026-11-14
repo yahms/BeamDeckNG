@@ -90,8 +90,11 @@ ${decorations(d)}
 </svg>`);
 }
 
+const BLANK = svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144"><rect width="144" height="144" fill="#000"/></svg>`);
+
 /** Image for a face; `phase` alternates 0/1 while flashing. */
 export function render(f: Face, phase: number): string {
+	if (f.key === "common" && f.state === "blank") return BLANK;
 	const altFrame = f.flash && phase === 1;
 	// Look in imgs/states/<key>/ first, then the shared folder (e.g. "diff"), for state then alt states.
 	for (const key of [f.key, ...(f.base ? [f.base] : [])]) {

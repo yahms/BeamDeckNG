@@ -24,11 +24,44 @@ A standalone Stream Deck plugin. It only talks to the game's built-in MCP server
 | Doors / bonnet / boot | open / shut (all doors, one door, bonnet or boot) | open / close |
 | Nitrous | off / armed (blue) / spraying (green), bottle % | tap: arm/disarm, hold: spray (setting) |
 | JATO | ready / firing, fuel % | hold to fire, or toggle (setting) |
+| Powertrain (game bar) | the Nth button of the game's powertrain bar, with its icon and coloured ring | whatever the game's button does |
+| Game function | pause, repair, recover, respawn, accept, back, get in/out, map, vehicles, radial menu, slow motion (1x <-> last slow speed), slower/faster, game UI, photo mode, traffic, trailer, next vehicle, menu arrows, cameras, look back, replay | per function |
+| Tab, Slot | see below | |
 
 Common faces: **NO GAME** (MCP not reachable), **NO CAR**, **…** (loading), **PAUSED** (dimmed
 last state while the vehicle isn't answering), **N/A** (this vehicle doesn't have it).
 After a press the button flashes until the game confirms. If the command fails it flashes red
 **ERROR**.
+
+## Tabs and slots (for small decks)
+
+Every function above is also available as a tab slot, so a 15-key deck can hold all of it:
+
+| | | | | |
+|---|---|---|---|---|
+| **Tab: Game** | **Tab: Car** | **Tab: Camera** | Pause | Repair |
+| Slot 1 | Slot 2 | Slot 3 | Slot 4 | Slot 5 |
+| Slot 6 | Slot 7 | Slot 8 | ✓ Accept | ✗ Back |
+
+- **Tab** buttons pick what the **Slot** buttons show. The active tab gets an orange frame; press it
+  again for the next page (shown as 1/2, 2/2...).
+- **Slot** buttons are numbered in their settings (1, 2, 3...) and filled in that order from the active
+  tab, using only what the current vehicle has, so there are no N/A gaps.
+- **Car tab:** ignition, then **the game's own powertrain bar for this vehicle** (the buttons next to
+  Start/Stop: transfer case 2H/4H/4L, diffs, range, front drive, ESC/drive modes...; it works on modded
+  vehicles too), then lights, indicators, parking brake, hazards, fog, horn, cruise, nitrous, JATO, doors,
+  boot, lightbar, truck brakes, air suspension. Vehicles without a game bar get BeamDeckNG's own
+  traction / diff / range / 4WD buttons instead.
+- **Game tab:** get in/out, map, vehicle selector, respawn, recover, slow motion, game UI, radial menu,
+  photo mode, traffic, trailer, next vehicle, menu arrows.
+- **Camera tab:** cycle, centre, orbit, driver, chase, external, top, look back (held), replay recording.
+- Getting out on foot switches to the Game tab; getting back in switches to Car.
+
+The tab lists are `TABS` in `src/tabs.ts`.
+
+Fixed buttons (pause, repair, accept/back...) are **Game function** buttons: one action type, the
+function is picked in its settings. **Powertrain (game bar)** is a standalone button for the Nth button of
+the game's bar.
 
 ## Install
 
@@ -77,6 +110,9 @@ frame when that button flashes. Otherwise the plugin dims your PNG for that fram
 | `n2o` | `off` `armed` `spray` |
 | `jato` | `off` `on` `empty` |
 | `common` | `offline` `novehicle` `loading` |
+| `pt` | the game's own icon names, e.g. `powertrain_transfercase_high-2`, `powertrain_differential_open`, `powertrain_esc` (all 44 are mapped) |
+| `tab_game` `tab_car` `tab_camera` | `off` `on` |
+| game functions (`pause`, `repair`, `walk`, `cam_orbit`...) | `off` `on`; see `GAME_FUNCS` in `src/gamefns.ts` for the folder names |
 | any key | `error` (shown after a failed press) |
 
 Colour scheme: white icons, as in the game; orange marks "on" for two-state buttons. Orange is kept for flash frames while a command is

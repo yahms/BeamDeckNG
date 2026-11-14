@@ -19,10 +19,15 @@ type GameFn = {
 	hold?: string;
 	/** Anything else: an MCP tool call. */
 	tool?: [string, object];
+	/** Or game-engine Lua (run_lua), for things the game's actions don't do reliably. */
+	lua?: string | ((ge: GeStatus) => string);
 };
 
+// Slow motion: toggle between normal speed and the last slow speed used (default 1/4).
+let lastSlow = 0.25;
+
 const slowName = (ts?: number) => {
-	if (!ts || ts >= 0.999) return undefined;
+	if (!ts || ts <= 0 || ts >= 0.999) return undefined; // 0 = paused, not slow motion
 	const inv = Math.round(1 / ts);
 	return inv > 1 ? `1/${inv}x` : `${ts.toFixed(2)}x`;
 };
@@ -36,14 +41,19 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 	recover: { label: "Recover", key: "recover", tool: ["recover_vehicle", {}] },
 	respawn: { label: "Respawn", key: "home", act: "loadHome" },
 	// game tab
-	walk: { label: "Get in / out", key: "walk", act: "toggleWalkingMode", state: (g) => (g.walking ? { state: "on", value: "ON FOOT" } : { state: "off", value: "IN CAR" }) },
+	// gameplay_walk isn't always loaded (e.g. after a level load through MCP), so load it first
+	walk: { label: "Get in / out", key: "walk", lua: "if not gameplay_walk then extensions.load('gameplay_walk') end gameplay_walk.toggleWalkingMode() return 'ok'", state: (g) => (g.walking ? { state: "on", value: "ON FOOT" } : { state: "off", value: "IN CAR" }) },
 	map: { label: "Map", key: "map", act: "toggleBigMap" },
 	vehicles: { label: "Vehicles", key: "vehicles", act: "vehicle_selector" },
 	radial: { label: "Radial menu", key: "radial", act: "toggleRadialMenuMulti" },
 	slowmo: {
 		label: "Slow motion",
 		key: "slowmo",
-		act: "toggle_slow_motion",
+		lua: (g) => {
+			const ts = g.timeScale ?? 1;
+			if (ts > 0 && ts < 0.999) lastSlow = ts;
+			return `simTimeAuthority.set(${ts > 0 && ts < 0.999 ? 1 : lastSlow}) return 'ok'`;
+		},
 		state: (g) => {
 			const n = slowName(g.timeScale);
 			return n ? { state: "on", value: n, overlay: n } : { state: "off", value: "1x" };
@@ -64,7 +74,13 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 	cam_cycle: { label: "Camera", key: "cam_cycle", act: "toggleCamera", state: (g) => ({ state: "off", overlay: g.cam }) },
 	cam_center: { label: "Centre cam", key: "cam_center", act: "center_camera" },
 	cam_orbit: { label: "Orbit", key: "cam_orbit", tool: ["set_camera", { name: "orbit" }], state: (g) => camState(g, "orbit") },
-	cam_driver: { label: "Driver", key: "cam_driver", tool: ["set_camera", { name: "driver" }], state: (g) => camState(g, "driver") },
+	// the driver camera has a per-vehicle name (e.g. occupant.FL)
+	cam_driver: {
+		label: "Driver",
+		key: "cam_driver",
+		lua: "local id = be:getPlayerVehicleID(0) core_camera.setVehicleCameraByNameWithId(id, core_camera.getDriverCameraNameById(id)) return 'ok'",
+		state: (g) => (g.cam && (g.cam.startsWith("occupant") || g.cam === "driver") ? { state: "on", value: "ACTIVE" } : { state: "off", value: "" }),
+	},
 	cam_chase: { label: "Chase", key: "cam_chase", tool: ["set_camera", { name: "chase" }], state: (g) => camState(g, "chase") },
 	cam_external: { label: "External", key: "cam_external", tool: ["set_camera", { name: "external" }], state: (g) => camState(g, "external") },
 	cam_top: { label: "Top", key: "cam_top", tool: ["set_camera", { name: "top" }], state: (g) => camState(g, "top") },
@@ -109,8 +125,9 @@ export class GameFunction extends DeckAction {
 	override available(): boolean {
 		return true;
 	}
-	command(_s: VehicleStatus, st: Settings): Command {
+	command(_s: VehicleStatus, st: Settings, ge: GeStatus = {}): Command {
 		const [, f] = GameFunction.fn(st);
+		if (f.lua) return { tool: "run_lua", args: { code: typeof f.lua === "function" ? f.lua(ge) : f.lua } };
 		if (f.hold) return { tool: "trigger_action", args: { action: f.hold, state: "down" } };
 		if (f.act) return { tool: "trigger_action", args: { action: f.act } };
 		if (f.tool) return { tool: f.tool[0], args: f.tool[1] };
