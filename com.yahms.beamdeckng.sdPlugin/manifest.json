@@ -338,6 +338,74 @@
 					"ShowTitle": false
 				}
 			]
+		},
+		{
+			"Name": "Tab",
+			"UUID": "com.yahms.beamdeckng.tab",
+			"Icon": "imgs/actions/tab-icon",
+			"Tooltip": "Tab button for the top row (Game / Car / Camera). Picks what the Slot buttons show; press the active tab again for its next page.",
+			"PropertyInspectorPath": "ui/tab.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/tab",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Slot",
+			"UUID": "com.yahms.beamdeckng.slot",
+			"Icon": "imgs/actions/slot-icon",
+			"Tooltip": "Filled from the active tab: only functions this vehicle actually has, packed in order. Number the slots 1, 2, 3... in the settings.",
+			"PropertyInspectorPath": "ui/slot.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/slot",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Powertrain (game bar)",
+			"UUID": "com.yahms.beamdeckng.powertrain",
+			"Icon": "imgs/actions/powertrain-icon",
+			"Tooltip": "Mirrors one button of the game's own powertrain bar for whatever vehicle you're in (transfer case, diffs, range, ESC modes...).",
+			"PropertyInspectorPath": "ui/powertrain.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/powertrain",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Game function",
+			"UUID": "com.yahms.beamdeckng.gamefn",
+			"Icon": "imgs/actions/gamefn-icon",
+			"Tooltip": "Pause, repair, accept / back, map, camera, replay and more. Pick the function in the button settings.",
+			"PropertyInspectorPath": "ui/gamefn.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/gamefn",
+					"ShowTitle": false
+				}
+			]
 		}
 	]
 }

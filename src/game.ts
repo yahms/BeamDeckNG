@@ -47,11 +47,25 @@ export type VehicleStatus = {
 	trunk?: boolean;
 	n2o?: { armed: boolean; override: boolean; active: boolean; bottle?: number };
 	jato?: { on: boolean; firing: boolean; fuel?: number };
+	pt?: PtButton[]; // the game's own powertrain button bar
+};
+
+/** One button of the game's powertrain bar: icon is the game's icon name, color hex (no #), ring 0..1. */
+export type PtButton = { id: string; name?: string; icon?: string; color?: string; ring?: number };
+
+/** Game-engine side state, read on every poll (works without a vehicle too). */
+export type GeStatus = {
+	paused?: boolean;
+	timeScale?: number; // 1 = normal, < 1 = slow motion
+	cam?: string; // active camera name
+	replay?: string; // inactive | recording | playing ...
+	ui?: boolean; // game UI visible
+	walking?: boolean; // player is on foot
 };
 
 export type Link = "offline" | "novehicle" | "loading" | "paused" | "ok";
 
-export type Snapshot = { link: Link; vid?: number; status?: VehicleStatus };
+export type Snapshot = { link: Link; vid?: number; status?: VehicleStatus; ge?: GeStatus };
 
 export type ResolverResult = {
 	status: "applied" | "already" | "partial" | "unsupported" | "failed" | "pending";
@@ -147,23 +161,31 @@ local j
 if not B or B.deckVersion ~= ${luaStr(DECK_VERSION)} then j = '{"needInit":true}'
 else local ok, r = pcall(B.status); j = ok and jsonEncode(r) or jsonEncode({ err = tostring(r) }) end
 obj:queueGameEngineLua("BNGSD = BNGSD or {}; BNGSD.status = { vid = " .. obj:getID() .. ", sid = \\"${this.sid}\\", seq = ${seq}, json = " .. string.format("%q", j) .. " }")`;
-		const ge = `local veh = be:getPlayerVehicle(0)
-if not veh then return jsonEncode({ veh = false }) end
+		const geCode = `local g = {}
+pcall(function() g.paused = simTimeAuthority.getPause() end)
+pcall(function() g.timeScale = simTimeAuthority.get() end)
+pcall(function() g.cam = core_camera.getActiveCamName() end)
+pcall(function() g.replay = core_replay.getState() end)
+pcall(function() g.ui = extensions.ui_visibility.getCef() end)
+local veh = be:getPlayerVehicle(0)
+pcall(function() g.walking = veh ~= nil and veh:getJBeamFilename() == "unicycle" end)
+if not veh then return jsonEncode({ veh = false, ge = g }) end
 local vid = veh:getID()
 veh:queueLuaCommand(${longStr(probe)})
 local s = BNGSD and BNGSD.status
-local out = { veh = true, vid = vid }
+local out = { veh = true, vid = vid, ge = g }
 if s and s.vid == vid and s.sid == ${luaStr(this.sid)} then out.seq = s.seq; out.s = s.json end
 return jsonEncode(out)`;
 
 		let out: any;
 		try {
-			out = JSON.parse(await this.mcp.runLua(ge));
+			out = JSON.parse(await this.mcp.runLua(geCode));
 		} catch {
 			// offline, or the game is between levels (no `be`, Lua errors): both read as not available
 			return (this.snapshot = { link: this.mcp.connected ? "novehicle" : "offline" });
 		}
-		if (!out.veh) return (this.snapshot = { link: "novehicle" });
+		const ge = out.ge as GeStatus | undefined;
+		if (!out.veh) return (this.snapshot = { link: "novehicle", ge });
 
 		const prev = this.snapshot;
 		const sameVeh = prev.vid === out.vid;
@@ -182,16 +204,16 @@ return jsonEncode(out)`;
 				this.lastInstall = Date.now();
 				await this.mcp.runLua(geQueue(LIBRARY)).catch(() => undefined);
 			}
-			return (this.snapshot = { link: "loading", vid: out.vid });
+			return (this.snapshot = { link: "loading", vid: out.vid, ge });
 		}
 
 		// No answer for ~2 s: the vehicle VM isn't running (physics paused, menu, loading).
 		const behind = seq - this.lastSeen;
 		if (!status || behind > 8) {
 			const keep = sameVeh ? prev.status : undefined;
-			return (this.snapshot = { link: keep ? "paused" : "loading", vid: out.vid, status: keep });
+			return (this.snapshot = { link: keep ? "paused" : "loading", vid: out.vid, status: keep, ge });
 		}
-		return (this.snapshot = { link: "ok", vid: out.vid, status: status as VehicleStatus });
+		return (this.snapshot = { link: "ok", vid: out.vid, status: status as VehicleStatus, ge });
 	}
 
 	/** Run one resolver action in the vehicle and wait for its result. */
@@ -224,6 +246,11 @@ return ""`;
 		const veh = `local B = rawget(_G, "BNGSD_BNGS")
 if B then B.call(${luaStr(action)}, ${luaLit(args)}, nil, "") end`;
 		await this.mcp.runLua(geQueue(veh));
+	}
+
+	/** Call one of the game's MCP tools directly (trigger_action, set_camera, toggle_ui...). */
+	tool(name: string, args: object): Promise<string> {
+		return this.mcp.call(name, args);
 	}
 
 	/** Resolver action plus the deferred verify passes (same flow as beam-assist's lua::resolve). */

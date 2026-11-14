@@ -8,10 +8,14 @@ import streamDeck, {
 	WillAppearEvent,
 	WillDisappearEvent,
 } from "@elgato/streamdeck";
-import { DiffState, Game, ResolverResult, Snapshot, VehicleStatus } from "./game";
+import { DiffState, Game, GeStatus, ResolverResult, Snapshot, VehicleStatus } from "./game";
 import { C, Face, render } from "./icons";
 
-type Settings = {
+export type Settings = {
+	fn?: string; // game function buttons: which function
+	tab?: string; // tab buttons: which tab
+	slot?: string; // slot buttons: position on the tab page (1-based)
+	index?: string; // powertrain buttons: which button of the game's bar (1-based)
 	scope?: "front" | "rear" | "center" | "all";
 	press?: string; // traction: toggle | cycle; lights: cycle | low | high; n2o: combined | arm | spray; jato: hold | toggle
 	side?: "left" | "right";
@@ -21,9 +25,10 @@ type Settings = {
 	units?: "kmh" | "mph";
 	dir?: "raise" | "lower";
 };
-type Command = { action: string; args: object } | null;
+/** A vehicle resolver action ({action, args}) or one of the game's MCP tools ({tool, args}). */
+export type Command = { action?: string; tool?: string; args: object } | null;
 
-type Entry = {
+export type Entry = {
 	action: KeyAction<Settings>;
 	impl: DeckAction;
 	settings: Settings;
@@ -31,14 +36,18 @@ type Entry = {
 	held?: boolean; // hold-type buttons: key is down
 	note?: { face: Partial<Face>; until: number }; // short-lived result overlay (N/A, ERROR)
 	lastImg?: string;
+	/** Slot buttons: pick the function to show/run before drawing or pressing. */
+	resolve?: (e: Entry) => void;
+	/** Slot buttons: keep the current function until the key is released. */
+	locked?: boolean;
 };
 
-const entries = new Map<string, Entry>();
-let game: Game;
+export const entries = new Map<string, Entry>();
+export let game: Game;
 let requestPoll: () => void = () => undefined;
 
 // "Not on this vehicle": unsupported.png if supplied, else the off/open icon dimmed, else the N/A placeholder.
-const unsupported = (key: string, label: string, alt: string[] = []): Face => ({
+export const unsupported = (key: string, label: string, alt: string[] = []): Face => ({
 	key,
 	state: "unsupported",
 	alt,
@@ -50,9 +59,15 @@ const unsupported = (key: string, label: string, alt: string[] = []): Face => ({
 
 // ---------------------------------------------------------------- base
 
-abstract class DeckAction extends SingletonAction<Settings> {
-	/** Face for the current vehicle status. */
-	abstract face(s: VehicleStatus, settings: Settings, held?: boolean): Face;
+export abstract class DeckAction extends SingletonAction<Settings> {
+	/** False for game-level functions (pause, camera...) that work without a vehicle. */
+	vehicle = true;
+	/** Face for the current vehicle status (ge = game-engine state, for game-level functions). */
+	abstract face(s: VehicleStatus, settings: Settings, held?: boolean, ge?: GeStatus): Face;
+	/** Whether this vehicle has the function at all (used to pack tab pages). */
+	available(s: VehicleStatus, settings: Settings): boolean {
+		return this.face(s, settings).state !== "unsupported";
+	}
 	/** What a press does, given the current status (null = nothing to do on this vehicle). */
 	abstract command(s: VehicleStatus, settings: Settings): Command;
 	/** Hold-type buttons (horn, air suspension): command sent on key up. Presses are fire-and-forget. */
@@ -90,16 +105,25 @@ abstract class DeckAction extends SingletonAction<Settings> {
 		const e = entries.get(ev.action.id);
 		if (!e || e.busy) return;
 		const snap = game.snapshot;
-		if (snap.link !== "ok" || !snap.status) {
+		const ready = this.vehicle ? snap.link === "ok" && !!snap.status : snap.link !== "offline";
+		if (!ready) {
 			await ev.action.showAlert();
 			return;
 		}
-		const cmd = this.command(snap.status, e.settings);
-		if (this.release) {
+		const cmd = this.command(snap.status ?? {}, e.settings);
+		if (this.release || cmd?.tool) {
 			if (!cmd) return note(e, { value: "N/A", color: C.none }, 1500);
 			e.held = true;
 			redraw(true);
-			await game.fire(cmd.action, cmd.args).catch(() => undefined);
+			await run(cmd).catch((err) => streamDeck.logger.warn(`${cmd.tool ?? cmd.action} failed: ${(err as Error).message}`));
+			if (!this.release) {
+				// taps (game actions): show the press briefly, then pick up the new state
+				setTimeout(() => {
+					e.held = false;
+					requestPoll();
+					redraw(true);
+				}, 150);
+			}
 			return;
 		}
 		if (!cmd) {
@@ -110,7 +134,7 @@ abstract class DeckAction extends SingletonAction<Settings> {
 		redraw(true);
 		let r: ResolverResult | undefined;
 		try {
-			r = await game.resolve(cmd.action, cmd.args);
+			r = await game.resolve(cmd.action!, cmd.args);
 			streamDeck.logger.info(`${cmd.action} ${JSON.stringify(cmd.args)} -> ${r.status}${r.detail ? " (" + r.detail + ")" : ""}`);
 		} catch (err) {
 			streamDeck.logger.warn(`${cmd.action} failed: ${(err as Error).message}`);
@@ -124,16 +148,23 @@ abstract class DeckAction extends SingletonAction<Settings> {
 	}
 }
 
-async function keyUp(e: Entry) {
-	if (!e.held) return;
+/** Fire-and-forget: a game tool, or a resolver action through the library already in the vehicle. */
+export async function run(cmd: NonNullable<Command>): Promise<void> {
+	if (cmd.tool) await game.tool(cmd.tool, cmd.args);
+	else await game.fire(cmd.action!, cmd.args);
+}
+
+export async function keyUp(e: Entry) {
+	e.locked = false;
+	if (!e.held || !e.impl.release) return;
 	e.held = false;
 	redraw(true);
 	const rel = e.impl.release?.(game.snapshot.status ?? {}, e.settings);
 	// Always send the release, even if the game link dropped meanwhile, so nothing stays held.
-	if (rel) await game.fire(rel.action, rel.args).catch(() => undefined);
+	if (rel) await run(rel).catch(() => undefined);
 }
 
-function note(e: Entry, face: Partial<Face>, ms: number) {
+export function note(e: Entry, face: Partial<Face>, ms: number) {
 	e.note = { face, until: Date.now() + ms };
 	redraw(true);
 }
@@ -143,13 +174,15 @@ function note(e: Entry, face: Partial<Face>, ms: number) {
 let phase = 0;
 
 function faceFor(e: Entry, snap: Snapshot): Face {
+	if (e.resolve && !e.locked && !e.held && !e.busy) e.resolve(e);
 	const common = (state: string, value: string): Face => ({ key: "common", state, label: "BeamDeckNG", value, color: C.none });
 	let f: Face;
 	if (snap.link === "offline") f = common("offline", "NO GAME");
+	else if (!e.impl.vehicle) f = e.impl.face(snap.status ?? {}, e.settings, e.held, snap.ge ?? {});
 	else if (snap.link === "novehicle") f = common("novehicle", "NO CAR");
 	else if (!snap.status) f = common("loading", "…");
 	else {
-		f = e.impl.face(snap.status, e.settings, e.held);
+		f = e.impl.face(snap.status, e.settings, e.held, snap.ge ?? {});
 		if (snap.link === "paused") f = { ...f, dim: true, sub: "PAUSED" };
 	}
 	if (e.busy) f = { ...f, flash: true };
@@ -160,7 +193,7 @@ function faceFor(e: Entry, snap: Snapshot): Face {
 	return f;
 }
 
-function redraw(force = false) {
+export function redraw(force = false) {
 	if (!game) return;
 	for (const e of entries.values()) {
 		const img = render(faceFor(e, game.snapshot), phase);

@@ -143,11 +143,60 @@ function BNGS.status()
               active = e.nitrousOxideActive == true or e.nitrousOxideActive == 1, bottle = bottle }
   end
 
+  -- the game's own powertrain button bar (bottom right), as this vehicle registered it
+  s.pt = BNGS.ptButtons()
+
   -- JATO: jatoInput is the switch, jato the actual thrust, jatofuel 0..1
   if controller.getController("jato") then
     s.jato = { on = (e.jatoInput or 0) >= 0.5, firing = (e.jato or 0) > 0, fuel = e.jatofuel }
   end
   return s
+end
+
+-- Mirror of the game's simple powertrain control bar. Controllers push their buttons to the UI
+-- through ui_simplePowertrainControl.setButton; we wrap it once per vehicle VM to keep the latest
+-- state of each button, then ask everything to re-send.
+function BNGS.ptStore()
+  local store = rawget(_G, "BNGSD_PT")
+  if store then return store end
+  local spc = extensions.ui_simplePowertrainControl
+  if not spc and extensions.load then pcall(extensions.load, "ui_simplePowertrainControl"); spc = extensions.ui_simplePowertrainControl end
+  if not spc or not spc.setButton then return nil end
+  store = { order = {}, byId = {} }
+  rawset(_G, "BNGSD_PT", store)
+  local orig = spc.setButton
+  spc.setButton = function(id, uiName, icon, color, ringValue, onClick, remove, active)
+    if remove then store.byId[id] = nil
+    else
+      if not store.byId[id] then table.insert(store.order, id) end
+      store.byId[id] = { id = id, name = uiName, icon = icon, color = color, ring = ringValue, click = onClick, active = active }
+    end
+    return orig(id, uiName, icon, color, ringValue, onClick, remove, active)
+  end
+  pcall(spc.updateButtons)
+  return store
+end
+
+function BNGS.ptButtons()
+  local store = BNGS.ptStore()
+  if not store then return nil end
+  local out = {}
+  for _, id in ipairs(store.order) do
+    local b = store.byId[id]
+    if b then table.insert(out, { id = b.id, name = b.name, icon = b.icon, color = b.color, ring = b.ring }) end
+  end
+  return out
+end
+
+-- Press one of the game's powertrain buttons: runs exactly what the game's own button runs.
+BNGS.actions.pt_click = function(args)
+  local store = BNGS.ptStore()
+  local b = store and store.byId[args.id]
+  if not b or type(b.click) ~= "string" then return { action = "pt_click", status = "unsupported", targets = {}, detail = "no such button" } end
+  local fn, err = loadstring(b.click)
+  if not fn then return { action = "pt_click", status = "failed", targets = {}, detail = tostring(err) } end
+  fn()
+  return { action = "pt_click", status = "applied", targets = { { role = "pt", device = b.id, ui = b.name, ok = true } } }
 end
 
 -- cruiseControl is a vehicle extension; load it on demand.
