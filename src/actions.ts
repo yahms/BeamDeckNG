@@ -15,6 +15,9 @@ export type Settings = {
 	fn?: string; // game function buttons: which function
 	tab?: string; // tab buttons: which tab
 	slot?: string; // slot buttons: position on the tab page (1-based)
+	pin?: string; // slot buttons: "" = follow the Tab buttons, or a tab name (one Stream Deck page per tab)
+	action?: string; // custom game action: the game's input action name
+	label?: string; // custom game action: text on the key
 	index?: string; // powertrain buttons: which button of the game's bar (1-based)
 	scope?: "front" | "rear" | "center" | "all";
 	press?: string; // traction: toggle | cycle; lights: cycle | low | high; n2o: combined | arm | spray; jato: hold | toggle

@@ -103,6 +103,11 @@ export class GameFunction extends DeckAction {
 	override vehicle = false;
 
 	static fn(st: Settings): [string, GameFn] {
+		if (st.fn === "custom") {
+			// any of the game's input actions, by name (Options > Controls; e.g. toggleRadialMenuSandbox)
+			const name = (st.action ?? "").trim();
+			return ["custom", { label: (st.label ?? "").trim() || name || "Action", key: "custom", act: name || undefined }];
+		}
 		const id = st.fn && GAME_FUNCS[st.fn] ? st.fn : "pause";
 		return [id, GAME_FUNCS[id]];
 	}
@@ -113,7 +118,7 @@ export class GameFunction extends DeckAction {
 		const on = s.state === "on";
 		return {
 			key: f.key,
-			label: f.label,
+			label: f.key === "custom" ? "Game action" : f.label,
 			state: held ? "on" : s.state,
 			alt: ["off"],
 			value: s.value ?? f.label.toUpperCase(),

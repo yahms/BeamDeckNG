@@ -159,13 +159,25 @@ let activeTab = "car";
 const pageOf: Record<string, number> = {};
 let lastWalking: boolean | undefined;
 
+const pinOf = (e: SlotEntry) => (e.own.pin && TABS[e.own.pin] ? e.own.pin : "");
+
+/** Visible slot buttons, in their numbered order. */
 const slotEntries = () =>
 	[...entries.values()]
-		.filter((e) => e.resolve && e.impl !== undefined && (e as SlotEntry).own !== undefined)
+		.filter((e) => e.resolve && (e as SlotEntry).own !== undefined)
 		.sort((a, b) => (Number((a as SlotEntry).own.slot) || 99) - (Number((b as SlotEntry).own.slot) || 99) || a.action.id.localeCompare(b.action.id)) as SlotEntry[];
 
+/** The tab a slot shows: its pin, or the active tab for slots that follow the Tab buttons. */
+const tabOfSlot = (e: SlotEntry) => pinOf(e) || activeTab;
+
+/** Slots currently showing `tab`, in order (pinned and following slots share one numbering). */
+const slotsShowing = (tab: string) => slotEntries().filter((e) => tabOfSlot(e) === tab);
+
+/** Tabs pinned by the slots on screen: with one Stream Deck page per tab, this is the page's tab. */
+const pinnedOnScreen = () => new Set(slotEntries().map(pinOf).filter((p) => p));
+
 function pagesFor(tab: string): number {
-	const n = Math.max(1, slotEntries().length);
+	const n = Math.max(1, slotsShowing(tab).length);
 	return Math.max(1, Math.ceil(tabItems(tab, game.snapshot.status).length / n));
 }
 
@@ -185,7 +197,8 @@ export class Tab extends DeckAction {
 	face(_s: VehicleStatus, st: Settings, _h?: boolean, ge?: GeStatus): Face {
 		followPlayer(ge);
 		const tab = TABS[st.tab ?? "car"] ? st.tab ?? "car" : "car";
-		const on = tab === activeTab;
+		const pinned = pinnedOnScreen();
+		const on = pinned.size ? pinned.has(tab) : tab === activeTab;
 		const pages = on ? pagesFor(tab) : 1;
 		const page = (pageOf[tab] ?? 0) % pages;
 		return {
@@ -209,7 +222,9 @@ export class Tab extends DeckAction {
 		const e = entries.get(ev.action.id);
 		if (!e) return;
 		const tab = TABS[e.settings.tab ?? "car"] ? e.settings.tab ?? "car" : "car";
-		if (tab === activeTab) pageOf[tab] = ((pageOf[tab] ?? 0) + 1) % pagesFor(tab);
+		const pinned = pinnedOnScreen();
+		const isActive = pinned.size ? pinned.has(tab) : tab === activeTab;
+		if (isActive) pageOf[tab] = ((pageOf[tab] ?? 0) + 1) % pagesFor(tab);
 		else activeTab = tab;
 		redraw(true);
 	}
@@ -237,12 +252,13 @@ const blank: Fn = { impl: new Blank(), settings: {} };
 function resolveSlot(e: Entry) {
 	const se = e as SlotEntry;
 	followPlayer(game.snapshot.ge);
-	const slots = slotEntries();
+	const tab = tabOfSlot(se);
+	const slots = slotsShowing(tab);
 	const idx = slots.indexOf(se);
-	const items = tabItems(activeTab, game.snapshot.status);
+	const items = tabItems(tab, game.snapshot.status);
 	const n = Math.max(1, slots.length);
 	const pages = Math.max(1, Math.ceil(items.length / n));
-	const page = (pageOf[activeTab] ?? 0) % pages;
+	const page = (pageOf[tab] ?? 0) % pages;
 	const f = (idx >= 0 && items[page * n + idx]) || blank;
 	if (se.impl !== f.impl || se.settings !== f.settings) {
 		se.impl = f.impl;

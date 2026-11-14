@@ -47,7 +47,17 @@
 					<option value="look_back">Look back</option>
 					<option value="replay">Replay</option>
 				</optgroup>
+				<optgroup label="Other">
+					<option value="custom">Custom game action...</option>
+				</optgroup>
 			</sdpi-select>
 		</sdpi-item>
+		<sdpi-item label="Action name">
+			<sdpi-textfield setting="action" placeholder="e.g. toggleRadialMenuSandbox"></sdpi-textfield>
+		</sdpi-item>
+		<sdpi-item label="Key text">
+			<sdpi-textfield setting="label" placeholder="shown on the key"></sdpi-textfield>
+		</sdpi-item>
+		<p style="color:#aaa;font-size:12px;margin:8px">Action name and key text are only used with "Custom game action": any action from the game's Controls menu, fired directly (no key binding needed).</p>
 	</body>
 </html>

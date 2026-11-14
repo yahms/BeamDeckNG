@@ -59,6 +59,38 @@ Every function above is also available as a tab slot, so a 15-key deck can hold 
 
 The tab lists are `TABS` in `src/tabs.ts`.
 
+### Stream Deck XL (32 keys)
+
+Two ways to lay it out; both use the same buttons.
+
+**A. One page, BeamDeckNG tabs.** Same as the 15-key layout, just more slots. Any key that isn't a Slot
+is yours for other plugins, hotkeys, OBS, Discord... (those stay put on every tab):
+
+| | | | | | | | |
+|---|---|---|---|---|---|---|---|
+| Tab: Game | Tab: Car | Tab: Camera | *free* | *free* | Pause | Repair | Respawn |
+| Slot 1 | Slot 2 | Slot 3 | Slot 4 | Slot 5 | Slot 6 | Slot 7 | Slot 8 |
+| Slot 9 | Slot 10 | Slot 11 | Slot 12 | Slot 13 | Slot 14 | Slot 15 | Slot 16 |
+| Slot 17 | Slot 18 | Slot 19 | Slot 20 | *free* | *free* | ✓ Accept | ✗ Back |
+
+**B. One Stream Deck page per tab.** For free keys that belong to a tab (e.g. an OBS scene button only on
+the Camera page): make a page per tab, set that page's Slots to *"Always the Car tab"* (etc.) in their
+settings, and put anything else on the rest of the page. Switch pages with Stream Deck's own page
+buttons (Go to Page / Next Page; you can drag `imgs/states/tab_*/on.png` onto them). BeamDeckNG Tab
+buttons on a page highlight the tab whose page is showing, and pressing that tab pages through its
+slots when they don't all fit.
+
+| Car page | | | | | | | |
+|---|---|---|---|---|---|---|---|
+| ⇢ Game page | **Car** | ⇢ Camera page | *free* | *free* | Pause | Repair | Respawn |
+| Car slot 1 | Car slot 2 | Car slot 3 | Car slot 4 | Car slot 5 | Car slot 6 | *free* | *free* |
+| Car slot 7 | Car slot 8 | Car slot 9 | Car slot 10 | Car slot 11 | Car slot 12 | *free* | *free* |
+| *free* | *free* | *free* | *free* | *free* | *free* | ✓ Accept | ✗ Back |
+
+**Custom game action:** a Game function set to "Custom game action..." fires any action from the game's
+Controls menu by its name (e.g. `toggleRadialMenuSandbox`, `md_series__toggle_beacon`), with your own
+text on the key, without needing a keyboard binding. Ordinary Stream Deck Hotkey buttons work too.
+
 Fixed buttons (pause, repair, accept/back...) are **Game function** buttons: one action type, the
 function is picked in its settings. **Powertrain (game bar)** is a standalone button for the Nth button of
 the game's bar.
