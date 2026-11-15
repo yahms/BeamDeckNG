@@ -1,4 +1,4 @@
-# BeamDeckNG: Stream Deck plugin for BeamNG.drive (0.2.3 alpha)
+# BeamDeckNG: Stream Deck plugin for BeamNG.drive (0.2.3 beta)
 
 A Stream Deck plugin that uses **BeamNG.drive's native MCP server**. Enable MCP in the game and it
 just works: no game mod, and no bridge program running in the background.

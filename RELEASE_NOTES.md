@@ -1,4 +1,4 @@
-# BeamDeckNG 0.2.3 (alpha)
+# BeamDeckNG 0.2.3 (beta)
 
 **New: Tyre pressure keys.** For vehicles with a central tyre inflation system, such as the Autobello Stambecco 6x6.
 Pick one axle or all wheels, then hold the key to inflate or deflate; the key shows that group's pressure in psi and
@@ -25,4 +25,4 @@ reload Lua.
 **BeamDeckNG** category. The plugin uses the game's native MCP server: enable MCP in BeamNG.drive and it just works, with
 no game mod or bridge program. Stream Deck must be on the same computer as the game.
 
-This is an alpha release: feedback and bug reports are welcome on the Issues page.
+This is a beta release: feedback and bug reports are welcome on the Issues page.
