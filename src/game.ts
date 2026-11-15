@@ -11,10 +11,12 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { storeGlyphs, takeWantedGlyphs } from "./icons";
+import streamDeck from "@elgato/streamdeck";
+import { glyphCount, storeGlyphs, takeWantedGlyphs } from "./icons";
 import { Mcp } from "./mcp";
 
-export const DECK_VERSION = "0.2.0"; // bump when the vehicle Lua changes, so vehicles reload it
+export const VERSION = "0.2.3";
+export const DECK_VERSION = "0.2.3"; // bump when the vehicle Lua changes, so vehicles reload it
 
 export type DiffState = "locked" | "open" | "partial" | "auto" | null | undefined;
 export type ModeInfo = { ctrl: string; key: string | null; name: string | null; color?: string };
@@ -51,6 +53,8 @@ export type VehicleStatus = {
 	jato?: { on: boolean; firing: boolean; fuel?: number };
 	pt?: PtButton[]; // the game's own powertrain button bar
 	/** Gauge readings. spd m/s, temps in C, boost in psi, fuel 0..1, dmg = the game's damage score. */
+	/** Tyre pressure groups (CTIS): k = group key, n = name, psi, min, max, a = selected. */
+	tp?: { k: string; n?: string; psi?: number; min?: number; max?: number; a?: boolean }[];
 	g?: { spd?: number; gear?: string; gi?: number; rpm?: number; maxrpm?: number; fuel?: number; low?: boolean; water?: number; oil?: number; boost?: number; boostMax?: number; dmg?: number };
 };
 
@@ -73,6 +77,7 @@ export type GeStatus = {
 	wind?: number;
 	grav?: number; // m/s2, negative = down
 	rain?: number; // rain drops (0 = dry)
+	veh?: { name?: string; color?: string }; // current vehicle: model name and paint colour ("r, g, b, a")
 };
 
 export type Link = "offline" | "novehicle" | "loading" | "paused" | "ok";
@@ -173,7 +178,8 @@ local j
 if not B or B.deckVersion ~= ${luaStr(DECK_VERSION)} then j = '{"needInit":true}'
 else local ok, r = pcall(B.status); j = ok and jsonEncode(r) or jsonEncode({ err = tostring(r) }) end
 obj:queueGameEngineLua("BNGSD = BNGSD or {}; BNGSD.status = { vid = " .. obj:getID() .. ", sid = \\"${this.sid}\\", seq = ${seq}, json = " .. string.format("%q", j) .. " }")`;
-		const geCode = `local g = {}
+		const geCode = `BNGSD = BNGSD or {}
+local g = {}
 pcall(function() g.paused = simTimeAuthority.getPause() end)
 pcall(function() g.timeScale = simTimeAuthority.get() end)
 pcall(function() g.cam = core_camera.getActiveCamName() end)
@@ -193,6 +199,20 @@ pcall(function()
     if o then n = math.max(n, tonumber(o.numDrops) or 0) end
   end
   g.rain = n
+end)
+pcall(function()
+  -- model name and paint colour, looked up once per vehicle
+  local vid = be:getPlayerVehicleID(0)
+  if vid and vid >= 0 then
+    if BNGSD.vehId ~= vid then
+      BNGSD.vehId = vid
+      local ok, d = pcall(core_vehicles.getVehicleDetails, vid)
+      BNGSD.vehName = ok and d and d.model and d.model.Name or nil
+      local o = be:getObjectByID(vid)
+      BNGSD.vehColor = o and tostring(o.color) or nil
+    end
+    g.veh = { name = BNGSD.vehName, color = BNGSD.vehColor }
+  end
 end)
 local veh = be:getPlayerVehicle(0)
 pcall(function() g.walking = veh ~= nil and veh:getJBeamFilename() == "unicycle" end)
@@ -250,17 +270,27 @@ return jsonEncode(out)`;
 	async fetchGlyphs(): Promise<void> {
 		const ids = takeWantedGlyphs();
 		if (!ids.length) return;
+		// The sprite is cached in the game, but only once it has really been read: a half-loaded game
+		// returns nothing, and caching that would leave every key without an icon until a restart.
 		const code = `BNGSD = BNGSD or {}
-if not BNGSD.sprite then BNGSD.sprite = readFile("/ui/assets/Sprites/svg-symbols.svg") or "" end
+if not BNGSD.sprite or #BNGSD.sprite == 0 then BNGSD.sprite = readFile("/ui/assets/Sprites/svg-symbols.svg") or "" end
 local s = BNGSD.sprite
+if #s == 0 then return jsonEncode({ nosprite = true }) end
 local out = {}
 for _, id in ipairs(${luaLit(ids)}) do
   local a = s:find('<symbol[^>]-id="' .. id:gsub("%p", "%%%0") .. '"')
   if a then local b = s:find("</symbol>", a, true) out[id] = b and s:sub(a, b + 8) or false else out[id] = false end
 end
-return jsonEncode(out)`;
+return jsonEncode({ found = out })`;
 		try {
-			storeGlyphs(JSON.parse(await this.mcp.runLua(code)));
+			const r = JSON.parse(await this.mcp.runLua(code));
+			if (!r.found) {
+				streamDeck.logger.info(`icons: the game hasn't loaded its icon set yet, asking again later (${ids.length} wanted)`);
+				return; // not stored, so they are asked for again
+			}
+			const got = Object.values(r.found as Record<string, string | false>).filter(Boolean).length;
+			storeGlyphs(r.found);
+			streamDeck.logger.info(`icons: read ${got}/${ids.length} from the game (${glyphCount()} in all)`);
 		} catch {
 			/* game busy or gone: they'll be asked for again */
 		}

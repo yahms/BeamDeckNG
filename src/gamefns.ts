@@ -11,7 +11,7 @@ type GameFn = {
 	label: string;
 	key: string; // icon folder under imgs/states
 	/** Icon state for the current game state; "off" by default, "on" shows the active (green) icon. */
-	state?: (ge: GeStatus) => { state: string; value?: string; overlay?: string; flash?: boolean };
+	state?: (ge: GeStatus) => { state: string; value?: string; overlay?: string; flash?: boolean; glyph?: string[]; tint?: string };
 	/** Tap: trigger_action name. */
 	act?: string;
 	/** Hold: trigger_action with down/up. */
@@ -99,11 +99,17 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 	},
 	slower: { label: "Slower", key: "slower", act: "slower_motion", state: (g) => ({ state: "off", overlay: slowName(g.timeScale) }) },
 	faster: { label: "Faster", key: "faster", act: "faster_motion", state: (g) => ({ state: "off", overlay: slowName(g.timeScale) }) },
-	ui: { label: "Game UI", key: "ui", tool: ["toggle_ui", {}], state: (g) => (g.ui === false ? { state: "off", value: "HIDDEN" } : { state: "on", value: "SHOWN" }) },
+	ui: { label: "Game UI", key: "ui", tool: ["toggle_ui", {}], state: (g) => (g.ui === false ? { state: "off", value: "UI OFF" } : { state: "on", value: "UI ON" }) },
 	photo: { label: "Photo mode", key: "photo", act: "photomode" },
 	traffic: { label: "Traffic", key: "traffic", act: "toggleTraffic" },
 	trailer: { label: "Trailer", key: "trailer", act: "couplersToggle" },
-	nextveh: { label: "Next vehicle", key: "nextveh", act: "switch_next_vehicle" },
+	// shows the car you're in, in its own paint colour
+	nextveh: {
+		label: "Next vehicle",
+		key: "nextveh",
+		act: "switch_next_vehicle",
+		state: (g) => ({ state: "off", value: g.veh?.name ?? "NEXT CAR", glyph: ["material_directions_car"], tint: paint(g.veh?.color) }),
+	},
 	up: { label: "Up", key: "up", act: "menu_item_up" },
 	down: { label: "Down", key: "down", act: "menu_item_down" },
 	left: { label: "Left", key: "left", act: "menu_item_left" },
@@ -134,9 +140,34 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 		label: "Replay",
 		key: "replay",
 		act: "toggleReplayRecording",
-		state: (g) => (g.replay === "recording" ? { state: "on", value: "REC", flash: true } : { state: "off", value: g.replay === "playing" ? "PLAY" : "OFF" }),
+		state: (g) =>
+			g.replay === "recording"
+				? { state: "on", value: "RECORDING", flash: true }
+				: { state: "off", value: g.replay === "inactive" || !g.replay ? "NOT RECORDING" : g.replay.toUpperCase() },
 	},
+	// stopping the recording leaves the game in replay mode: this drops out of it
+	replay_eject: {
+		label: "Eject replay",
+		key: "replay_eject",
+		lua: "if core_replay.stopAndUnload then core_replay.stopAndUnload() else core_replay.stop() end return 'ok'",
+		state: (g) => ({ state: !g.replay || g.replay === "inactive" ? "off" : "on", value: "EJECT" }),
+	},
+	reload_lua: { label: "Reload Lua", key: "reload_lua", tool: ["reload_lua", {}], state: () => ({ state: "off", value: "RELOAD LUA" }) },
 };
+
+/** The car's paint colour ("r, g, b, a", 0..1) as a hex a key can be drawn in: dark paint is lifted
+ *  so it still reads on a black key, and a near-white car just stays white. */
+function paint(c?: string): string | undefined {
+	const p = (c ?? "").split(",").map((n) => parseFloat(n.trim()));
+	if (p.length < 3 || p.some((n) => !Number.isFinite(n))) return undefined;
+	let [r, g, b] = p;
+	const max = Math.max(r, g, b);
+	if (max < 0.55) {
+		const k = max < 0.04 ? 0 : 0.55 / max; // true black: fall back to white
+		[r, g, b] = k ? [r * k, g * k, b * k] : [1, 1, 1];
+	}
+	return `#${[r, g, b].map((n) => Math.round(Math.min(1, Math.max(0, n)) * 255).toString(16).padStart(2, "0")).join("")}`;
+}
 
 function camState(g: GeStatus, name: string) {
 	return g.cam === name ? { state: "on", value: "ACTIVE" } : { state: "off", value: "" };
@@ -170,6 +201,7 @@ export class GameFunction extends DeckAction {
 			color: on || held ? C.warn : C.off,
 			overlay: s.overlay,
 			flash: s.flash,
+			...(s.glyph ? { glyph: s.glyph, tint: s.tint } : {}),
 		};
 	}
 	command(_s: VehicleStatus, st: Settings, ge: GeStatus = {}): Command {

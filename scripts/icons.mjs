@@ -64,7 +64,7 @@ const ACTIONS = {
 	ignition: "own:engine", traction: "tune", difflock: "own:diff", range: "own:range", drive: "own:awd",
 	parkingbrake: "own:pbrake", headlights: "own:headlight", fog: "foggy", hazards: "own:hazard", indicator: "own:signals",
 	lightbar: "own:lightbar", horn: "campaign", cruise: "speed", enginebrake: "compress", retarder: "compress",
-	airsuspension: "height", doors: "door_front", nitrous: "bolt", jato: "rocket_launch", powertrain: "car_gear", gamefn: "sports_esports", world: "partly_cloudy_day", gauge: "speed",
+	airsuspension: "height", doors: "door_front", nitrous: "bolt", jato: "rocket_launch", powertrain: "car_gear", gamefn: "sports_esports", world: "partly_cloudy_day", gauge: "speed", tires: "tire_repair",
 };
 // Folder / page icons (white, plus green for the active one). yes / no are a green tick and a red cross.
 const CATEGORY = {

@@ -160,6 +160,31 @@ function BNGS.status()
   end
 
   -- the game's own powertrain button bar (bottom right), as this vehicle registered it
+  -- central tyre inflation (Stambecco TPMS and anything else with tirePressureControl)
+  local tpc = controller.getController("tirePressureControl")
+  local tpd = v and v.data and v.data.tirePressureControl
+  if tpc and tpd and tpd.wheelGroups then
+    local rows, env, gs = tpd.wheelGroups, obj:getEnvPressure(), {}
+    local pre = (tpc.name or "tirePressureControl")
+    for i = 2, #rows do
+      local row = rows[i]
+      local sum, n = 0, 0
+      for _, wn in ipairs(row[4] or {}) do
+        local wid = wheels.wheelIDs[wn]
+        local pg = wid and wheels.wheels[wid] and wheels.wheels[wid].pressureGroupId
+        if pg then sum = sum + obj:getGroupPressure(pg) n = n + 1 end
+      end
+      gs[#gs + 1] = {
+        k = row[1], n = row[2],
+        psi = n > 0 and math.floor((sum / n - env) / 6894.76 * 10 + 0.5) / 10 or nil,
+        min = row[5] and math.floor((row[5] - env) / 6894.76 * 10 + 0.5) / 10 or nil,
+        max = row[6] and math.floor((row[6] - env) / 6894.76 * 10 + 0.5) / 10 or nil,
+        a = (e[pre .. "_" .. row[1] .. "_isActive"] or 0) > 0.5,
+      }
+    end
+    if #gs > 0 then s.tp = gs end
+  end
+
   s.pt = BNGS.ptButtons()
 
   -- JATO: jatoInput is the switch, jato the actual thrust, jatofuel 0..1
@@ -449,6 +474,29 @@ BNGS.actions.lightbar = function(args)
   if electrics.values.lightbar == nil then return { action = "lightbar", status = "unsupported", targets = {} } end
   local n = tonumber(args.state) or 0
   return eTarget("lightbar", "lightbar", electrics.values.lightbar, n, function() electrics.set_lightbar_signal(n) end)
+end
+
+-- Tyre pressure, held from the button. args: group = "all" | 1-based axle number,
+-- dir = "inflate" | "deflate", state = 1 (start) | 0 (stop). Fire-and-forget, no verify.
+BNGS.actions.tire_pressure = function(args)
+  local c = controller.getController("tirePressureControl")
+  local d = v and v.data and v.data.tirePressureControl
+  if not c or not d or not d.wheelGroups then
+    return { action = "tire_pressure", status = "unsupported", targets = {}, detail = "no tyre pressure system" }
+  end
+  local names = {}
+  for i = 2, #d.wheelGroups do names[#names + 1] = d.wheelGroups[i][1] end
+  local want = args.group
+  if want ~= "all" then want = names[tonumber(want) or 0] end
+  if tonumber(args.state) ~= 1 then
+    c.stopActiveGroups()
+    for _, n in ipairs(names) do c.setGroupState(n, false) end
+    return { action = "tire_pressure", status = "applied", targets = {} }
+  end
+  if not want then return { action = "tire_pressure", status = "unsupported", targets = {}, detail = "no such axle" } end
+  for _, n in ipairs(names) do c.setGroupState(n, want == "all" or n == want) end
+  if args.dir == "deflate" then c.startDeflateActiveGroups() else c.startInflateActiveGroups() end
+  return { action = "tire_pressure", status = "applied", targets = {} }
 end
 
 -- Horn, held from the button. args: state = 1 | 0. Fire-and-forget, no verify.

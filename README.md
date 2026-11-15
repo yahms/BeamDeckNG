@@ -1,4 +1,4 @@
-# BeamDeckNG: Stream Deck plugin for BeamNG.drive (0.2.2 alpha)
+# BeamDeckNG: Stream Deck plugin for BeamNG.drive (0.2.3 alpha)
 
 A Stream Deck plugin that uses **BeamNG.drive's native MCP server**. Enable MCP in the game and it
 just works: no game mod, and no bridge program running in the background.
@@ -31,7 +31,8 @@ just works: no game mod, and no bridge program running in the background.
 | Powertrain (game bar) | the Nth button of the game's powertrain bar, with its icon and coloured ring | whatever the game's button does |
 | World | **time of day** clock with a sky-coloured background (night blue, dawn/dusk orange, day blue); time presets (sunrise, noon, sunset, midnight), ±1 hour, day length; **weather** presets (clear, cloudy, fog, rain, storm) and separate rain / fog / wind keys; **gravity** (Earth, Moon, Mars, Zero-G, Jupiter). Preset keys are green when that preset is current | apply the preset, or cycle. The clock key runs / freezes time |
 | Gauge | speed, gear with shift light (green > yellow > red flash near the limiter), rpm, fuel, coolant and oil temperature, boost, damage | none (damage: repair) |
-| Game function | pause, repair, recover, respawn, accept, back, get in/out, map, vehicles, radial menu, slow motion (1x <-> last slow speed), slower/faster, game UI, photo mode, traffic, trailer, next vehicle, menu arrows, next / previous camera (every camera the vehicle has: driver, hood, chase, orbit, external, top...), free camera on / off, fixed camera keys, look back, replay | per function |
+| Tyre pressure | one axle or all wheels, with that group's pressure in psi (vehicles with a central tyre inflation system, e.g. the Stambecco 6x6) | hold to inflate or deflate |
+| Game function | pause, repair, recover, respawn, accept, back, get in/out, map, vehicles, radial menu, slow motion (1x <-> last slow speed), slower/faster, game UI, photo mode, traffic, trailer, next vehicle (shows the car you are in, in its paint colour), menu arrows, next / previous camera (every camera the vehicle has: driver, hood, chase, orbit, external, top...), free camera on / off, fixed camera keys, look back, replay record / stop, eject replay, reload Lua | per function |
 
 When the game isn't running (**NO GAME**), no vehicle is spawned (**NO CAR**) or a map is loading, each
 button still shows what it is: its icon, dimmed, or its name. So a layout can be built without the
@@ -112,6 +113,9 @@ To use your own images instead, put 144×144 PNGs in
 `ignition/stalled.png`; keys and states are the ones in `src/glyphmap.ts`). Your PNGs win over the
 game's icons; `<state>_flash.png` is used as the flash frame. PNGs are read once at plugin start, so
 restart the plugin after adding them: `streamdeck restart com.yahms.beamdeckng`.
+
+A few icons are drawn by the plugin itself (the headlights, filled when they are on), so they don't
+depend on the game at all.
 
 The icons that ship with the plugin (action list, default key images, category icons) are built by
 `node scripts/icons.mjs` from [Material Symbols](https://github.com/google/material-design-icons)

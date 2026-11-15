@@ -1,22 +1,28 @@
-# BeamDeckNG 0.2.2 (alpha)
+# BeamDeckNG 0.2.3 (alpha)
 
-**Cameras.** The camera key used to be the game's free-camera toggle, so it only flipped between the free camera and
-whatever vehicle camera you were last on. There are now three camera keys:
+**New: Tyre pressure keys.** For vehicles with a central tyre inflation system, such as the Autobello Stambecco 6x6.
+Pick one axle or all wheels, then hold the key to inflate or deflate; the key shows that group's pressure in psi and
+lights up while the pump is running.
 
-- **Next camera** / **Previous camera** step through every camera the vehicle actually has - driver, hood, chase, orbit,
-  external, top down, drone, and any other seats - and show the current one by name. Pressed while the free camera is
-  on, they drop you back into the car. The game's own camera key only cycles the cameras left enabled in its camera
-  settings; tick "only the ones enabled in the game" on the button to follow that list instead.
-- **Free camera on / off** is the old behaviour, on its own key, showing FREE or CAR.
+**New game functions:** eject replay (stopping a recording leaves the game in replay mode - this drops out of it) and
+reload Lua.
 
-An existing "Camera" key becomes Next camera, so it does what you'd expect without being re-added.
+**Next vehicle** now shows the car you're in by name, drawn in that car's paint colour.
+
+**Icon changes**
+- Headlights: solid green on low beam and solid blue on high beam, drawn by the plugin itself; plain white outline when
+  off, with no line through it. The green used across the plugin is a little brighter.
+- Drive modes: always the game's round ESC badge, in the mode's colour, and grey when ESC is off.
+- Game UI key: shows UI ON / UI OFF with a UI icon.
+- Replay: a video camera, and NOT RECORDING when idle.
+
+**Fixes**
+- If the game is asked for its icons before it has finished loading, the plugin no longer remembers the icons as
+  missing; it asks again, and retries anything the game didn't have a minute later.
+- The plugin writes its version to its log on startup, which makes it obvious which build is actually running.
 
 **Install:** double-click `com.yahms.beamdeckng.streamDeckPlugin` (Stream Deck 7.1 or later), then drag buttons from the
 **BeamDeckNG** category. The plugin uses the game's native MCP server: enable MCP in BeamNG.drive and it just works, with
 no game mod or bridge program. Stream Deck must be on the same computer as the game.
-
-Also in 0.2.x: World keys (time of day, weather, rain on every map, fog, wind, gravity), Gauge keys (speed, gear with
-shift light, rpm, fuel, temperatures, boost, damage), a text line on every key, and buttons that show what they are
-while the game is closed.
 
 This is an alpha release: feedback and bug reports are welcome on the Issues page.

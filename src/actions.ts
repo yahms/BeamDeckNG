@@ -26,6 +26,8 @@ export type Settings = {
 	units?: "kmh" | "mph";
 	dir?: "raise" | "lower";
 	gauge?: string; // gauge buttons: which reading
+	group?: string; // tyre pressure: "all" or the axle number
+	tdir?: "inflate" | "deflate"; // tyre pressure: which way
 	gamecams?: boolean; // camera buttons: cycle only the cameras enabled in the game's own settings
 };
 /** A vehicle resolver action ({action, args}) or one of the game's MCP tools ({tool, args}). */
@@ -285,12 +287,10 @@ export class Traction extends DeckAction {
 		// esc_green (Drift), esc_grey (ESC & TC Off)...; cars without mode colours: blue = TC on, grey = off
 		const esc = `esc_${(this.cycles(s, st) && colorName(s.tcMode?.color)) || (on ? "blue" : "grey")}`;
 		if (this.cycles(s, st)) {
-			// the game's ESC icon for the mode, in the game's colour for that mode (Comfort blue, Sport yellow...)
-			const k = s.tcMode!.key ?? "";
-			const modeGlyph = { comfort: "radial_regular_esc", normal: "radial_regular_esc", sport: "radial_sport_esc", drift: "radial_drift_esc", off: "radial_esc_off" }[k];
-			const tint = s.tcMode?.color && /^#?[0-9a-f]{6}$/i.test(s.tcMode.color) ? `#${s.tcMode.color.replace("#", "")}` : on ? P.blue : P.off;
+			// always the game's round ESC badge, in the game's colour for the mode (grey when ESC is off)
+			const tint = on && s.tcMode?.color && /^#?[0-9a-f]{6}$/i.test(s.tcMode.color) ? `#${s.tcMode.color.replace("#", "")}` : on ? P.blue : P.off;
 			return {
-				glyph: [...(modeGlyph ? [modeGlyph] : []), on ? "powertrain_esc" : "powertrain_esc-off", "systems_esc"],
+				glyph: ["powertrain_esc", "systems_esc"],
 				tint,
 				key: "traction",
 				state: `mode_${s.tcMode!.key}`,

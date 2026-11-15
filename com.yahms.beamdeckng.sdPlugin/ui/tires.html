@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+	<head lang="en">
+		<title>Tyre pressure</title>
+		<meta charset="utf-8" />
+		<script src="https://sdpi-components.dev/releases/v4/sdpi-components.js"></script>
+	</head>
+	<body>
+		<sdpi-item label="Wheels">
+			<sdpi-select setting="group" default="all">
+				<option value="all">All wheels</option>
+				<option value="1">Axle 1 (front)</option>
+				<option value="2">Axle 2</option>
+				<option value="3">Axle 3</option>
+				<option value="4">Axle 4</option>
+			</sdpi-select>
+		</sdpi-item>
+		<sdpi-item label="Hold to">
+			<sdpi-select setting="tdir" default="inflate">
+				<option value="inflate">Inflate</option>
+				<option value="deflate">Deflate</option>
+			</sdpi-select>
+		</sdpi-item>
+		<p style="color:#aaa;font-size:12px;margin:8px">For vehicles with a central tyre inflation system, such as the Autobello Stambecco 6x6. The axles are the vehicle's own groups, in its order; the key shows that group's pressure in psi. Hold the key to run the pump, let go to stop.</p>
+	</body>
+</html>

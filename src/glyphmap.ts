@@ -45,9 +45,9 @@ export const GLYPHS: Record<string, Record<string, G>> = {
 	},
 	pbrake: { on: g("material_local_parking", P.red), off: g("material_local_parking", P.white) },
 	lights: {
-		off: g("radial_headlights_off", P.white),
-		low: g("radial_headlights_low", P.green),
-		high: g("radial_headlights", P.blue),
+		off: g("own_headlight_off", P.white),
+		low: g("own_headlight_low", P.green),
+		high: g("own_headlight_high", P.blue),
 	},
 	fog: { on: g("radial_fog_lights", P.green), off: g("radial_fog_lights", P.white) },
 	hazard: { on: g("radial_hazard_lights", P.red), off: g("radial_hazard_lights", P.white) },
@@ -69,6 +69,8 @@ export const GLYPHS: Record<string, Record<string, G>> = {
 	trunk: { closed: g(["radial_hinges", "radial_vehicle_doors"], P.white, "BOOT"), open: g(["radial_hinges", "radial_vehicle_doors"], P.yellow, "BOOT") },
 	n2o: { off: g(["powertrain_n2o", "radial_nitrous_oxide"], P.white), armed: g(["powertrain_n2o", "radial_nitrous_oxide"], P.blue), spray: g(["powertrain_n2o", "radial_nitrous_oxide"], P.green) },
 	jato: { off: g("powertrain_jato", P.white), on: g("powertrain_jato", P.yellow), empty: g("powertrain_jato", P.off) },
+	tire_up: { off: g(["tire-pressure_pressure-increase", "tire-pressure_tire-pressure-fill"], P.white), on: g(["tire-pressure_pressure-increase", "tire-pressure_tire-pressure-fill"], P.green) },
+	tire_down: { off: g(["tire-pressure_pressure-decrease", "tire-pressure_tire-pressure-line"], P.white), on: g(["tire-pressure_pressure-decrease", "tire-pressure_tire-pressure-line"], P.yellow) },
 	// game functions
 	accept: { off: g("material_check", P.green), on: g("material_check", P.green) },
 	back: { off: g("material_close", P.red), on: g("material_close", P.red) },
@@ -83,7 +85,7 @@ export const GLYPHS: Record<string, Record<string, G>> = {
 	slowmo: { off: g("mission_system_time", P.white), on: g("mission_system_time", P.yellow) },
 	slower: { off: g("material_fast_rewind", P.white), on: g("material_fast_rewind", P.green) },
 	faster: { off: g("material_fast_forward", P.white), on: g("material_fast_forward", P.green) },
-	ui: { on: g("material_visibility", P.white), off: g("material_visibility_off", P.off) },
+	ui: { on: g(["material_dashboard", "material_widgets"], P.white), off: g(["material_dashboard", "material_widgets"], P.off) },
 	photo: { off: g("material_camera", P.white), on: g("material_camera", P.green) },
 	traffic: { off: g("material_traffic", P.white), on: g("material_traffic", P.green) },
 	trailer: { off: g("radial_couplers", P.white), on: g("radial_couplers", P.green) },
@@ -102,7 +104,10 @@ export const GLYPHS: Record<string, Record<string, G>> = {
 	cam_external: { off: g("material_videocam", P.white, "EXTERNAL"), on: g("material_videocam", P.green, "EXTERNAL") },
 	cam_top: { off: g("tech_camerafocustopdown", P.white, "TOP"), on: g("tech_camerafocustopdown", P.green, "TOP") },
 	look_back: { off: g("material_flip_to_back", P.white), on: g("material_flip_to_back", P.green) },
-	replay: { off: g("tech_replay", P.white), on: g("material_fiber_manual_record", P.red, "REC") },
+	replay: { off: g(["tech_moviecamera", "material_videocam"], P.white), on: g(["tech_moviecamera", "material_videocam"], P.red) },
+	replay_eject: { off: g(["material_eject", "material_cancel", "material_close"], P.white), on: g(["material_eject", "material_cancel", "material_close"], P.green) },
+	reload_lua: { off: g(["material_autorenew", "tech_reload"], P.white), on: g(["material_autorenew", "tech_reload"], P.green) },
+	nextveh_named: { off: g("material_directions_car", P.white), on: g("material_directions_car", P.green) },
 };
 
 /** Fill in glyph / tint / text for a face from the table (faces that set their own glyph keep it). */

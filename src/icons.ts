@@ -19,7 +19,7 @@ const STATES_DIR = path.join(here, "..", "imgs", "states");
 export const P = {
 	white: "#FFFFFF", // neutral / idle
 	off: "#999999", // off, inactive (ESC & TC Off)
-	green: "#7CB518", // on, engaged (Drift, brightened)
+	green: "#8CD419", // on, engaged (Drift, brightened)
 	blue: "#238BE6", // mode, info, selected (Comfort)
 	yellow: "#FFC300", // caution, partial, in progress (Sport)
 	red: "#DD1C1A", // alert: engine stopped, warning, error (Savage)
@@ -117,6 +117,23 @@ ${decorations(d)}
 type Glyph = { viewBox: string; inner: string };
 const glyphs = new Map<string, Glyph | null>(); // null = not in the game's sprite
 const wanted = new Set<string>();
+const misses = new Map<string, number>();
+
+// A few icons of our own, for shapes the game only has as an outline (so "on" can be solid) and so
+// that these keys have an icon even before the game has sent anything. Drawn in currentColor.
+const beams = (slant: boolean) =>
+	[0, 1, 2, 3].map((i) => (slant ? `M6 ${18 + i * 14}h22l-10 9H6z` : `M6 ${18 + i * 14}h24v9H6z`)).join("");
+const LAMP = "M56 14c-8 10-12 22-12 34s4 24 12 34c18 0 32-15 32-34S74 14 56 14z";
+const BUILTIN: Record<string, Glyph> = {
+	// headlight, filled: low beam (slanted beams) and high beam (straight beams)
+	own_headlight_low: { viewBox: "0 0 96 96", inner: `<path d="${LAMP}"/><path d="${beams(true)}"/>` },
+	own_headlight_high: { viewBox: "0 0 96 96", inner: `<path d="${LAMP}"/><path d="${beams(false)}"/>` },
+	// headlight, off: the same shape as an outline, with no line through it
+	own_headlight_off: {
+		viewBox: "0 0 96 96",
+		inner: `<g fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round"><path d="${LAMP}"/></g><path d="${beams(true)}"/>`,
+	},
+}; // id -> when the game last said it has no such icon
 
 // Icons already read from the game are kept on this PC (cache/glyphs.json in the plugin folder), so keys
 // keep their icons while the game isn't running. The cache is the player's own copy; it is never shipped.
@@ -126,10 +143,12 @@ try {
 } catch {
 	/* unreadable cache: icons are fetched again */
 }
+for (const [id, g] of Object.entries(BUILTIN)) glyphs.set(id, g);
+
 function saveGlyphs() {
 	try {
 		mkdirSync(path.dirname(CACHE), { recursive: true });
-		writeFileSync(CACHE, JSON.stringify(Object.fromEntries([...glyphs].filter(([, g]) => g))));
+		writeFileSync(CACHE, JSON.stringify(Object.fromEntries([...glyphs].filter(([id, g]) => g && !BUILTIN[id]))));
 	} catch {
 		/* read-only folder: no cache */
 	}
@@ -137,7 +156,7 @@ function saveGlyphs() {
 
 /** Symbol ids the faces asked for that haven't been fetched yet (the game link fetches them). */
 export function takeWantedGlyphs(): string[] {
-	const out = [...wanted].filter((id) => !glyphs.has(id));
+	const out = [...wanted].filter((id) => !glyphs.get(id));
 	wanted.clear();
 	return out;
 }
@@ -147,6 +166,7 @@ export function storeGlyphs(found: Record<string, string | false>) {
 	for (const [id, sym] of Object.entries(found)) {
 		if (!sym) {
 			glyphs.set(id, null);
+			misses.set(id, Date.now());
 			continue;
 		}
 		const viewBox = sym.match(/viewBox="([^"]+)"/)?.[1] ?? "0 0 32 32";
@@ -156,6 +176,7 @@ export function storeGlyphs(found: Record<string, string | false>) {
 		// <style>/<use>/<image> can't be placed inside a key image: treat those symbols as missing
 		if (/<(style|use|image)\b/i.test(inner)) {
 			glyphs.set(id, null);
+			misses.set(id, Date.now());
 			continue;
 		}
 		glyphs.set(id, { viewBox, inner });
@@ -170,7 +191,8 @@ function pickGlyph(ids: string[] | undefined): Glyph | undefined {
 	for (const id of ids) {
 		const g = glyphs.get(id);
 		if (g) return g;
-		if (g === undefined) wanted.add(id); // not fetched yet: ask, and try the next one meanwhile
+		// not fetched yet, or the game had no such icon: ask (again, now and then), and try the next one
+		if (g === undefined || Date.now() - (misses.get(id) ?? 0) > 60_000) wanted.add(id);
 	}
 	return undefined;
 }
