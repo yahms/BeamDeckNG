@@ -153,6 +153,11 @@ export function storeGlyphs(found: Record<string, string | false>) {
 		let inner = sym.replace(/^<symbol[^>]*>/, "").replace(/<\/symbol>\s*$/, "");
 		// two-tone icons (ESC badge, H2 / L4): the white part takes the state colour, the dark part stays
 		inner = inner.replace(/(fill|stroke)="(#fff|#ffffff|white)"/gi, '$1="currentColor"').replace(/(fill|stroke):\s*(#fff|#ffffff|white)\b/gi, "$1:currentColor");
+		// <style>/<use>/<image> can't be placed inside a key image: treat those symbols as missing
+		if (/<(style|use|image)\b/i.test(inner)) {
+			glyphs.set(id, null);
+			continue;
+		}
 		glyphs.set(id, { viewBox, inner });
 	}
 	saveGlyphs();
@@ -170,17 +175,24 @@ function pickGlyph(ids: string[] | undefined): Glyph | undefined {
 	return undefined;
 }
 
+/** Stream Deck's SVG renderer is strict: no nested <svg>, no currentColor, no CSS. The glyph is placed
+ *  with a plain transform and every colour is written out as a literal. */
 function glyphSvg(f: Face, g: Glyph, dark: boolean): string {
 	const tint = dark ? P.dimmed : f.dim ? P.dimmed : f.tint ?? P.white;
-	const hasText = !!f.overlay;
-	const size = hasText ? 84 : 100;
-	const x = (144 - size) / 2;
-	const y = hasText ? 10 : (144 - size) / 2;
-	return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="144" height="144" viewBox="0 0 144 144">
+	// every button says what it is / what state it's in, so a key is never blank
+	const text = (f.overlay ?? f.value ?? "").toUpperCase();
+	const size = text ? 84 : 100;
+	const [vx, vy, vw, vh] = (g.viewBox.trim().split(/[\s,]+/).map(Number) ?? []).map((n) => (Number.isFinite(n) ? n : 0));
+	const k = size / Math.max(vw || 24, vh || 24);
+	const tx = (144 - (vw || 24) * k) / 2 - vx * k;
+	const ty = (text ? 10 : (144 - size) / 2) + (size - (vh || 24) * k) / 2 - vy * k;
+	const inner = g.inner.replace(/currentColor/g, tint);
+	const n = (x: number) => Number(x.toFixed(3));
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
 <rect x="0" y="0" width="144" height="144" fill="#000"/>
-<svg x="${x}" y="${y}" width="${size}" height="${size}" viewBox="${g.viewBox}" fill="${tint}" color="${tint}" style="color:${tint};fill:${tint}">${g.inner}</svg>
+<g transform="translate(${n(tx)} ${n(ty)}) scale(${n(k)})" fill="${tint}">${inner}</g>
 ${decorations({ ...f, overlay: undefined })}
-${hasText ? `<text x="72" y="130" font-family="Arial, Helvetica, sans-serif" font-size="${f.overlay!.length > 9 ? 17 : 21}" font-weight="bold" fill="${f.dim ? P.off : "#fff"}" text-anchor="middle">${esc(clip(f.overlay!.toUpperCase(), 13))}</text>` : ""}
+${text ? `<text x="72" y="130" font-family="Arial, Helvetica, sans-serif" font-size="${text.length > 9 ? 17 : 21}" font-weight="bold" fill="${f.dim ? P.off : "#fff"}" text-anchor="middle">${esc(clip(text, 13))}</text>` : ""}
 </svg>`;
 }
 

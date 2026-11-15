@@ -1,4 +1,4 @@
-# BeamDeckNG: Stream Deck plugin for BeamNG.drive (0.2.0 alpha)
+# BeamDeckNG: Stream Deck plugin for BeamNG.drive (0.2.1 alpha)
 
 A Stream Deck plugin that uses **BeamNG.drive's native MCP server**. Enable MCP in the game and it
 just works: no game mod, and no bridge program running in the background.
@@ -85,7 +85,9 @@ act-then-verify flow (set, then check a moment later that the change took).
 Button icons come from **your own copy of BeamNG.drive**: while the game is running, the plugin reads
 the icons it needs from the game's UI icon set (`/ui/assets/Sprites/svg-symbols.svg`) through the
 MCP server, and draws them in a colour that shows the state. No game artwork ships with the plugin.
-Until an icon has been read once (or if it is missing), the button shows its name as text.
+Every key also carries a line of text saying what it is or what state it's in (OFF / LOW / HIGH,
+LOCKED, ORBIT...), so a key is never blank. Until an icon has been read once (or if it is missing),
+that text is all the key shows.
 
 **Rain** works on every map: maps with their own rain (Industrial, Jungle Rock Island, East Coast USA,
 Italy, Small Island, West Coast USA...) use it, and on maps without (Gridmap v2 and others) the
