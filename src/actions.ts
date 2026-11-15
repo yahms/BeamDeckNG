@@ -105,7 +105,8 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 		const e = entries.get(ev.action.id);
 		if (!e || e.busy) return;
 		const snap = game.snapshot;
-		const ready = this.vehicle ? snap.link === "ok" && !!snap.status : snap.link !== "offline";
+		// OutGauge alone (limited) is read-only: presses need MCP
+		const ready = this.vehicle ? snap.link === "ok" && !!snap.status : snap.link !== "offline" && snap.link !== "limited";
 		if (!ready) {
 			await ev.action.showAlert();
 			return;
@@ -186,7 +187,12 @@ function faceFor(e: Entry, snap: Snapshot): Face {
 	};
 	let f: Face;
 	if (snap.link === "offline") f = idle("offline", "NO GAME");
-	else if (!e.impl.vehicle) f = e.impl.face(snap.status ?? {}, e.settings, e.held, snap.ge ?? {});
+	else if (snap.link === "limited") {
+		// MCP isn't answering (BeamMP server) but OutGauge is: keys it covers keep showing their state,
+		// the rest say so instead of showing N/A, which would read as "not on this vehicle"
+		f = e.impl.vehicle ? e.impl.face(snap.status ?? {}, e.settings, e.held, {}) : idle("limited", "NO MCP");
+		if (f.state === "unsupported" || f.value === "N/A") f = idle("limited", "NO MCP");
+	} else if (!e.impl.vehicle) f = e.impl.face(snap.status ?? {}, e.settings, e.held, snap.ge ?? {});
 	else if (snap.link === "novehicle") f = idle("novehicle", "NO CAR");
 	else if (!snap.status) f = idle("loading", "…");
 	else {
@@ -229,17 +235,26 @@ export function start(g: Game) {
 	(async () => {
 		for (;;) {
 			if (entries.size > 0) {
-				const before = game.snapshot.link;
+				const before = game.mcpLink;
 				await game.poll().catch(() => undefined);
-				if (game.snapshot.link !== "offline") await game.fetchGlyphs();
-				if (game.snapshot.link !== before) streamDeck.logger.info(`game link: ${before} -> ${game.snapshot.link}`);
+				if (game.mcpLink !== "offline") await game.fetchGlyphs();
+				if (game.mcpLink !== before) streamDeck.logger.info(`game link: ${before} -> ${game.mcpLink}`);
 				redraw();
 			}
-			const wait = entries.size === 0 ? 1000 : game.snapshot.link === "offline" ? 2000 : 250;
+			const wait = entries.size === 0 ? 1000 : game.mcpLink === "offline" ? 2000 : 250;
 			await Promise.race([sleep(wait), new Promise<void>((r) => (wake = r))]);
 			wake = undefined;
 		}
 	})();
+
+	// OutGauge-only (MCP not answering): redraw as packets arrive, at most ~8 times a second.
+	let ogDrawn = 0;
+	game.og?.onData(() => {
+		const now = Date.now();
+		if (entries.size === 0 || now - ogDrawn < 125 || game.mcpLink !== "offline") return;
+		ogDrawn = now;
+		redraw();
+	});
 
 	// Flash clock: 2 Hz.
 	setInterval(() => {

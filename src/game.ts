@@ -14,8 +14,9 @@ import { fileURLToPath } from "node:url";
 import streamDeck from "@elgato/streamdeck";
 import { glyphCount, storeGlyphs, takeWantedGlyphs } from "./icons";
 import { Mcp } from "./mcp";
+import { OutGauge } from "./outgauge";
 
-export const VERSION = "0.2.3";
+export const VERSION = "0.2.4";
 export const DECK_VERSION = "0.2.3"; // bump when the vehicle Lua changes, so vehicles reload it
 
 export type DiffState = "locked" | "open" | "partial" | "auto" | null | undefined;
@@ -55,7 +56,7 @@ export type VehicleStatus = {
 	/** Gauge readings. spd m/s, temps in C, boost in psi, fuel 0..1, dmg = the game's damage score. */
 	/** Tyre pressure groups (CTIS): k = group key, n = name, psi, min, max, a = selected. */
 	tp?: { k: string; n?: string; psi?: number; min?: number; max?: number; a?: boolean }[];
-	g?: { spd?: number; gear?: string; gi?: number; rpm?: number; maxrpm?: number; fuel?: number; low?: boolean; water?: number; oil?: number; boost?: number; boostMax?: number; dmg?: number };
+	g?: { spd?: number; gear?: string; gi?: number; rpm?: number; maxrpm?: number; shift?: boolean; fuel?: number; low?: boolean; water?: number; oil?: number; boost?: number; boostMax?: number; dmg?: number };
 };
 
 /** One button of the game's powertrain bar: icon is the game's icon name, color hex (no #), ring 0..1. */
@@ -80,7 +81,8 @@ export type GeStatus = {
 	veh?: { name?: string; color?: string }; // current vehicle: model name and paint colour ("r, g, b, a")
 };
 
-export type Link = "offline" | "novehicle" | "loading" | "paused" | "ok";
+/** limited = MCP not answering, but OutGauge is: dashboard state only, no presses. */
+export type Link = "offline" | "novehicle" | "loading" | "paused" | "ok" | "limited";
 
 export type Snapshot = { link: Link; vid?: number; status?: VehicleStatus; ge?: GeStatus };
 
@@ -161,7 +163,23 @@ export class Game {
 	private readonly sid = Math.random().toString(36).slice(2, 10);
 	private lastInstall = 0;
 	private tagN = 0;
-	snapshot: Snapshot = { link: "offline" };
+	private mcpSnap: Snapshot = { link: "offline" };
+	/** OutGauge listener, used when MCP isn't answering. */
+	og?: OutGauge;
+
+	/** What the keys show: MCP's view, or OutGauge's while MCP is unreachable. */
+	get snapshot(): Snapshot {
+		if (this.mcpSnap.link === "offline") {
+			const status = this.og?.status();
+			if (status) return { link: "limited", status };
+		}
+		return this.mcpSnap;
+	}
+
+	/** The MCP link on its own (offline while OutGauge alone is answering). */
+	get mcpLink(): Link {
+		return this.mcpSnap.link;
+	}
 
 	constructor(host = "127.0.0.1", port = 29292, p = "/mcp") {
 		this.mcp = new Mcp(`http://${host}:${port}${p}`);
@@ -229,12 +247,12 @@ return jsonEncode(out)`;
 			out = JSON.parse(await this.mcp.runLua(geCode));
 		} catch {
 			// offline, or the game is between levels (no `be`, Lua errors): both read as not available
-			return (this.snapshot = { link: this.mcp.connected ? "novehicle" : "offline" });
+			return (this.mcpSnap = { link: this.mcp.connected ? "novehicle" : "offline" });
 		}
 		const ge = out.ge as GeStatus | undefined;
-		if (!out.veh) return (this.snapshot = { link: "novehicle", ge });
+		if (!out.veh) return (this.mcpSnap = { link: "novehicle", ge });
 
-		const prev = this.snapshot;
+		const prev = this.mcpSnap;
 		const sameVeh = prev.vid === out.vid;
 		if (!sameVeh) this.lastSeen = 0;
 		if (typeof out.seq === "number") this.lastSeen = Math.max(this.lastSeen, out.seq);
@@ -251,16 +269,16 @@ return jsonEncode(out)`;
 				this.lastInstall = Date.now();
 				await this.mcp.runLua(geQueue(LIBRARY)).catch(() => undefined);
 			}
-			return (this.snapshot = { link: "loading", vid: out.vid, ge });
+			return (this.mcpSnap = { link: "loading", vid: out.vid, ge });
 		}
 
 		// No answer for ~2 s: the vehicle VM isn't running (physics paused, menu, loading).
 		const behind = seq - this.lastSeen;
 		if (!status || behind > 8) {
 			const keep = sameVeh ? prev.status : undefined;
-			return (this.snapshot = { link: keep ? "paused" : "loading", vid: out.vid, status: keep, ge });
+			return (this.mcpSnap = { link: keep ? "paused" : "loading", vid: out.vid, status: keep, ge });
 		}
-		return (this.snapshot = { link: "ok", vid: out.vid, status: status as VehicleStatus, ge });
+		return (this.mcpSnap = { link: "ok", vid: out.vid, status: status as VehicleStatus, ge });
 	}
 
 	/**
