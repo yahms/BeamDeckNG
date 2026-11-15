@@ -37,7 +37,9 @@
 					<option value="right">Right</option>
 				</optgroup>
 				<optgroup label="Camera">
-					<option value="cam_cycle">Camera</option>
+					<option value="cam_cycle">Next camera</option>
+					<option value="cam_prev">Previous camera</option>
+					<option value="cam_free">Free camera on / off</option>
 					<option value="cam_center">Centre cam</option>
 					<option value="cam_orbit">Orbit</option>
 					<option value="cam_driver">Driver</option>
@@ -52,12 +54,16 @@
 				</optgroup>
 			</sdpi-select>
 		</sdpi-item>
+		<sdpi-item label="Cameras">
+			<sdpi-checkbox setting="gamecams" label="only the ones enabled in the game"></sdpi-checkbox>
+		</sdpi-item>
 		<sdpi-item label="Action name">
 			<sdpi-textfield setting="action" placeholder="e.g. toggleRadialMenuSandbox"></sdpi-textfield>
 		</sdpi-item>
 		<sdpi-item label="Key text">
 			<sdpi-textfield setting="label" placeholder="shown on the key"></sdpi-textfield>
 		</sdpi-item>
+		<p style="color:#aaa;font-size:12px;margin:8px">Next / previous camera step through every camera the vehicle has (driver, hood, chase, orbit, external, top...). Tick the box to follow the game's own camera list instead, which only includes the cameras enabled in its camera settings.</p>
 		<p style="color:#aaa;font-size:12px;margin:8px">Action name and key text are only used with "Custom game action": any action from the game's Controls menu, fired directly (no key binding needed).</p>
 	</body>
 </html>

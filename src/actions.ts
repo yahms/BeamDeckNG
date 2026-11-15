@@ -26,6 +26,7 @@ export type Settings = {
 	units?: "kmh" | "mph";
 	dir?: "raise" | "lower";
 	gauge?: string; // gauge buttons: which reading
+	gamecams?: boolean; // camera buttons: cycle only the cameras enabled in the game's own settings
 };
 /** A vehicle resolver action ({action, args}) or one of the game's MCP tools ({tool, args}). */
 export type Command = { action?: string; tool?: string; args: object } | null;

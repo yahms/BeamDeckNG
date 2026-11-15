@@ -1,4 +1,4 @@
-# BeamDeckNG: Stream Deck plugin for BeamNG.drive (0.2.1 alpha)
+# BeamDeckNG: Stream Deck plugin for BeamNG.drive (0.2.2 alpha)
 
 A Stream Deck plugin that uses **BeamNG.drive's native MCP server**. Enable MCP in the game and it
 just works: no game mod, and no bridge program running in the background.
@@ -31,7 +31,7 @@ just works: no game mod, and no bridge program running in the background.
 | Powertrain (game bar) | the Nth button of the game's powertrain bar, with its icon and coloured ring | whatever the game's button does |
 | World | **time of day** clock with a sky-coloured background (night blue, dawn/dusk orange, day blue); time presets (sunrise, noon, sunset, midnight), ±1 hour, day length; **weather** presets (clear, cloudy, fog, rain, storm) and separate rain / fog / wind keys; **gravity** (Earth, Moon, Mars, Zero-G, Jupiter). Preset keys are green when that preset is current | apply the preset, or cycle. The clock key runs / freezes time |
 | Gauge | speed, gear with shift light (green > yellow > red flash near the limiter), rpm, fuel, coolant and oil temperature, boost, damage | none (damage: repair) |
-| Game function | pause, repair, recover, respawn, accept, back, get in/out, map, vehicles, radial menu, slow motion (1x <-> last slow speed), slower/faster, game UI, photo mode, traffic, trailer, next vehicle, menu arrows, cameras, look back, replay | per function |
+| Game function | pause, repair, recover, respawn, accept, back, get in/out, map, vehicles, radial menu, slow motion (1x <-> last slow speed), slower/faster, game UI, photo mode, traffic, trailer, next vehicle, menu arrows, next / previous camera (every camera the vehicle has: driver, hood, chase, orbit, external, top...), free camera on / off, fixed camera keys, look back, replay | per function |
 
 When the game isn't running (**NO GAME**), no vehicle is spawned (**NO CAR**) or a map is loading, each
 button still shows what it is: its icon, dimmed, or its name. So a layout can be built without the

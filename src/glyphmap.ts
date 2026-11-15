@@ -93,6 +93,8 @@ export const GLYPHS: Record<string, Record<string, G>> = {
 	left: { off: g("material_keyboard_arrow_left", P.white), on: g("material_keyboard_arrow_left", P.green) },
 	right: { off: g("material_keyboard_arrow_right", P.white), on: g("material_keyboard_arrow_right", P.green) },
 	cam_cycle: { off: g("material_switch_camera", P.white), on: g("material_switch_camera", P.green) },
+	cam_prev: { off: g("material_switch_video", P.white), on: g("material_switch_video", P.green) },
+	cam_free: { off: g("material_directions_car", P.white), on: g("material_videocam", P.green) },
 	cam_center: { off: g("material_center_focus_strong", P.white), on: g("material_center_focus_strong", P.green) },
 	cam_orbit: { off: g("tech_camerafocusonvehicle2", P.white, "ORBIT"), on: g("tech_camerafocusonvehicle2", P.green, "ORBIT") },
 	cam_driver: { off: g("material_airline_seat_recline_normal", P.white, "DRIVER"), on: g("material_airline_seat_recline_normal", P.green, "DRIVER") },

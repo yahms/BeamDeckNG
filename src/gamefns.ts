@@ -19,7 +19,7 @@ type GameFn = {
 	/** Anything else: an MCP tool call. */
 	tool?: [string, object];
 	/** Or game-engine Lua (run_lua), for things the game's actions don't do reliably. */
-	lua?: string | ((ge: GeStatus) => string);
+	lua?: string | ((ge: GeStatus, st: Settings) => string);
 };
 
 // Slow motion: toggle between normal speed and the last slow speed used (default 1/4).
@@ -30,6 +30,45 @@ const slowName = (ts?: number) => {
 	const inv = Math.round(1 / ts);
 	return inv > 1 ? `1/${inv}x` : `${ts.toFixed(2)}x`;
 };
+
+
+// --- cameras -------------------------------------------------------------------------------------
+// The game's own camera key only cycles the cameras left enabled in its camera settings (often just
+// two). These step through every camera the vehicle has, unless "gamecams" asks for the game's list.
+const CAM_ORDER = ["occupant.FL", "onboard.hood", "chase", "orbit", "external", "topDown", "droneChase"];
+const CAM_NAMES: Record<string, string> = {
+	"occupant.FL": "DRIVER", "occupant.FR": "PASSENGER", "onboard.hood": "HOOD", chase: "CHASE", orbit: "ORBIT",
+	external: "EXTERNAL", topDown: "TOP", droneChase: "DRONE", relative: "RELATIVE", free: "FREE", unicycle: "WALKING",
+};
+/** Friendly name for a camera, e.g. occupant.RL -> SEAT RL, onboard.roof -> ROOF. */
+function camName(cam?: string): string {
+	if (!cam) return "CAMERA";
+	if (CAM_NAMES[cam]) return CAM_NAMES[cam];
+	if (cam.startsWith("occupant.")) return `SEAT ${cam.slice(9).toUpperCase()}`;
+	if (cam.startsWith("onboard.")) return cam.slice(8).toUpperCase();
+	return cam.toUpperCase();
+}
+function camStep(dir: number, st: Settings): string {
+	if (st.gamecams) return `core_camera.setVehicleCameraByIndexOffset(0, ${dir}) return 'ok'`;
+	return `local id = be:getPlayerVehicleID(0)
+if id < 0 then return 'no vehicle' end
+local d = core_camera.getCameraDataById(id) or {}
+local list, seen = {}, {}
+for _, n in ipairs({ ${CAM_ORDER.map((n) => `"${n}"`).join(", ")} }) do if d[n] then list[#list + 1] = n seen[n] = true end end
+local extra = {}
+for n in pairs(d) do if not seen[n] and (n:find("^onboard%.") or n:find("^occupant%.")) then extra[#extra + 1] = n end end
+table.sort(extra)
+for _, n in ipairs(extra) do list[#list + 1] = n end
+if #list == 0 then return 'no cameras' end
+local cur = core_camera.getActiveCamName()
+local i = 0
+for k, n in ipairs(list) do if n == cur then i = k break end end
+local nxt = list[((i - 1 + (${dir}) + #list) % #list) + 1]
+-- leaving the free camera needs the global camera cleared first
+if core_camera.isWorldCamera() then core_camera.setGlobalCameraByName(nil) end
+core_camera.setVehicleCameraByNameWithId(id, nxt)
+return nxt`;
+}
 
 export const GAME_FUNCS: Record<string, GameFn> = {
 	// fixed buttons
@@ -70,7 +109,14 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 	left: { label: "Left", key: "left", act: "menu_item_left" },
 	right: { label: "Right", key: "right", act: "menu_item_right" },
 	// camera tab
-	cam_cycle: { label: "Camera", key: "cam_cycle", act: "toggleCamera", state: (g) => ({ state: "off", overlay: g.cam }) },
+	cam_cycle: { label: "Next camera", key: "cam_cycle", lua: (_g, st) => camStep(1, st), state: (g) => ({ state: "off", value: camName(g.cam) }) },
+	cam_prev: { label: "Previous camera", key: "cam_prev", lua: (_g, st) => camStep(-1, st), state: (g) => ({ state: "off", value: camName(g.cam) }) },
+	cam_free: {
+		label: "Free camera",
+		key: "cam_free",
+		act: "toggleCamera",
+		state: (g) => (g.cam === "free" ? { state: "on", value: "FREE" } : { state: "off", value: "CAR" }),
+	},
 	cam_center: { label: "Centre cam", key: "cam_center", act: "center_camera" },
 	cam_orbit: { label: "Orbit", key: "cam_orbit", tool: ["set_camera", { name: "orbit" }], state: (g) => camState(g, "orbit") },
 	// the driver camera has a per-vehicle name (e.g. occupant.FL)
@@ -128,7 +174,7 @@ export class GameFunction extends DeckAction {
 	}
 	command(_s: VehicleStatus, st: Settings, ge: GeStatus = {}): Command {
 		const [, f] = GameFunction.fn(st);
-		if (f.lua) return { tool: "run_lua", args: { code: typeof f.lua === "function" ? f.lua(ge) : f.lua } };
+		if (f.lua) return { tool: "run_lua", args: { code: typeof f.lua === "function" ? f.lua(ge, st) : f.lua } };
 		if (f.hold) return { tool: "trigger_action", args: { action: f.hold, state: "down" } };
 		if (f.act) return { tool: "trigger_action", args: { action: f.act } };
 		if (f.tool) return { tool: f.tool[0], args: f.tool[1] };
