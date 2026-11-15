@@ -1,0 +1,8 @@
+BeamDeckNG
+
+Icons shipped with the plugin (imgs/actions, imgs/plugin, icons/) are built by scripts/icons.mjs from
+Material Symbols by Google, licensed under the Apache License 2.0
+(https://www.apache.org/licenses/LICENSE-2.0), together with BeamDeckNG's own drawings.
+
+Button icons shown at runtime are read from the user's own installation of BeamNG.drive and are not
+distributed with this plugin. BeamNG.drive is a trademark of BeamNG GmbH; this project is not affiliated with it.

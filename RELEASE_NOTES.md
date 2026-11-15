@@ -1,25 +1,19 @@
-# BeamDeckNG 0.1.0 (alpha)
+# BeamDeckNG 0.1.1 (alpha)
 
-First release of BeamDeckNG, a Stream Deck plugin for BeamNG.drive. Each button shows the live state of the vehicle or the
-game. The plugin talks only to the game's built-in MCP server on `127.0.0.1:29292`; nothing else is needed.
+**New icons.** Button icons now come from your own copy of BeamNG.drive: while the game is running, the plugin reads the
+icons it needs from the game's UI icon set and colours them by state. No game artwork ships with the plugin.
+
+- Colours follow the game's drive-mode colours: white = idle, green = on, blue = mode / info, yellow = caution or in
+  progress, red = alert (engine stopped, parking brake, hazards, errors), grey = off. Drive mode buttons use the game's
+  colour for each mode.
+- Accept is a green tick and Back a red cross.
+- Until the game answers, buttons show their name as text.
+- You can still use your own PNGs per state (see the README); they win over the game's icons.
+- New category icons for folders and pages (`BeamDeckNG-icons.zip`): 31 icons in white and green, plus a green tick
+  (yes) and red cross (no). Built from Material Symbols (Apache 2.0) and our own drawings.
+- The previous release's icons have been removed.
 
 **Install:** double-click `com.yahms.beamdeckng.streamDeckPlugin` (Stream Deck 7.1 or later), then drag buttons from the
-**BeamDeckNG** category. `BeamDeckNG-icons.zip` contains 30 category icons, in white and orange, for Stream Deck folder and
-page buttons.
-
-## Buttons
-
-- **Vehicle:** ignition (with a red stalled state), drive modes (cycles the vehicle's own modes, coloured like the game's
-  ESC button), diff locks (front / rear / centre / all, or a rear > both > front > none cycle that also steps through
-  centre diff modes), range, 2WD / 4WD, and **Powertrain (game bar)**, which mirrors the game's own powertrain buttons
-  for the current vehicle.
-- **Lights and body:** headlights, fog lights, hazards, indicators, lightbar, horn (held), parking brake, doors / bonnet / boot.
-- **Driving:** cruise control (on/off with set speed, set, +, -), engine brake, retarder, air suspension (held),
-  nitrous (tap to arm, hold to spray), JATO (hold to fire).
-- **Game function:** pause, repair, recover, respawn, accept / back, get in / out, map, vehicle selector, radial menu,
-  slow motion, game UI, traffic, trailer, next vehicle, menu arrows, camera modes, look back, replay, or any game
-  action by name.
-
-Buttons for features the current vehicle doesn't have are dimmed.
+**BeamDeckNG** category. Requires BeamNG.drive with its MCP server on `127.0.0.1:29292`.
 
 This is an alpha release: feedback and bug reports are welcome on the Issues page.

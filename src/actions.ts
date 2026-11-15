@@ -9,7 +9,8 @@ import streamDeck, {
 	WillDisappearEvent,
 } from "@elgato/streamdeck";
 import { DiffState, Game, GeStatus, ResolverResult, Snapshot, VehicleStatus } from "./game";
-import { C, colorName, Face, render } from "./icons";
+import { withGlyph } from "./glyphmap";
+import { C, colorName, Face, P, render } from "./icons";
 
 export type Settings = {
 	fn?: string; // game function buttons: which function
@@ -178,10 +179,14 @@ function faceFor(e: Entry, snap: Snapshot): Face {
 	}
 	if (e.busy) f = { ...f, flash: true };
 	if (e.note) {
-		if (Date.now() < e.note.until) f = { ...f, ...e.note.face, state: e.note.face.color === C.alert ? "error" : f.state };
-		else e.note = undefined;
+		if (Date.now() < e.note.until) {
+			// short result notes (N/A, ERROR) are text keys
+			f = { ...f, ...e.note.face, state: e.note.face.color === C.alert ? "error" : f.state, glyph: undefined };
+			return f;
+		}
+		e.note = undefined;
 	}
-	return f;
+	return withGlyph(f);
 }
 
 export function redraw(force = false) {
@@ -210,6 +215,7 @@ export function start(g: Game) {
 			if (entries.size > 0) {
 				const before = game.snapshot.link;
 				await game.poll().catch(() => undefined);
+				if (game.snapshot.link !== "offline") await game.fetchGlyphs();
 				if (game.snapshot.link !== before) streamDeck.logger.info(`game link: ${before} -> ${game.snapshot.link}`);
 				redraw();
 			}
@@ -265,8 +271,13 @@ export class Traction extends DeckAction {
 		// esc_green (Drift), esc_grey (ESC & TC Off)...; cars without mode colours: blue = TC on, grey = off
 		const esc = `esc_${(this.cycles(s, st) && colorName(s.tcMode?.color)) || (on ? "blue" : "grey")}`;
 		if (this.cycles(s, st)) {
-			// imgs/states/traction/mode_<key>.png wins if you add one, then the coloured icon
+			// the game's ESC icon for the mode, in the game's colour for that mode (Comfort blue, Sport yellow...)
+			const k = s.tcMode!.key ?? "";
+			const modeGlyph = { comfort: "radial_regular_esc", normal: "radial_regular_esc", sport: "radial_sport_esc", drift: "radial_drift_esc", off: "radial_esc_off" }[k];
+			const tint = s.tcMode?.color && /^#?[0-9a-f]{6}$/i.test(s.tcMode.color) ? `#${s.tcMode.color.replace("#", "")}` : on ? P.blue : P.off;
 			return {
+				glyph: [...(modeGlyph ? [modeGlyph] : []), on ? "powertrain_esc" : "powertrain_esc-off", "systems_esc"],
+				tint,
 				key: "traction",
 				state: `mode_${s.tcMode!.key}`,
 				alt: [esc, on ? "on" : "off"],
@@ -430,7 +441,7 @@ export class Drive extends DeckAction {
 
 // ---------------------------------------------------------------- group 1: lights, brakes, body, cruise
 
-/** Two-state button: white `off` icon, orange `on` icon (imgs/states/<key>/on.png / off.png). */
+/** Two-state button: `off` / `on` states (icon and colour in glyphmap.ts). */
 function binary(key: string, label: string, on: boolean | undefined, extra: Partial<Face> = {}): Face {
 	if (on === undefined) return unsupported(key, label, ["off"]);
 	return on

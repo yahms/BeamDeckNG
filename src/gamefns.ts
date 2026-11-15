@@ -10,7 +10,7 @@ import { C, Face } from "./icons";
 type GameFn = {
 	label: string;
 	key: string; // icon folder under imgs/states
-	/** Icon state for the current game state; "off" by default, "on" shows the orange/active icon. */
+	/** Icon state for the current game state; "off" by default, "on" shows the active (green) icon. */
 	state?: (ge: GeStatus) => { state: string; value?: string; overlay?: string; flash?: boolean };
 	/** Tap: trigger_action name. */
 	act?: string;

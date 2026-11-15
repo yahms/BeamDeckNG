@@ -34,12 +34,14 @@ After a press the button flashes until the game confirms. If the command fails i
 
 ## Category icons for folders and pages
 
-`com.yahms.beamdeckng.sdPlugin/icons/` has 30 category icons, each in **white** and **orange** (for
+`com.yahms.beamdeckng.sdPlugin/icons/` has 31 category icons, each in **white** and **green** (for
 highlighting the active folder/page), for Stream Deck's own Folder, Page and Profile buttons:
 
-vehicle, truck, trailer, engine, powertrain, diffs, range, drive_modes, lights, signals, doors,
+vehicle, truck, trailer, engine, powertrain, diffs, range, drive_modes, lights, signals, hazards, doors,
 parking_brake, cruise, boost, jato, hydraulics, camera, replay, time, map, game_menu, radial_menu,
 garage, repair, recover, home, on_foot, traffic, back, next.
+
+Plus **yes** (green tick) and **no** (red cross), e.g. for Hotkey buttons mapped to Enter / Esc.
 
 In the Stream Deck app: select the folder/page button > click its icon > **Set from File**, and pick
 one from the plugin folder (`%appdata%\Elgato\StreamDeck\Plugins\com.yahms.beamdeckng.sdPlugin\icons\`)
@@ -71,38 +73,34 @@ act-then-verify flow (set, then check a moment later that the change took).
 
 ## Icons
 
-The button icons are in `com.yahms.beamdeckng.sdPlugin/imgs/states/`, in the plugin's icon set
-(288×288 PNGs). To change one, replace the file. To add more, put PNGs (144×144 or larger) in `com.yahms.beamdeckng.sdPlugin/imgs/states/<key>/<state>.png`. Any missing PNG
-falls back to the drawn placeholder. If you add `<state>_flash.png`, it's used as the alternate
-frame when that button flashes. Otherwise the plugin dims the PNG for that frame.
+Button icons come from **your own copy of BeamNG.drive**: while the game is running, the plugin reads
+the icons it needs from the game's UI icon set (`/ui/assets/Sprites/svg-symbols.svg`) through the
+MCP server, and draws them in a colour that shows the state. No game artwork ships with the plugin.
+Until the game answers (or if an icon is missing), the button shows its name as text.
 
-| key | states |
+Colours follow the game's own drive-mode colours:
+
+| colour | meaning |
 |---|---|
-| `ignition` | `off` `acc` `stalled` (ignition on, engine not running) `cranking` `running` `unsupported` |
-| `traction` | `esc_<colour>` from the colour the game gives each drive mode on its own button (Comfort blue, Sport yellow, Drift green, Savage red, ESC & TC Off grey, Caged purple; any car's colours map to the nearest of blue / yellow / green / red / orange / purple / grey / black). Add `mode_<key>.png` (e.g. `mode_sport.png`) to give one mode its own icon. The mode name is drawn on the key. |
-| `diff` (shared by every diff button) | `locked` (solid centre) `open` (empty centre) `lsd` (X: an open centre diff, i.e. full-time 4WD) `partial` (orange centre: some locked) |
-| `diff_front` `diff_rear` `diff_center` `diff_all` | optional per-button overrides of `diff/`; the button draws its scope (FRONT / REAR / CENTRE) or, for "all", which diffs are locked (F+R, OPEN...) over the icon |
-| `range` | `high` `low` `partial` `unsupported` |
-| `drive` | `2wd` `4wd` `partial` `unsupported` |
-| `pbrake` `fog` `hazard` `horn` `indicator_left` `indicator_right` `air_raise` `air_lower` | `off` `on` |
-| `lights` | `off` `low` `high` |
-| `lightbar` | `off` `mode1` `mode2` |
-| `cruise` / `cruise_set` `cruise_plus` `cruise_minus` | `off` `on` / `idle` |
-| `ebrake` `retarder` | placeholders for now (level as text) |
-| `doors` `door` `hood` `trunk` | `closed` `open` |
-| `n2o` | `off` `armed` `spray` |
-| `jato` | `off` `on` `empty` |
-| `common` | `offline` `novehicle` `loading` |
-| `pt` | the game's own icon names, e.g. `powertrain_transfercase_high-2`, `powertrain_differential_open`, `powertrain_esc` (all 44 are mapped) |
-| game functions (`pause`, `repair`, `walk`, `cam_orbit`...) | `off` `on`; see `GAME_FUNCS` in `src/gamefns.ts` for the folder names |
-| any key | `error` (shown after a failed press) |
+| white | idle / off (normal) |
+| green | on, engaged, running |
+| blue | mode or info (high beam, nitrous armed, retarder auto) |
+| yellow | caution or in progress (cranking, partly locked, doors open, Sport mode) |
+| red | alert: engine stopped, parking brake on, hazards, errors |
+| grey | off / not available |
 
-Colour scheme: white icons, as in the game; orange marks "on" for two-state buttons. Orange is kept for flash frames while a command is
-pending, TC off, and mixed states. A button whose feature this vehicle doesn't have shows its
-unlocked/off icon dimmed.
+Drive mode buttons use the colour the game gives each mode. A button whose feature this vehicle
+doesn't have shows its icon dimmed. Which icon and colour each state uses is in `src/glyphmap.ts`.
 
-PNGs are read once at plugin start, so restart the plugin after adding them:
-`streamdeck restart com.yahms.beamdeckng`, or restart the Stream Deck app.
+To use your own images instead, put 144×144 PNGs in
+`com.yahms.beamdeckng.sdPlugin/imgs/states/<key>/<state>.png` (for example `diff_rear/locked.png`,
+`ignition/stalled.png`; keys and states are the ones in `src/glyphmap.ts`). Your PNGs win over the
+game's icons; `<state>_flash.png` is used as the flash frame. PNGs are read once at plugin start, so
+restart the plugin after adding them: `streamdeck restart com.yahms.beamdeckng`.
+
+The icons that ship with the plugin (action list, default key images, category icons) are built by
+`node scripts/icons.mjs` from [Material Symbols](https://github.com/google/material-design-icons)
+(Apache License 2.0, Google) and BeamDeckNG's own drawings.
 
 ## Build
 

@@ -1,6 +1,12 @@
-// Button faces. Each button resolves to a (key, state) pair, e.g. ("diff_rear", "locked").
-// If imgs/states/<key>/<state>.png exists it is used; otherwise a placeholder SVG is drawn.
-// Flash frames: imgs/states/<key>/<state>_flash.png if present, otherwise a dimmed copy.
+// Button faces.
+//
+// Icons come from the player's own copy of the game, at runtime: the game's UI icon sprite
+// (/ui/assets/Sprites/svg-symbols.svg) is read through the MCP server, and only the symbols in use are
+// kept. Nothing of the game's artwork ships with the plugin. Each glyph is drawn in a palette colour
+// that shows the state (see P).
+//
+// Optional per-user overrides: imgs/states/<key>/<state>.png (and <state>_flash.png) beat the glyph.
+// With no glyph available, a text placeholder is drawn.
 
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -8,6 +14,18 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const STATES_DIR = path.join(here, "..", "imgs", "states");
+
+/** State palette, taken from the game's own drive-mode colours (green brightened for small keys). */
+export const P = {
+	white: "#FFFFFF", // neutral / idle
+	off: "#999999", // off, inactive (ESC & TC Off)
+	green: "#7CB518", // on, engaged (Drift, brightened)
+	blue: "#238BE6", // mode, info, selected (Comfort)
+	yellow: "#FFC300", // caution, partial, in progress (Sport)
+	red: "#DD1C1A", // alert: engine stopped, warning, error (Savage)
+	purple: "#9D4EDD", // special (Caged)
+	dimmed: "#4a4a4a", // flash frame / not on this vehicle
+};
 
 export const C = {
 	off: "#3a3f44",
@@ -27,6 +45,8 @@ export type Face = {
 	overlay?: string; // text drawn over a PNG icon (which diff, which are locked)
 	ring?: { color: string; value?: number }; // game-style coloured ring, value 0..1 = how much of it is drawn
 	frame?: string; // coloured border round the whole key (active tab)
+	glyph?: string[]; // game icon names (sprite symbol ids), first one available is used
+	tint?: string; // glyph colour (a P colour); flash frames use P.dimmed
 	label: string; // top line on the placeholder
 	value: string; // big middle text
 	sub?: string; // small bottom line (mode name, "PAUSED"...)
@@ -90,6 +110,60 @@ ${decorations(d)}
 </svg>`);
 }
 
+// ---------------------------------------------------------------- game glyphs
+
+type Glyph = { viewBox: string; inner: string };
+const glyphs = new Map<string, Glyph | null>(); // null = not in the game's sprite
+const wanted = new Set<string>();
+
+/** Symbol ids the faces asked for that haven't been fetched yet (the game link fetches them). */
+export function takeWantedGlyphs(): string[] {
+	const out = [...wanted].filter((id) => !glyphs.has(id));
+	wanted.clear();
+	return out;
+}
+
+/** Store raw <symbol> markup from the game (false = no such symbol). */
+export function storeGlyphs(found: Record<string, string | false>) {
+	for (const [id, sym] of Object.entries(found)) {
+		if (!sym) {
+			glyphs.set(id, null);
+			continue;
+		}
+		const viewBox = sym.match(/viewBox="([^"]+)"/)?.[1] ?? "0 0 32 32";
+		let inner = sym.replace(/^<symbol[^>]*>/, "").replace(/<\/symbol>\s*$/, "");
+		// two-tone icons (ESC badge, H2 / L4): the white part takes the state colour, the dark part stays
+		inner = inner.replace(/(fill|stroke)="(#fff|#ffffff|white)"/gi, '$1="currentColor"').replace(/(fill|stroke):\s*(#fff|#ffffff|white)\b/gi, "$1:currentColor");
+		glyphs.set(id, { viewBox, inner });
+	}
+}
+
+export const glyphCount = () => [...glyphs.values()].filter(Boolean).length;
+
+function pickGlyph(ids: string[] | undefined): Glyph | undefined {
+	if (!ids) return undefined;
+	for (const id of ids) {
+		const g = glyphs.get(id);
+		if (g) return g;
+		if (g === undefined) wanted.add(id); // not fetched yet: ask, and try the next one meanwhile
+	}
+	return undefined;
+}
+
+function glyphSvg(f: Face, g: Glyph, dark: boolean): string {
+	const tint = dark ? P.dimmed : f.dim ? P.dimmed : f.tint ?? P.white;
+	const hasText = !!f.overlay;
+	const size = hasText ? 84 : 100;
+	const x = (144 - size) / 2;
+	const y = hasText ? 10 : (144 - size) / 2;
+	return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="144" height="144" viewBox="0 0 144 144">
+<rect x="0" y="0" width="144" height="144" fill="#000"/>
+<svg x="${x}" y="${y}" width="${size}" height="${size}" viewBox="${g.viewBox}" fill="${tint}" color="${tint}" style="color:${tint};fill:${tint}">${g.inner}</svg>
+${decorations({ ...f, overlay: undefined })}
+${hasText ? `<text x="72" y="130" font-family="Arial, Helvetica, sans-serif" font-size="${f.overlay!.length > 9 ? 17 : 21}" font-weight="bold" fill="${f.dim ? P.off : "#fff"}" text-anchor="middle">${esc(clip(f.overlay!.toUpperCase(), 13))}</text>` : ""}
+</svg>`;
+}
+
 const BLANK = svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144"><rect width="144" height="144" fill="#000"/></svg>`);
 
 /** Image for a face; `phase` alternates 0/1 while flashing. */
@@ -109,6 +183,9 @@ export function render(f: Face, phase: number): string {
 			return compose(p, f.dim ? (f.state === "unsupported" ? 0.68 : 0.55) : 0, f);
 		}
 	}
+	// no override PNG: the game's own icon, coloured for the state
+	const g = pickGlyph(f.glyph);
+	if (g) return svgUrl(glyphSvg(f, g, !!altFrame));
 	return svgUrl(placeholder(f.state === "unsupported" ? { ...f, dim: false } : f, !!altFrame));
 }
 

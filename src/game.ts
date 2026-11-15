@@ -11,6 +11,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { storeGlyphs, takeWantedGlyphs } from "./icons";
 import { Mcp } from "./mcp";
 
 export const DECK_VERSION = "0.1.1"; // bump when the vehicle Lua changes, so vehicles reload it
@@ -215,6 +216,29 @@ return jsonEncode(out)`;
 			return (this.snapshot = { link: keep ? "paused" : "loading", vid: out.vid, status: keep, ge });
 		}
 		return (this.snapshot = { link: "ok", vid: out.vid, status: status as VehicleStatus, ge });
+	}
+
+	/**
+	 * Fetch the game's own UI icons the buttons asked for, from the player's install
+	 * (/ui/assets/Sprites/svg-symbols.svg, kept in the game's Lua between calls).
+	 */
+	async fetchGlyphs(): Promise<void> {
+		const ids = takeWantedGlyphs();
+		if (!ids.length) return;
+		const code = `BNGSD = BNGSD or {}
+if not BNGSD.sprite then BNGSD.sprite = readFile("/ui/assets/Sprites/svg-symbols.svg") or "" end
+local s = BNGSD.sprite
+local out = {}
+for _, id in ipairs(${luaLit(ids)}) do
+  local a = s:find('<symbol[^>]-id="' .. id:gsub("%p", "%%%0") .. '"')
+  if a then local b = s:find("</symbol>", a, true) out[id] = b and s:sub(a, b + 8) or false else out[id] = false end
+end
+return jsonEncode(out)`;
+		try {
+			storeGlyphs(JSON.parse(await this.mcp.runLua(code)));
+		} catch {
+			/* game busy or gone: they'll be asked for again */
+		}
 	}
 
 	/** Run one resolver action in the vehicle and wait for its result. */
