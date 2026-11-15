@@ -4,7 +4,8 @@
   "scripts": {
     "build": "rollup -c",
     "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.yahms.beamdeckng\"",
-    "pack": "streamdeck pack com.yahms.beamdeckng.sdPlugin -o dist -f"
+    "pack": "streamdeck pack com.yahms.beamdeckng.sdPlugin -o dist -f",
+    "pack:mp": "node beammp-addon/pack.mjs"
   },
   "dependencies": {
     "@elgato/streamdeck": "^3.0.4"

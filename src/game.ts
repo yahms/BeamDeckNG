@@ -13,7 +13,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import streamDeck from "@elgato/streamdeck";
 import { glyphCount, storeGlyphs, takeWantedGlyphs } from "./icons";
-import { Mcp } from "./mcp";
+import { Blocked, Mcp } from "./mcp";
 import { OutGauge } from "./outgauge";
 
 export const VERSION = "0.2.4";
@@ -82,6 +82,37 @@ export type GeStatus = {
 };
 
 /** limited = MCP not answering, but OutGauge is: dashboard state only, no presses. */
+/** What the BeamMP add-on reports about itself (beamdeck_info). Every field may be missing on an old add-on. */
+export type AddonInfo = {
+	version?: string;
+	proto?: number;
+	deckVersion?: string;
+	allow?: { vehicle?: string[]; actions?: string[]; game?: string[] };
+	always?: string[];
+	functions?: string[];
+};
+/** Lua encodes an empty list as {}; anything that isn't a list of strings counts as "not reported". */
+const strList = (v: unknown): string[] | undefined =>
+	Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : v && typeof v === "object" && Object.keys(v).length === 0 ? [] : undefined;
+function cleanInfo(v: any): AddonInfo {
+	const a = v?.allow ?? {};
+	return {
+		version: typeof v?.version === "string" ? v.version : undefined,
+		proto: typeof v?.proto === "number" ? v.proto : undefined,
+		deckVersion: typeof v?.deckVersion === "string" ? v.deckVersion : undefined,
+		allow: { vehicle: strList(a.vehicle), actions: strList(a.actions), game: strList(a.game) },
+		always: strList(v?.always),
+		functions: strList(v?.functions),
+	};
+}
+/** Add-on tool protocol this plugin was written for. Newer add-ons are still used (log only). */
+const ADDON_PROTO = 1;
+/** Port of the BeamMP add-on's listener (beammp-addon/). */
+export const ADDON_PORT = 29392;
+
+/** The parts of a key's command the add-on checks (same shape as actions.ts Command). */
+type Cmd = { action?: string; tool?: string; args: object; mp?: { fn: string; args?: object } } | null;
+
 export type Link = "offline" | "novehicle" | "loading" | "paused" | "ok" | "limited";
 
 export type Snapshot = { link: Link; vid?: number; status?: VehicleStatus; ge?: GeStatus };
@@ -156,7 +187,13 @@ return jsonEncode({ veh = true, vid = veh:getID() })`;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export class Game {
+	/** The game's own MCP server. */
 	readonly mcp: Mcp;
+	/** The BeamMP add-on's server, used when the game's doesn't answer (BeamMP blocks it in sessions). */
+	readonly addon: Mcp;
+	backend: "native" | "addon" = "native";
+	addonInfo?: AddonInfo;
+	private addonTools = new Set<string>();
 	private seq = 0;
 	private lastSeen = 0; // seq of the newest status that came back
 	// Statuses left in the game by an earlier run of the plugin carry another session id.
@@ -181,15 +218,97 @@ export class Game {
 		return this.mcpSnap.link;
 	}
 
-	constructor(host = "127.0.0.1", port = 29292, p = "/mcp") {
+	constructor(host = "127.0.0.1", port = 29292, p = "/mcp", addonPort = ADDON_PORT) {
 		this.mcp = new Mcp(`http://${host}:${port}${p}`);
+		this.addon = new Mcp(`http://${host}:${addonPort}/mcp`);
+	}
+
+	private get conn(): Mcp {
+		return this.backend === "addon" ? this.addon : this.mcp;
+	}
+
+	private useBackend(b: "native" | "addon") {
+		if (this.backend === b) return;
+		this.backend = b;
+		this.lastSeen = 0;
+		const v = this.addonInfo;
+		streamDeck.logger.info(
+			b === "addon"
+				? `using the BeamMP add-on ${v?.version ?? "(old, no version)"} (protocol ${v?.proto ?? "?"}, vehicle library ${v?.deckVersion ?? "?"})`
+				: "using the game's own MCP server",
+		);
+	}
+
+	/** Is the BeamMP add-on listening? Reads its tools and what its server allows. */
+	private async findAddon(): Promise<boolean> {
+		try {
+			const tools = await this.addon.listTools();
+			if (!tools.includes("beamdeck_status")) return false;
+			this.addonTools = new Set(tools);
+			this.addonInfo = undefined;
+			if (this.addonTools.has("beamdeck_info")) {
+				try {
+					this.addonInfo = cleanInfo(JSON.parse(await this.addon.call("beamdeck_info", {})));
+				} catch {
+					/* old or broken info: the tool list alone still works */
+				}
+			}
+			const proto = this.addonInfo?.proto;
+			if (typeof proto === "number" && proto > ADDON_PROTO)
+				streamDeck.logger.warn(`the BeamMP add-on speaks protocol ${proto}, newer than this plugin's ${ADDON_PROTO}; update the plugin if keys misbehave`);
+			this.useBackend("addon");
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	/**
+	 * Through the BeamMP add-on, can this key's command run? "blocked": the server's allowlist says no.
+	 * "unavailable": the add-on can't do it at all (free-form Lua, or a tool an older add-on lacks).
+	 * Unknown (an old add-on without an allowlist report) counts as allowed; the add-on still checks.
+	 */
+	blocked(cmd: Cmd): "blocked" | "unavailable" | undefined {
+		if (!cmd || this.backend !== "addon") return undefined;
+		const info = this.addonInfo, allow = info?.allow, has = (t: string) => this.addonTools.has(t);
+		if (cmd.action) {
+			if (!has("beamdeck_call")) return "unavailable";
+			if (allow?.vehicle && !allow.vehicle.includes(cmd.action) && !(info?.always ?? []).includes(cmd.action)) return "blocked";
+			return undefined;
+		}
+		if (cmd.mp) {
+			if (!has("beamdeck_game") || (info?.functions && !info.functions.includes(cmd.mp.fn))) return "unavailable";
+			if (allow?.game && !allow.game.includes(cmd.mp.fn)) return "blocked";
+			return undefined;
+		}
+		if (!cmd.tool || cmd.tool === "run_lua" || !has(cmd.tool)) return "unavailable";
+		if (cmd.tool === "trigger_action") {
+			const a = (cmd.args as { action?: string }).action ?? "";
+			return allow?.actions && !allow.actions.includes(a) ? "blocked" : undefined;
+		}
+		return allow?.game && !allow.game.includes(cmd.tool) ? "blocked" : undefined;
+	}
+
+	/**
+	 * One poll through whichever server is in use. If the game's own server doesn't answer, try the
+	 * BeamMP add-on; if the add-on stops answering (left the server), go back to the game's.
+	 */
+	async poll(): Promise<Snapshot> {
+		const s = await this.pollOnce();
+		if (s.link !== "offline") return s;
+		if (this.backend === "addon") {
+			this.useBackend("native");
+			return this.pollOnce();
+		}
+		if (await this.findAddon()) return this.pollOnce();
+		return s;
 	}
 
 	/**
 	 * One poll: ask the vehicle for a fresh status and read back whatever arrived since last time.
 	 * The status shown is therefore one poll old (~250 ms), which is fine for buttons.
 	 */
-	async poll(): Promise<Snapshot> {
+	private async pollOnce(): Promise<Snapshot> {
 		const seq = ++this.seq;
 		const probe = `local B = rawget(_G, "BNGSD_BNGS")
 local j
@@ -244,10 +363,11 @@ return jsonEncode(out)`;
 
 		let out: any;
 		try {
-			out = JSON.parse(await this.mcp.runLua(geCode));
+			// the add-on runs the same status code itself (beamdeck_status), with no run_lua
+			out = JSON.parse(this.backend === "addon" ? await this.addon.call("beamdeck_status", { sid: this.sid, seq }) : await this.mcp.runLua(geCode));
 		} catch {
 			// offline, or the game is between levels (no `be`, Lua errors): both read as not available
-			return (this.mcpSnap = { link: this.mcp.connected ? "novehicle" : "offline" });
+			return (this.mcpSnap = { link: this.conn.connected ? "novehicle" : "offline" });
 		}
 		const ge = out.ge as GeStatus | undefined;
 		if (!out.veh) return (this.mcpSnap = { link: "novehicle", ge });
@@ -265,7 +385,8 @@ return jsonEncode(out)`;
 		}
 
 		if (status?.needInit || status?.err) {
-			if (Date.now() - this.lastInstall > 2000) {
+			// (the add-on installs its own copy of the library)
+			if (this.backend === "native" && Date.now() - this.lastInstall > 2000) {
 				this.lastInstall = Date.now();
 				await this.mcp.runLua(geQueue(LIBRARY)).catch(() => undefined);
 			}
@@ -301,7 +422,8 @@ for _, id in ipairs(${luaLit(ids)}) do
 end
 return jsonEncode({ found = out })`;
 		try {
-			const r = JSON.parse(await this.mcp.runLua(code));
+			if (this.backend === "addon" && !this.addonTools.has("beamdeck_glyphs")) return;
+			const r = JSON.parse(this.backend === "addon" ? await this.addon.call("beamdeck_glyphs", { ids }) : await this.mcp.runLua(code));
 			if (!r.found) {
 				streamDeck.logger.info(`icons: the game hasn't loaded its icon set yet, asking again later (${ids.length} wanted)`);
 				return; // not stored, so they are asked for again
@@ -317,6 +439,7 @@ return jsonEncode({ found = out })`;
 	/** Run one resolver action in the vehicle and wait for its result. */
 	private async callOnce(action: string, args: object, timeoutMs = 3000): Promise<ResolverResult> {
 		const tag = `D${Date.now().toString(36)}${++this.tagN}`;
+		if (this.backend === "addon") return this.callAddon(action, args, tag, timeoutMs);
 		const veh = `${LIBRARY}
 local __r = BNGS.call(${luaStr(action)}, ${luaLit(args)}, nil, "")
 ${sendBack("res", tag, "__r")}`;
@@ -336,24 +459,56 @@ return ""`;
 		throw new Error("no response from vehicle");
 	}
 
+	private async callAddon(action: string, args: object, tag: string, timeoutMs: number): Promise<ResolverResult> {
+		if (!this.addonTools.has("beamdeck_call")) throw new Blocked("not available through the add-on", "unavailable");
+		const q = JSON.parse(await this.addon.call("beamdeck_call", { action, args, tag }));
+		if (!q.veh) throw new Error("no vehicle");
+		const deadline = Date.now() + timeoutMs;
+		while (Date.now() < deadline) {
+			await sleep(100);
+			const r = await this.addon.call("beamdeck_result", { tag });
+			if (r && r.startsWith("{")) return JSON.parse(r) as ResolverResult;
+		}
+		throw new Error("no response from vehicle");
+	}
+
 	/**
 	 * Fire-and-forget for held buttons (horn, air suspension): uses the library already installed
 	 * in the vehicle VM, so it's one small run_lua with no waiting.
 	 */
 	async fire(action: string, args: object): Promise<void> {
+		if (this.backend === "addon") {
+			if (!this.addonTools.has("beamdeck_fire")) throw new Blocked("not available through the add-on", "unavailable");
+			await this.addon.call("beamdeck_fire", { action, args });
+			return;
+		}
 		const veh = `local B = rawget(_G, "BNGSD_BNGS")
 if B then B.call(${luaStr(action)}, ${luaLit(args)}, nil, "") end`;
 		await this.mcp.runLua(geQueue(veh));
 	}
 
-	/** Call one of the game's MCP tools directly (trigger_action, set_camera, toggle_ui...). */
-	tool(name: string, args: object): Promise<string> {
-		return this.mcp.call(name, args);
+	/**
+	 * Call one of the game's MCP tools (trigger_action, set_camera, toggle_ui...). Through the add-on,
+	 * run_lua commands go by their named equivalent (mp) instead, and there is no free-form Lua.
+	 */
+	tool(name: string, args: object, mp?: { fn: string; args?: object }): Promise<string> {
+		if (this.backend !== "addon") return this.mcp.call(name, args);
+		const why = this.blocked({ tool: name, args, mp });
+		if (why) return Promise.reject(new Blocked(`${mp?.fn ?? name}: ${why}`, why));
+		if (mp) return this.addon.call("beamdeck_game", { fn: mp.fn, args: mp.args ?? {} });
+		return this.addon.call(name, args);
 	}
 
 	/** Resolver action plus the deferred verify passes (act, then check a moment later). */
 	async resolve(action: string, args: object): Promise<ResolverResult> {
-		const r = await this.callOnce(action, args);
+		let r: ResolverResult;
+		try {
+			r = await this.callOnce(action, args);
+		} catch (e) {
+			// the add-on's allowlist (or an older add-on) said no: show it like an unsupported action
+			if (e instanceof Blocked) return { status: "unsupported", action, detail: e.why === "blocked" ? "BLOCKED" : "NOT IN MP" };
+			throw e;
+		}
 		if (r.status !== "pending" || !r.checks) return r;
 		await sleep(r.verify_ms ?? 400);
 		let pass = 1;

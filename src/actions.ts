@@ -10,6 +10,7 @@ import streamDeck, {
 } from "@elgato/streamdeck";
 import { DiffState, Game, GeStatus, ResolverResult, Snapshot, VehicleStatus } from "./game";
 import { withGlyph } from "./glyphmap";
+import { Blocked } from "./mcp";
 import { C, colorName, Face, P, render } from "./icons";
 
 export type Settings = {
@@ -31,7 +32,13 @@ export type Settings = {
 	gamecams?: boolean; // camera buttons: cycle only the cameras enabled in the game's own settings
 };
 /** A vehicle resolver action ({action, args}) or one of the game's MCP tools ({tool, args}). */
-export type Command = { action?: string; tool?: string; args: object } | null;
+export type Command = {
+	action?: string;
+	tool?: string;
+	args: object;
+	/** For run_lua tools: the BeamMP add-on's named equivalent (it has no free-form Lua). */
+	mp?: { fn: string; args?: object };
+} | null;
 
 export type Entry = {
 	action: KeyAction<Settings>;
@@ -112,11 +119,17 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 			return;
 		}
 		const cmd = this.command(snap.status ?? {}, e.settings, snap.ge ?? {});
+		// through the BeamMP add-on: say so straight away if this server doesn't allow it
+		const why = game.blocked(cmd);
+		if (why) return note(e, blockedNote(why), 1500);
 		if (this.release || cmd?.tool) {
 			if (!cmd) return this.passive ? undefined : note(e, { value: "N/A", color: C.none }, 1500);
 			e.held = true;
 			redraw(true);
-			await run(cmd).catch((err) => streamDeck.logger.warn(`${cmd.tool ?? cmd.action} failed: ${(err as Error).message}`));
+			await run(cmd).catch((err) => {
+				if (err instanceof Blocked) note(e, blockedNote(err.why), 1500);
+				streamDeck.logger.warn(`${cmd.tool ?? cmd.action} failed: ${(err as Error).message}`);
+			});
 			if (!this.release) {
 				// taps (game actions): show the press briefly, then pick up the new state
 				setTimeout(() => {
@@ -151,7 +164,7 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 
 /** Fire-and-forget: a game tool, or a resolver action through the library already in the vehicle. */
 export async function run(cmd: NonNullable<Command>): Promise<void> {
-	if (cmd.tool) await game.tool(cmd.tool, cmd.args);
+	if (cmd.tool) await game.tool(cmd.tool, cmd.args, cmd.mp);
 	else await game.fire(cmd.action!, cmd.args);
 }
 
@@ -163,6 +176,9 @@ export async function keyUp(e: Entry) {
 	// Always send the release, even if the game link dropped meanwhile, so nothing stays held.
 	if (rel) await run(rel).catch(() => undefined);
 }
+
+/** Note for a press the BeamMP add-on refused. */
+const blockedNote = (why: "blocked" | "unavailable"): Partial<Face> => ({ value: why === "blocked" ? "BLOCKED" : "NOT IN MP", color: C.none });
 
 export function note(e: Entry, face: Partial<Face>, ms: number) {
 	e.note = { face, until: Date.now() + ms };
@@ -198,6 +214,17 @@ function faceFor(e: Entry, snap: Snapshot): Face {
 	else {
 		f = e.impl.face(snap.status, e.settings, e.held, snap.ge ?? {});
 		if (snap.link === "paused") f = { ...f, dim: true, sub: "PAUSED" };
+	}
+	// Through the BeamMP add-on, keys this server doesn't allow say so (read-only keys like gauges still show).
+	if (game.backend === "addon" && !e.impl.passive && snap.link !== "offline" && snap.link !== "limited" && f.state !== "unsupported") {
+		let cmd: Command = null;
+		try {
+			cmd = e.impl.command(snap.status ?? {}, e.settings, snap.ge ?? {});
+		} catch {
+			/* no command for this state */
+		}
+		const why = game.blocked(cmd);
+		if (why) f = idle(why, why === "blocked" ? "BLOCKED" : "NOT IN MP");
 	}
 	if (e.busy) f = { ...f, flash: true };
 	if (e.note) {
@@ -712,6 +739,8 @@ export class Nitrous extends DeckAction {
 		const s = game.snapshot.status;
 		if (!e || e.busy) return;
 		if (game.snapshot.link !== "ok" || !s?.n2o) return void (s && !s.n2o ? note(e, { value: "N/A", color: C.none }, 1500) : ev.action.showAlert());
+		const why = game.blocked({ action: "n2o", args: {} });
+		if (why) return note(e, blockedNote(why), 1500);
 		const mode = e.settings.press ?? "combined";
 		if (mode === "arm") return super.onKeyDown(ev);
 		const startSpray = () => {

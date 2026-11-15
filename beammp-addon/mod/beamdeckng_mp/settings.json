@@ -1,0 +1,13 @@
+{
+  "_readme": "What players' BeamDeckNG Stream Decks may do on this server. Remove a name to block it, add one to allow it. A list left out uses the built-in defaults. See the BeamDeckNG README (BeamMP add-on) for every name.",
+  "vehicle": [
+    "engine", "traction", "drive_mode_step", "diff_lock", "diff_combo", "center_diff", "range", "drive",
+    "parking_brake", "lights", "fog", "hazard", "signal", "lightbar", "horn", "cruise", "engine_brake",
+    "retarder", "air_suspension", "body", "pt_click", "tire_pressure"
+  ],
+  "actions": [
+    "menu_item_select", "menu_item_back", "menu_item_up", "menu_item_down", "menu_item_left", "menu_item_right",
+    "toggleBigMap", "toggleRadialMenuMulti", "photomode", "couplersToggle", "center_camera", "look_back"
+  ],
+  "game": ["set_camera", "cam_step", "cam_driver", "toggle_ui", "walk"]
+}

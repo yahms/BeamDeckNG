@@ -20,6 +20,8 @@ type GameFn = {
 	tool?: [string, object];
 	/** Or game-engine Lua (run_lua), for things the game's actions don't do reliably. */
 	lua?: string | ((ge: GeStatus, st: Settings) => string);
+	/** The BeamMP add-on's named equivalent of the lua (it has no free-form Lua); none = not in MP. */
+	mp?: (st: Settings) => { fn: string; args?: object };
 };
 
 // Slow motion: toggle between normal speed and the last slow speed used (default 1/4).
@@ -80,7 +82,7 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 	respawn: { label: "Respawn", key: "home", act: "loadHome" },
 	// game tab
 	// gameplay_walk isn't always loaded (e.g. after a level load through MCP), so load it first
-	walk: { label: "Get in / out", key: "walk", lua: "if not gameplay_walk then extensions.load('gameplay_walk') end gameplay_walk.toggleWalkingMode() return 'ok'", state: (g) => (g.walking ? { state: "on", value: "ON FOOT" } : { state: "off", value: "IN CAR" }) },
+	walk: { label: "Get in / out", key: "walk", mp: () => ({ fn: "walk" }), lua: "if not gameplay_walk then extensions.load('gameplay_walk') end gameplay_walk.toggleWalkingMode() return 'ok'", state: (g) => (g.walking ? { state: "on", value: "ON FOOT" } : { state: "off", value: "IN CAR" }) },
 	map: { label: "Map", key: "map", act: "toggleBigMap" },
 	vehicles: { label: "Vehicles", key: "vehicles", act: "vehicle_selector" },
 	radial: { label: "Radial menu", key: "radial", act: "toggleRadialMenuMulti" },
@@ -115,8 +117,8 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 	left: { label: "Left", key: "left", act: "menu_item_left" },
 	right: { label: "Right", key: "right", act: "menu_item_right" },
 	// camera tab
-	cam_cycle: { label: "Next camera", key: "cam_cycle", lua: (_g, st) => camStep(1, st), state: (g) => ({ state: "off", value: camName(g.cam) }) },
-	cam_prev: { label: "Previous camera", key: "cam_prev", lua: (_g, st) => camStep(-1, st), state: (g) => ({ state: "off", value: camName(g.cam) }) },
+	cam_cycle: { label: "Next camera", key: "cam_cycle", mp: (st) => ({ fn: "cam_step", args: { dir: 1, gamecams: !!st.gamecams } }), lua: (_g, st) => camStep(1, st), state: (g) => ({ state: "off", value: camName(g.cam) }) },
+	cam_prev: { label: "Previous camera", key: "cam_prev", mp: (st) => ({ fn: "cam_step", args: { dir: -1, gamecams: !!st.gamecams } }), lua: (_g, st) => camStep(-1, st), state: (g) => ({ state: "off", value: camName(g.cam) }) },
 	cam_free: {
 		label: "Free camera",
 		key: "cam_free",
@@ -129,6 +131,7 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 	cam_driver: {
 		label: "Driver",
 		key: "cam_driver",
+		mp: () => ({ fn: "cam_driver" }),
 		lua: "local id = be:getPlayerVehicleID(0) core_camera.setVehicleCameraByNameWithId(id, core_camera.getDriverCameraNameById(id)) return 'ok'",
 		state: (g) => (g.cam && (g.cam.startsWith("occupant") || g.cam === "driver") ? { state: "on", value: "ACTIVE" } : { state: "off", value: "" }),
 	},
@@ -149,6 +152,7 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 	replay_eject: {
 		label: "Eject replay",
 		key: "replay_eject",
+		mp: () => ({ fn: "replay_eject" }),
 		lua: "if core_replay.stopAndUnload then core_replay.stopAndUnload() else core_replay.stop() end return 'ok'",
 		state: (g) => ({ state: !g.replay || g.replay === "inactive" ? "off" : "on", value: "EJECT" }),
 	},
@@ -206,7 +210,7 @@ export class GameFunction extends DeckAction {
 	}
 	command(_s: VehicleStatus, st: Settings, ge: GeStatus = {}): Command {
 		const [, f] = GameFunction.fn(st);
-		if (f.lua) return { tool: "run_lua", args: { code: typeof f.lua === "function" ? f.lua(ge, st) : f.lua } };
+		if (f.lua) return { tool: "run_lua", args: { code: typeof f.lua === "function" ? f.lua(ge, st) : f.lua }, mp: f.mp?.(st) };
 		if (f.hold) return { tool: "trigger_action", args: { action: f.hold, state: "down" } };
 		if (f.act) return { tool: "trigger_action", args: { action: f.act } };
 		if (f.tool) return { tool: f.tool[0], args: f.tool[1] };

@@ -3,7 +3,8 @@
 A Stream Deck plugin that uses **BeamNG.drive's native MCP server**. Enable MCP in the game and it
 just works: no game mod, and no bridge program running in the background.
 
-- The plugin talks only to the game's MCP server at `http://127.0.0.1:29292/mcp`.
+- The plugin talks only to the game's MCP server at `http://127.0.0.1:29292/mcp` (and, on BeamMP
+  servers, to the BeamDeckNG add-on and the game's OutGauge data; see [On BeamMP servers](#on-beammp-servers)).
 - Stream Deck must be on **the same computer the game is running on**.
 - Every button shows the live state of the vehicle or the game.
 
@@ -81,6 +82,24 @@ installed into each vehicle VM once (as the global `BNGSD_BNGS`), and is re-inst
 automatically after a vehicle switch or reload. Presses send the full library and use the same
 act-then-verify flow (set, then check a moment later that the change took).
 
+## On BeamMP servers
+
+BeamMP turns off the game's own MCP server while you're on a multiplayer server, so the plugin
+falls back, in this order:
+
+1. **The BeamDeckNG MP add-on**, if the server has it (see [beammp-addon/](beammp-addon/README.md)):
+   a client mod the server owner installs, with its own MCP server on `127.0.0.1:29392`. It does
+   what the plugin otherwise does with `run_lua`, but only fixed jobs, checked against the server's
+   allowlist; there is no free-form Lua. Keys the server doesn't allow show **BLOCKED**; keys that
+   need free-form Lua (time, weather, gravity, slow motion, recover...) show **NOT IN MP**.
+2. **OutGauge**, the game's read-only dashboard data (Options > Other > Protocols > OutGauge, IP
+   `127.0.0.1`, port `4444`). Gauges, parking brake, indicators, hazards and high beam keep showing
+   their state; other keys show **NO MCP**, and presses don't work. Only one program can listen on
+   a UDP port, so if SimHub or another dashboard uses 4444, one of them misses out.
+
+When you leave the server, the add-on unloads and the plugin goes back to the game's own MCP
+server by itself.
+
 ## Icons
 
 Button icons come from **your own copy of BeamNG.drive**: while the game is running, the plugin reads
@@ -131,6 +150,7 @@ removed before release.
 npm install
 npm run build          # -> com.yahms.beamdeckng.sdPlugin/bin/plugin.js
 npm run pack           # -> dist/com.yahms.beamdeckng.streamDeckPlugin
+npm run pack:mp        # -> dist/BeamDeckNG-MP.zip (the BeamMP add-on, for server owners)
 npx streamdeck link com.yahms.beamdeckng.sdPlugin   # dev: run from this folder
 ```
 
@@ -150,4 +170,17 @@ and delivers `queueLuaCommand` / `queueGameEngineLua` once per frame, like the g
 pip install lupa
 python test/mock_mcp.py 29299 &
 node test/run.mjs      # after compiling src/game.ts + src/mcp.ts into test/build/bin
+```
+
+BeamMP add-on and OutGauge: `test/mock_mp.py` runs the real add-on (from `dist/BeamDeckNG-MP.zip`)
+in a LuaJIT game-engine VM with a mock of the game's HTTP listener and the mock 4x4, plus a
+"native" MCP port that accepts and never answers, as on a BeamMP server:
+
+```
+npm run pack:mp && node test/compile.mjs          # zip + plugin modules into test/build/bin
+python test/mock_mp.py 29392 39292 &              # add --old to act as an add-on without beamdeck_info
+node test/mp.mjs 29392 39292                      # (--old with an --old mock) fallback, allowlist, refusals, leave server...
+python test/mock_mp.py --settings test/mp_strict.json &  # a strict server allowlist
+node test/mp_strict.mjs
+node test/outgauge.mjs                            # OutGauge listener (fake UDP packets)
 ```
