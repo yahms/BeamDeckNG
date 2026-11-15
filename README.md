@@ -1,4 +1,4 @@
-# BeamDeckNG: Stream Deck plugin for BeamNG.drive (0.1.1 alpha)
+# BeamDeckNG: Stream Deck plugin for BeamNG.drive (0.2.0 alpha)
 
 A Stream Deck plugin that uses **BeamNG.drive's native MCP server**. Enable MCP in the game and it
 just works: no game mod, and no bridge program running in the background.
@@ -29,12 +29,16 @@ just works: no game mod, and no bridge program running in the background.
 | Nitrous | off / armed (blue) / spraying (green), bottle % | tap: arm/disarm, hold: spray (setting) |
 | JATO | ready / firing, fuel % | hold to fire, or toggle (setting) |
 | Powertrain (game bar) | the Nth button of the game's powertrain bar, with its icon and coloured ring | whatever the game's button does |
+| World | **time of day** clock with a sky-coloured background (night blue, dawn/dusk orange, day blue); time presets (sunrise, noon, sunset, midnight), ±1 hour, day length; **weather** presets (clear, cloudy, fog, rain, storm) and separate rain / fog / wind keys; **gravity** (Earth, Moon, Mars, Zero-G, Jupiter). Preset keys are green when that preset is current | apply the preset, or cycle. The clock key runs / freezes time |
+| Gauge | speed, gear with shift light (green > yellow > red flash near the limiter), rpm, fuel, coolant and oil temperature, boost, damage | none (damage: repair) |
 | Game function | pause, repair, recover, respawn, accept, back, get in/out, map, vehicles, radial menu, slow motion (1x <-> last slow speed), slower/faster, game UI, photo mode, traffic, trailer, next vehicle, menu arrows, cameras, look back, replay | per function |
 
-Common faces: **NO GAME** (MCP not reachable), **NO CAR**, **…** (loading), **PAUSED** (dimmed
-last state while the vehicle isn't answering), **N/A** (this vehicle doesn't have it).
-After a press the button flashes until the game confirms. If the command fails it flashes red
-**ERROR**.
+When the game isn't running (**NO GAME**), no vehicle is spawned (**NO CAR**) or a map is loading, each
+button still shows what it is: its icon, dimmed, or its name. So a layout can be built without the
+game running. Icons already read from the game are kept in the plugin's `cache` folder on your PC
+for this. Other faces: **PAUSED** (dimmed last state while the vehicle isn't answering), **N/A**
+(this vehicle doesn't have it), **NO MAP** (World keys with no map loaded). After a press the
+button flashes until the game confirms. If the command fails it flashes red **ERROR**.
 
 ## Category icons for folders and pages
 
@@ -81,7 +85,11 @@ act-then-verify flow (set, then check a moment later that the change took).
 Button icons come from **your own copy of BeamNG.drive**: while the game is running, the plugin reads
 the icons it needs from the game's UI icon set (`/ui/assets/Sprites/svg-symbols.svg`) through the
 MCP server, and draws them in a colour that shows the state. No game artwork ships with the plugin.
-Until the game answers (or if an icon is missing), the button shows its name as text.
+Until an icon has been read once (or if it is missing), the button shows its name as text.
+
+**Rain** works on every map: maps with their own rain (Industrial, Jungle Rock Island, East Coast USA,
+Italy, Small Island, West Coast USA...) use it, and on maps without (Gridmap v2 and others) the
+plugin adds a rain effect using the game's own rain.
 
 Colours follow the game's own drive-mode colours:
 

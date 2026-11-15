@@ -1,17 +1,19 @@
-# BeamDeckNG 0.1.1 (alpha)
+# BeamDeckNG 0.2.0 (alpha)
 
-**New icons.** Button icons now come from your own copy of BeamNG.drive: while the game is running, the plugin reads the
-icons it needs from the game's UI icon set and colours them by state. No game artwork ships with the plugin.
+**New: World button** (time, weather, gravity)
+- Time of day clock with a sky-coloured background; press to run or freeze time. Presets for sunrise, noon, sunset and
+  midnight, plus / minus one hour, and day length.
+- Weather presets: clear, cloudy, fog, rain, storm (or one key that cycles), and separate rain, fog and wind keys.
+  Rain works on every map, including maps that have no rain of their own such as Gridmap v2.
+- Gravity: Earth, Moon, Mars, Zero-G, Jupiter.
+- Preset keys light up green when that preset is the current one, however it was set.
 
-- Colours follow the game's drive-mode colours: white = idle, green = on, blue = mode / info, yellow = caution or in
-  progress, red = alert (engine stopped, parking brake, hazards, errors), grey = off. Drive mode buttons use the game's
-  colour for each mode.
-- Accept is a green tick and Back a red cross.
-- Until the game answers, buttons show their name as text.
-- You can still use your own PNGs per state (see the README); they win over the game's icons.
-- New category icons for folders and pages (`BeamDeckNG-icons.zip`): 31 icons in white and green, plus a green tick
-  (yes) and red cross (no). Built from Material Symbols (Apache 2.0) and our own drawings.
-- Early test builds used the Beam Deck icon pack from the beamng.com forums; those icons have been removed.
+**New: Gauge button**
+- Speed (km/h or mph), gear with shift light, rpm, fuel, coolant and oil temperature, boost, damage (press to repair).
+
+**Layouts without the game running**
+- With no game, no car or a map loading, each button now shows its own icon (dimmed) or name instead of a plain
+  NO GAME tile. Icons read from the game are remembered on your PC between sessions.
 
 **Install:** double-click `com.yahms.beamdeckng.streamDeckPlugin` (Stream Deck 7.1 or later), then drag buttons from the
 **BeamDeckNG** category. The plugin uses the game's native MCP server: enable MCP in BeamNG.drive and it just works, with

@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import { storeGlyphs, takeWantedGlyphs } from "./icons";
 import { Mcp } from "./mcp";
 
-export const DECK_VERSION = "0.1.1"; // bump when the vehicle Lua changes, so vehicles reload it
+export const DECK_VERSION = "0.2.0"; // bump when the vehicle Lua changes, so vehicles reload it
 
 export type DiffState = "locked" | "open" | "partial" | "auto" | null | undefined;
 export type ModeInfo = { ctrl: string; key: string | null; name: string | null; color?: string };
@@ -50,6 +50,8 @@ export type VehicleStatus = {
 	n2o?: { armed: boolean; override: boolean; active: boolean; bottle?: number };
 	jato?: { on: boolean; firing: boolean; fuel?: number };
 	pt?: PtButton[]; // the game's own powertrain button bar
+	/** Gauge readings. spd m/s, temps in C, boost in psi, fuel 0..1, dmg = the game's damage score. */
+	g?: { spd?: number; gear?: string; gi?: number; rpm?: number; maxrpm?: number; fuel?: number; low?: boolean; water?: number; oil?: number; boost?: number; boostMax?: number; dmg?: number };
 };
 
 /** One button of the game's powertrain bar: icon is the game's icon name, color hex (no #), ring 0..1. */
@@ -63,6 +65,14 @@ export type GeStatus = {
 	replay?: string; // inactive | recording | playing ...
 	ui?: boolean; // game UI visible
 	walking?: boolean; // player is on foot
+	/** Time of day: time 0..1 (0 = noon, 0.5 = midnight), play = clock running, dayLength in seconds. */
+	tod?: { time: number; play?: boolean; dayLength?: number };
+	cloud?: number; // cloud cover
+	fog?: number; // fog density (environment-menu units)
+	fog0?: number; // the level's own fog density
+	wind?: number;
+	grav?: number; // m/s2, negative = down
+	rain?: number; // rain drops (0 = dry)
 };
 
 export type Link = "offline" | "novehicle" | "loading" | "paused" | "ok";
@@ -169,6 +179,21 @@ pcall(function() g.timeScale = simTimeAuthority.get() end)
 pcall(function() g.cam = core_camera.getActiveCamName() end)
 pcall(function() g.replay = core_replay.getState() end)
 pcall(function() g.ui = extensions.ui_visibility.getCef() end)
+pcall(function()
+  local t = core_environment.getTimeOfDay()
+  if not t then return end
+  g.tod = { time = t.time, play = t.play, dayLength = t.dayLength }
+  local e = core_environment.getState()
+  g.cloud = e.cloudCover g.fog = e.fogDensity g.wind = e.windSpeed g.grav = e.gravity
+  local i = core_environment.getInitState()
+  g.fog0 = i and i.fogDensity
+  local n = 0
+  for _, nm in ipairs(scenetree.findClassObjects("Precipitation") or {}) do
+    local o = scenetree.findObject(nm)
+    if o then n = math.max(n, tonumber(o.numDrops) or 0) end
+  end
+  g.rain = n
+end)
 local veh = be:getPlayerVehicle(0)
 pcall(function() g.walking = veh ~= nil and veh:getJBeamFilename() == "unicycle" end)
 if not veh then return jsonEncode({ veh = false, ge = g }) end

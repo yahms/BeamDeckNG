@@ -8,7 +8,7 @@
 // Optional per-user overrides: imgs/states/<key>/<state>.png (and <state>_flash.png) beat the glyph.
 // With no glyph available, a text placeholder is drawn.
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -47,6 +47,8 @@ export type Face = {
 	frame?: string; // coloured border round the whole key (active tab)
 	glyph?: string[]; // game icon names (sprite symbol ids), first one available is used
 	tint?: string; // glyph colour (a P colour); flash frames use P.dimmed
+	/** Drawn gauge / readout instead of an icon: clock, speed, fuel... */
+	panel?: { big: string; top?: string; unit?: string; bg?: string; fg?: string; bar?: { value: number; color: string } };
 	label: string; // top line on the placeholder
 	value: string; // big middle text
 	sub?: string; // small bottom line (mode name, "PAUSED"...)
@@ -116,6 +118,23 @@ type Glyph = { viewBox: string; inner: string };
 const glyphs = new Map<string, Glyph | null>(); // null = not in the game's sprite
 const wanted = new Set<string>();
 
+// Icons already read from the game are kept on this PC (cache/glyphs.json in the plugin folder), so keys
+// keep their icons while the game isn't running. The cache is the player's own copy; it is never shipped.
+const CACHE = path.join(here, "..", "cache", "glyphs.json");
+try {
+	if (existsSync(CACHE)) for (const [id, g] of Object.entries(JSON.parse(readFileSync(CACHE, "utf8")) as Record<string, Glyph>)) glyphs.set(id, g);
+} catch {
+	/* unreadable cache: icons are fetched again */
+}
+function saveGlyphs() {
+	try {
+		mkdirSync(path.dirname(CACHE), { recursive: true });
+		writeFileSync(CACHE, JSON.stringify(Object.fromEntries([...glyphs].filter(([, g]) => g))));
+	} catch {
+		/* read-only folder: no cache */
+	}
+}
+
 /** Symbol ids the faces asked for that haven't been fetched yet (the game link fetches them). */
 export function takeWantedGlyphs(): string[] {
 	const out = [...wanted].filter((id) => !glyphs.has(id));
@@ -136,6 +155,7 @@ export function storeGlyphs(found: Record<string, string | false>) {
 		inner = inner.replace(/(fill|stroke)="(#fff|#ffffff|white)"/gi, '$1="currentColor"').replace(/(fill|stroke):\s*(#fff|#ffffff|white)\b/gi, "$1:currentColor");
 		glyphs.set(id, { viewBox, inner });
 	}
+	saveGlyphs();
 }
 
 export const glyphCount = () => [...glyphs.values()].filter(Boolean).length;
@@ -164,6 +184,23 @@ ${hasText ? `<text x="72" y="130" font-family="Arial, Helvetica, sans-serif" fon
 </svg>`;
 }
 
+function panelSvg(f: Face, dark: boolean): string {
+	const p = f.panel!;
+	const fg = f.dim ? P.dimmed : p.fg ?? "#fff";
+	const n = p.big.length;
+	const size = n <= 2 ? 72 : n <= 3 ? 62 : n <= 4 ? 50 : n <= 5 ? 42 : n <= 6 ? 34 : n <= 8 ? 27 : 21;
+	const bar = p.bar && !f.dim ? Math.max(0, Math.min(1, p.bar.value)) : undefined;
+	const cy = p.top ? (bar !== undefined && p.unit ? 66 : p.unit || bar !== undefined ? 72 : 78) : 70;
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
+<rect width="144" height="144" fill="${dark || f.dim ? "#000" : p.bg ?? "#000"}"/>
+${p.top ? `<text x="72" y="30" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="bold" fill="${fg}" fill-opacity="0.75" text-anchor="middle">${esc(clip(p.top.toUpperCase(), 12))}</text>` : ""}
+<text x="72" y="${cy + size * 0.35}" font-family="Arial, Helvetica, sans-serif" font-size="${size}" font-weight="bold" fill="${fg}" text-anchor="middle">${esc(p.big)}</text>
+${p.unit ? `<text x="72" y="${bar === undefined ? 126 : 114}" font-family="Arial, Helvetica, sans-serif" font-size="${bar === undefined ? 17 : 15}" font-weight="bold" fill="${fg}" fill-opacity="0.75" text-anchor="middle">${esc(clip(p.unit, 14))}</text>` : ""}
+${bar === undefined ? "" : `<rect x="14" y="122" width="116" height="12" rx="6" fill="#fff" fill-opacity="0.18"/><rect x="14" y="122" width="${(116 * bar).toFixed(1)}" height="12" rx="6" fill="${p.bar!.color}"/>`}
+${decorations({ ...f, overlay: undefined })}
+</svg>`;
+}
+
 const BLANK = svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144"><rect width="144" height="144" fill="#000"/></svg>`);
 
 /** Image for a face; `phase` alternates 0/1 while flashing. */
@@ -183,6 +220,7 @@ export function render(f: Face, phase: number): string {
 			return compose(p, f.dim ? (f.state === "unsupported" ? 0.68 : 0.55) : 0, f);
 		}
 	}
+	if (f.panel) return svgUrl(panelSvg(f, !!altFrame));
 	// no override PNG: the game's own icon, coloured for the state
 	const g = pickGlyph(f.glyph);
 	if (g) return svgUrl(glyphSvg(f, g, !!altFrame));

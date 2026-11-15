@@ -4,3 +4,4 @@ test/build/
 com.yahms.beamdeckng.sdPlugin/bin/
 com.yahms.beamdeckng.sdPlugin/logs/
 logs/
+com.yahms.beamdeckng.sdPlugin/cache/

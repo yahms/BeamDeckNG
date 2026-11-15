@@ -4,6 +4,8 @@ import * as A from "./actions";
 import { GameFunction } from "./gamefns";
 import { Powertrain } from "./powertrain";
 import { Game } from "./game";
+import { Gauge } from "./gauges";
+import { World } from "./world";
 
 streamDeck.logger.setLevel("info");
 
@@ -11,7 +13,7 @@ for (const Action of [
 	A.Ignition, A.Traction, A.DiffLock, A.Range, A.Drive,
 	A.ParkingBrake, A.Headlights, A.FogLights, A.Hazards, A.Indicator, A.Lightbar, A.Horn,
 	A.Cruise, A.EngineBrake, A.Retarder, A.AirSuspension, A.Doors, A.Nitrous, A.Jato,
-	GameFunction, Powertrain,
+	GameFunction, Powertrain, World, Gauge,
 ]) {
 	streamDeck.actions.registerAction(new Action());
 }

@@ -166,6 +166,16 @@ function BNGS.status()
   if controller.getController("jato") then
     s.jato = { on = (e.jatoInput or 0) >= 0.5, firing = (e.jato or 0) > 0, fuel = e.jatofuel }
   end
+  -- gauges
+  local r = function(v, m) return type(v) == "number" and math.floor(v / m + 0.5) * m or nil end
+  s.g = {
+    spd = r(e.wheelspeed, 0.05), gear = type(e.gear) == "string" and e.gear or nil, gi = e.gearIndex,
+    rpm = r(e.rpm, 10), maxrpm = e.maxrpm, fuel = r(e.fuel, 0.005), low = e.lowfuel and true or false,
+    water = r(e.watertemp, 1), oil = r(e.oiltemp, 1),
+    boost = r(e.turboBoost or e.boost, 0.1), boostMax = e.turboBoostMax or e.boostMax,
+    dmg = beamstate and r(beamstate.damage, 1) or nil,
+  }
+
   return s
 end
 

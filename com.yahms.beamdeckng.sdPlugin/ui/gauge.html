@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+	<head lang="en">
+		<title>Gauge</title>
+		<meta charset="utf-8" />
+		<script src="https://sdpi-components.dev/releases/v4/sdpi-components.js"></script>
+	</head>
+	<body>
+		<sdpi-item label="Gauge">
+			<sdpi-select setting="gauge" default="speed">
+				<option value="speed">Speed</option>
+				<option value="gear">Gear + shift light</option>
+				<option value="rpm">RPM</option>
+				<option value="fuel">Fuel</option>
+				<option value="water">Coolant temperature</option>
+				<option value="oil">Oil temperature</option>
+				<option value="boost">Boost</option>
+				<option value="damage">Damage (press: repair)</option>
+			</sdpi-select>
+		</sdpi-item>
+		<sdpi-item label="Speed units">
+			<sdpi-select setting="units" default="kmh">
+				<option value="kmh">km/h</option>
+				<option value="mph">mph</option>
+			</sdpi-select>
+		</sdpi-item>
+	</body>
+</html>

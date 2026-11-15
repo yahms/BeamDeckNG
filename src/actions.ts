@@ -25,6 +25,7 @@ export type Settings = {
 	step?: string; // cruise +/- step, in the display unit
 	units?: "kmh" | "mph";
 	dir?: "raise" | "lower";
+	gauge?: string; // gauge buttons: which reading
 };
 /** A vehicle resolver action ({action, args}) or one of the game's MCP tools ({tool, args}). */
 export type Command = { action?: string; tool?: string; args: object } | null;
@@ -59,6 +60,8 @@ export const unsupported = (key: string, label: string, alt: string[] = []): Fac
 export abstract class DeckAction extends SingletonAction<Settings> {
 	/** False for game-level functions (pause, camera...) that work without a vehicle. */
 	vehicle = true;
+	/** True for read-only keys (gauges): a press with nothing to do is ignored instead of showing N/A. */
+	passive = false;
 	/** Face for the current vehicle status (ge = game-engine state, for game-level functions). */
 	abstract face(s: VehicleStatus, settings: Settings, held?: boolean, ge?: GeStatus): Face;
 
@@ -106,7 +109,7 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 		}
 		const cmd = this.command(snap.status ?? {}, e.settings, snap.ge ?? {});
 		if (this.release || cmd?.tool) {
-			if (!cmd) return note(e, { value: "N/A", color: C.none }, 1500);
+			if (!cmd) return this.passive ? undefined : note(e, { value: "N/A", color: C.none }, 1500);
 			e.held = true;
 			redraw(true);
 			await run(cmd).catch((err) => streamDeck.logger.warn(`${cmd.tool ?? cmd.action} failed: ${(err as Error).message}`));
@@ -121,7 +124,7 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 			return;
 		}
 		if (!cmd) {
-			note(e, { value: "N/A", color: C.none }, 1500);
+			if (!this.passive) note(e, { value: "N/A", color: C.none }, 1500);
 			return;
 		}
 		e.busy = true;
@@ -167,12 +170,22 @@ export function note(e: Entry, face: Partial<Face>, ms: number) {
 let phase = 0;
 
 function faceFor(e: Entry, snap: Snapshot): Face {
-	const common = (state: string, value: string): Face => ({ key: "common", state, label: "BeamDeckNG", value, color: C.none });
+	// No game / no car / loading: the button still shows what it is (its idle icon, dimmed, or its name),
+	// so a layout can be built without the game running.
+	const idle = (state: string, text: string): Face => {
+		let b: Face;
+		try {
+			b = e.impl.face({}, e.settings, false, {});
+		} catch {
+			b = { key: "common", state, label: "BeamDeckNG", value: text, color: C.none };
+		}
+		return { ...b, alt: [...(b.state === "unsupported" ? [] : [b.state]), ...(b.alt ?? [])], state: "unsupported", dim: true, flash: false, color: C.none, value: text, overlay: text, sub: undefined, ring: undefined, panel: b.panel && { big: text, top: b.panel.top ?? b.label } };
+	};
 	let f: Face;
-	if (snap.link === "offline") f = common("offline", "NO GAME");
+	if (snap.link === "offline") f = idle("offline", "NO GAME");
 	else if (!e.impl.vehicle) f = e.impl.face(snap.status ?? {}, e.settings, e.held, snap.ge ?? {});
-	else if (snap.link === "novehicle") f = common("novehicle", "NO CAR");
-	else if (!snap.status) f = common("loading", "…");
+	else if (snap.link === "novehicle") f = idle("novehicle", "NO CAR");
+	else if (!snap.status) f = idle("loading", "…");
 	else {
 		f = e.impl.face(snap.status, e.settings, e.held, snap.ge ?? {});
 		if (snap.link === "paused") f = { ...f, dim: true, sub: "PAUSED" };
@@ -546,7 +559,7 @@ export class Horn extends DeckAction {
 	}
 }
 
-const unitOf = (st: Settings) => (st.units === "mph" ? { k: 2.23694, name: "mph" } : { k: 3.6, name: "km/h" });
+export const unitOf = (st: Settings) => (st.units === "mph" ? { k: 2.23694, name: "mph" } : { k: 3.6, name: "km/h" });
 
 @action({ UUID: "com.yahms.beamdeckng.cruise" })
 export class Cruise extends DeckAction {
