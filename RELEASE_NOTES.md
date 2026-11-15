@@ -11,9 +11,10 @@ icons it needs from the game's UI icon set and colours them by state. No game ar
 - You can still use your own PNGs per state (see the README); they win over the game's icons.
 - New category icons for folders and pages (`BeamDeckNG-icons.zip`): 31 icons in white and green, plus a green tick
   (yes) and red cross (no). Built from Material Symbols (Apache 2.0) and our own drawings.
-- The previous release's icons have been removed.
+- Early test builds used the Beam Deck icon pack from the beamng.com forums; those icons have been removed.
 
 **Install:** double-click `com.yahms.beamdeckng.streamDeckPlugin` (Stream Deck 7.1 or later), then drag buttons from the
-**BeamDeckNG** category. Requires BeamNG.drive with its MCP server on `127.0.0.1:29292`.
+**BeamDeckNG** category. The plugin uses the game's native MCP server: enable MCP in BeamNG.drive and it just works, with
+no game mod or bridge program. Stream Deck must be on the same computer as the game.
 
 This is an alpha release: feedback and bug reports are welcome on the Issues page.

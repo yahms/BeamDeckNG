@@ -1,7 +1,11 @@
-# BeamDeckNG: Stream Deck plugin for BeamNG.drive (0.1.0 alpha)
+# BeamDeckNG: Stream Deck plugin for BeamNG.drive (0.1.1 alpha)
 
-A standalone Stream Deck plugin. It only talks to the game's built-in MCP server at
-`http://127.0.0.1:29292/mcp`; nothing else is needed.
+A Stream Deck plugin that uses **BeamNG.drive's native MCP server**. Enable MCP in the game and it
+just works: no game mod, and no bridge program running in the background.
+
+- The plugin talks only to the game's MCP server at `http://127.0.0.1:29292/mcp`.
+- Stream Deck must be on **the same computer the game is running on**.
+- Every button shows the live state of the vehicle or the game.
 
 ## Buttons
 
@@ -49,7 +53,8 @@ or from `BeamDeckNG-icons.zip` on the releases page.
 
 ## Install
 
-Requires Stream Deck 7.1 or later. Double-click `com.yahms.beamdeckng.streamDeckPlugin`, then drag
+Requires Stream Deck 7.1 or later, on the same computer as the game, and the MCP server enabled in
+BeamNG.drive. Double-click `com.yahms.beamdeckng.streamDeckPlugin`, then drag
 the buttons from the **BeamDeckNG** category.
 
 ## How it talks to the game
@@ -101,6 +106,10 @@ restart the plugin after adding them: `streamdeck restart com.yahms.beamdeckng`.
 The icons that ship with the plugin (action list, default key images, category icons) are built by
 `node scripts/icons.mjs` from [Material Symbols](https://github.com/google/material-design-icons)
 (Apache License 2.0, Google) and BeamDeckNG's own drawings.
+
+So every icon is either generated separately (the shipped set above) or derived live from the game.
+Early test builds used the Beam Deck icon pack available on the beamng.com forums; those icons were
+removed before release.
 
 ## Build
 
