@@ -131,6 +131,11 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 	// on foot: turn the camera (and so where you walk), and run
 	turn_left: { label: "Turn camera left", key: "turn_left", hold: "rotate_camera_left", state: () => ({ state: "off", value: "CAM LEFT" }) },
 	turn_right: { label: "Turn camera right", key: "turn_right", hold: "rotate_camera_right", state: () => ({ state: "off", value: "CAM RIGHT" }) },
+	// camera (or seat) height and zoom, as Page Up / Down and Shift + Page Up / Down do
+	cam_up: { label: "Camera / seat up", key: "cam_up", hold: "moveup", state: () => ({ state: "off", value: "HEIGHT +" }) },
+	cam_down: { label: "Camera / seat down", key: "cam_down", hold: "movedown", state: () => ({ state: "off", value: "HEIGHT -" }) },
+	zoom_in: { label: "Zoom in (FOV -)", key: "zoom_in", hold: "increase_zoom", state: () => ({ state: "off", value: "ZOOM IN" }) },
+	zoom_out: { label: "Zoom out (FOV +)", key: "zoom_out", hold: "decrease_zoom", state: () => ({ state: "off", value: "ZOOM OUT" }) },
 	sprint: { label: "Sprint (shift)", key: "sprint", hold: "unicycle__sprintHold", state: (g) => ({ state: "off", value: "SPRINT", dim: !g.walking }) },
 	// camera tab
 	cam_cycle: { label: "Next camera", key: "cam_cycle", mp: (st) => ({ fn: "cam_step", args: { dir: 1, gamecams: !!st.gamecams } }), lua: (_g, st) => camStep(1, st), state: (g) => ({ state: "off", value: camName(g.cam) }) },

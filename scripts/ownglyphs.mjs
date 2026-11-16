@@ -19,6 +19,15 @@ const sym = (name, x, y, s, fill = "currentColor", rot = 0) => {
 	return `<path transform="translate(${x} ${y + s}) scale(${+k.toFixed(5)})${r}" fill="${fill}" d="${d(name)}"/>`;
 };
 
+const SUN = "#FFC300";
+function sunAt(dir) {
+	// horizon at y=70; half sun r=22 sitting on it; arrow between y=6 and y=40
+	const arrow = dir === "up"
+		? `<path fill="currentColor" d="M48 6 L64 24 L54 24 L54 40 L42 40 L42 24 L32 24 Z"/>`
+		: `<path fill="currentColor" d="M48 40 L64 22 L54 22 L54 6 L42 6 L42 22 L32 22 Z"/>`;
+	return `${arrow}<path fill="${SUN}" d="M24 68 A24 24 0 0 1 72 68 Z"/><rect x="6" y="70" width="84" height="7" rx="3.5" fill="currentColor"/>`;
+}
+
 const OWN = {
 	// in the car: car lit, arrow points out to the (grey) person -> pressing gets you out
 	own_walk_car: { viewBox: "0 0 120 120", inner: sym("directions_car-fill", -2, -4, 76) + sym("arrow_forward", 66, 2, 54, "currentColor", 45) + sym("directions_walk-fill", 54, 50, 72, GREY) },
@@ -43,6 +52,15 @@ const OWN = {
 	own_wind: { viewBox: "0 -960 960 960", inner: `<path fill="currentColor" d="${d("air")}"/>` },
 	own_gravity: { viewBox: "0 -960 960 960", inner: `<path fill="currentColor" d="${d("public-fill")}"/>` },
 	own_schedule: { viewBox: "0 -960 960 960", inner: `<path fill="currentColor" d="${d("schedule-fill")}"/>` },
+	// sunrise / sunset: horizon line, yellow half sun, arrow above it (up for sunrise, down for sunset).
+	// Only the sun is yellow; line and arrow take the key's colour.
+	own_sunrise: { viewBox: "0 0 96 96", inner: sunAt("up") },
+	own_sunset: { viewBox: "0 0 96 96", inner: sunAt("down") },
+	// camera (or seat) height, and zoom (field of view)
+	own_cam_up: { viewBox: "0 0 120 120", inner: sym("videocam-fill", 16, 44, 84, GREY) + `<path fill="currentColor" d="M58 2 L84 30 L68 30 L68 52 L48 52 L48 30 L32 30 Z"/>` },
+	own_cam_down: { viewBox: "0 0 120 120", inner: sym("videocam-fill", 16, -8, 84, GREY) + `<path fill="currentColor" d="M58 118 L84 90 L68 90 L68 68 L48 68 L48 90 L32 90 Z"/>` },
+	own_zoom_in: { viewBox: "0 -960 960 960", inner: `<path fill="currentColor" d="${d("zoom_in")}"/>` },
+	own_zoom_out: { viewBox: "0 -960 960 960", inner: `<path fill="currentColor" d="${d("zoom_out")}"/>` },
 	own_hitch: { viewBox: "0 -960 960 960", inner: `<path fill="currentColor" d="${d("rv_hookup-fill")}"/>` },
 };
 

@@ -75,6 +75,7 @@ const CATEGORY = {
 	hydraulics: "height", camera: "videocam", replay: "replay", time: "schedule", map: "map", game_menu: "menu",
 	radial_menu: "apps", garage: "garage", repair: "build", recover: "autorenew", home: "home", on_foot: "directions_walk",
 	traffic: "traffic", back: "arrow_back", next: "arrow_forward",
+	mech: "construction", weather: "partly_cloudy_day", dashboard: "dashboard", lightbar: "own:lightbar", gravity: "public",
 };
 
 const act = path.join(PLUGIN, "imgs/actions");

@@ -148,9 +148,9 @@ export const WORLD_FUNCS: Record<string, WorldFn> = {
 		},
 		press: (g) => run(`core_environment.setTimeOfDay({ play = ${g.tod?.play ? "false" : "true"} }) return 'ok'`),
 	},
-	time_sunrise: timeKey("Sunrise", 6, "material_brightness_low"),
+	time_sunrise: timeKey("Sunrise", 6, "own_sunrise"),
 	time_noon: timeKey("Noon", 12, "material_wb_sunny"),
-	time_sunset: timeKey("Sunset", 18, "material_brightness_medium"),
+	time_sunset: timeKey("Sunset", 18, "own_sunset"),
 	time_midnight: timeKey("Midnight", 0, "material_brightness_2"),
 	time_fwd: {
 		label: "Time +1 h",

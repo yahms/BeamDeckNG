@@ -122,6 +122,10 @@ export const GLYPHS: Record<string, Record<string, G>> = {
 	turn_left: { off: g("own_turn_left", P.white), on: g("own_turn_left", P.green) },
 	turn_right: { off: g("own_turn_right", P.white), on: g("own_turn_right", P.green) },
 	sprint: { off: g("own_sprint", P.white), on: g("own_sprint", P.green) },
+	cam_up: { off: g("own_cam_up", P.white), on: g("own_cam_up", P.green) },
+	cam_down: { off: g("own_cam_down", P.white), on: g("own_cam_down", P.green) },
+	zoom_in: { off: g("own_zoom_in", P.white), on: g("own_zoom_in", P.green) },
+	zoom_out: { off: g("own_zoom_out", P.white), on: g("own_zoom_out", P.green) },
 	reload_lua: { off: g(["material_autorenew", "tech_reload"], P.white), on: g(["material_autorenew", "tech_reload"], P.green) },
 	nextveh_named: { off: g("material_directions_car", P.white), on: g("material_directions_car", P.green) },
 };

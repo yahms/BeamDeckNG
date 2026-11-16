@@ -54,13 +54,14 @@ highlighting the active folder/page), for Stream Deck's own Folder, Page and Pro
 
 vehicle, truck, trailer, engine, powertrain, diffs, range, drive_modes, lights, signals, hazards, doors,
 parking_brake, cruise, boost, jato, hydraulics, camera, replay, time, map, game_menu, radial_menu,
-garage, repair, recover, home, on_foot, traffic, back, next.
+garage, repair, recover, home, on_foot, traffic, back, next, mech, weather, dashboard, lightbar, gravity.
 
 Plus **yes** (green tick) and **no** (red cross), e.g. for Hotkey buttons mapped to Enter / Esc.
 
-In the Stream Deck app: select the folder/page button > click its icon > **Set from File**, and pick
-one from the plugin folder (`%appdata%\Elgato\StreamDeck\Plugins\com.yahms.beamdeckng.sdPlugin\icons\`)
-or from `BeamDeckNG-icons.zip` on the releases page.
+They come as a Stream Deck icon pack: double-click `com.yahms.beamdeckng.streamDeckIconPack` (built by
+`node scripts/iconpack.mjs`) and they appear in the Stream Deck app's **Icon Library** under BeamDeckNG
+(select a key > the arrow under its icon > Open Stream Deck Icon Library). They're also in the plugin
+folder (`%appdata%\Elgato\StreamDeck\Plugins\com.yahms.beamdeckng.sdPlugin\icons\`) for **Set from File**.
 
 ## Example profiles (tabs)
 
