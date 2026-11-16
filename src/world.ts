@@ -174,6 +174,13 @@ export const WORLD_FUNCS: Record<string, WorldFn> = {
 	grav_zero: gravKey("zero"),
 };
 
+/** On BeamMP (no direct control through MP-MCP): the game menu page where the player can change it. */
+function worldMenu(id: string): string {
+	if (id.startsWith("grav")) return "simulation";
+	if (id.startsWith("wx") || id === "rain" || id === "fog" || id === "wind") return "weather";
+	return "environment"; // time of day, day length
+}
+
 @action({ UUID: "com.yahms.beamdeckng.world" })
 export class World extends DeckAction {
 	override vehicle = false;
@@ -188,6 +195,7 @@ export class World extends DeckAction {
 		return held ? { ...face, tint: P.green } : face;
 	}
 	command(_s: VehicleStatus, st: Settings, ge: GeStatus = {}): Command {
-		return ge.tod ? this.fn(st).press(ge) : null;
+		const cmd = ge.tod ? this.fn(st).press(ge) : null;
+		return cmd && { ...cmd, menu: worldMenu(String(st.fn ?? "")) };
 	}
 }

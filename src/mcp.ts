@@ -10,7 +10,7 @@ export class McpError extends Error {
 	}
 }
 
-/** The BeamMP add-on refused: not on its server's allowlist, or not something it can do at all. */
+/** BeamDeckNG MP-MCP refused: not on its server's allowlist, or not something it can do at all. */
 export class Blocked extends McpError {
 	constructor(
 		message: string,

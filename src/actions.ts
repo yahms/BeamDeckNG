@@ -15,6 +15,7 @@ import { C, colorName, Face, P, render } from "./icons";
 
 export type Settings = {
 	fn?: string; // game function buttons: which function
+	msg?: boolean; // every key: show an in-game message when pressed (on unless unticked)
 	action?: string; // custom game action: the game's input action name
 	label?: string; // custom game action: text on the key
 	index?: string; // powertrain buttons: which button of the game's bar (1-based)
@@ -36,8 +37,10 @@ export type Command = {
 	action?: string;
 	tool?: string;
 	args: object;
-	/** For run_lua tools: the BeamMP add-on's named equivalent (it has no free-form Lua). */
+	/** For run_lua tools: BeamDeckNG MP-MCP's named equivalent (it has no free-form Lua). */
 	mp?: { fn: string; args?: object };
+	/** On BeamMP: the game menu page to open instead when MP-MCP doesn't allow this directly. */
+	menu?: string;
 } | null;
 
 export type Entry = {
@@ -119,17 +122,21 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 			return;
 		}
 		const cmd = this.command(snap.status ?? {}, e.settings, snap.ge ?? {});
-		// through the BeamMP add-on: say so straight away if this server doesn't allow it
+		// through BeamDeckNG MP-MCP: if this server doesn't allow it, open its game menu page, or say so
 		const why = game.blocked(cmd);
-		if (why) return note(e, blockedNote(why), 1500);
+		if (why) return blockedPress(e, cmd, why);
 		if (this.release || cmd?.tool) {
 			if (!cmd) return this.passive ? undefined : note(e, { value: "N/A", color: C.none }, 1500);
 			e.held = true;
 			redraw(true);
+			let ok = true;
 			await run(cmd).catch((err) => {
-				if (err instanceof Blocked) note(e, blockedNote(err.why), 1500);
+				ok = false;
+				if (err instanceof Blocked) return blockedPress(e, cmd, err.why);
 				streamDeck.logger.warn(`${cmd.tool ?? cmd.action} failed: ${(err as Error).message}`);
+				tell(e, `${labelOf(e)}: failed`);
 			});
+			if (ok) tell(e);
 			if (!this.release) {
 				// taps (game actions): show the press briefly, then pick up the new state
 				setTimeout(() => {
@@ -155,10 +162,13 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 		}
 		e.busy = false;
 		if (!r || r.status === "failed") note(e, { value: "ERROR", color: C.alert, flash: true }, 2500);
+		else if (r.status === "unsupported" && (r.detail === "BLOCKED" || r.detail === "NOT IN MP"))
+			return blockedPress(e, cmd, r.detail === "BLOCKED" ? "blocked" : "unavailable");
 		else if (r.status === "unsupported") note(e, { value: "N/A", color: C.none, sub: r.detail ?? undefined }, 2000);
 		else if (r.status === "partial") note(e, { sub: "PARTIAL" }, 2000);
 		requestPoll();
 		redraw(true);
+		tell(e);
 	}
 }
 
@@ -177,8 +187,58 @@ export async function keyUp(e: Entry) {
 	if (rel) await run(rel).catch(() => undefined);
 }
 
-/** Note for a press the BeamMP add-on refused. */
+/** Note for a press BeamDeckNG MP-MCP refused. */
 const blockedNote = (why: "blocked" | "unavailable"): Partial<Face> => ({ value: why === "blocked" ? "BLOCKED" : "NOT IN MP", color: C.none });
+
+const MENU_NAMES: Record<string, string> = {
+	environment: "Environment", weather: "Weather", simulation: "Simulation", traffic: "Traffic",
+	vehicle_config: "Vehicle configuration", vehicle_selector: "Vehicles", multiplayer: "Multiplayer",
+};
+
+/**
+ * A press BeamDeckNG MP-MCP won't do directly. If the key has a game menu page for it, open that
+ * instead (so the player changes it there, under whatever BeamMP and the server allow); else say so.
+ */
+export async function blockedPress(e: Entry, cmd: Command, why: "blocked" | "unavailable") {
+	if (cmd?.menu && game.canMenu(cmd.menu)) {
+		try {
+			await game.openMenu(cmd.menu);
+			note(e, { sub: "MENU" }, 1500);
+			tell(e, `${labelOf(e)}: opened the ${MENU_NAMES[cmd.menu] ?? cmd.menu} menu (no direct control on this server)`);
+			return;
+		} catch (err) {
+			streamDeck.logger.warn(`open_menu ${cmd.menu} failed: ${(err as Error).message}`);
+		}
+	}
+	note(e, blockedNote(why), 1500);
+	tell(e, `${labelOf(e)}: ${why === "blocked" ? "not allowed on this server" : "not available on BeamMP servers"}`, "warning");
+}
+
+/** The key's name for messages. */
+export function labelOf(e: Entry): string {
+	try {
+		const f = e.impl.face({}, e.settings, false, {});
+		return f.panel?.top ?? f.label;
+	} catch {
+		return "Stream Deck";
+	}
+}
+
+/**
+ * In-game message for a press (each key's "Show in-game message" setting, on unless unticked).
+ * Without text: once the game has caught up, what the key now shows.
+ */
+export function tell(e: Entry, text?: string, icon = "info") {
+	if (e.settings.msg === false || !game) return;
+	if (text) return game.message(`Stream Deck: ${text}`, icon);
+	setTimeout(() => {
+		const f = faceFor(e, game.snapshot);
+		const what = f.panel
+			? `${f.panel.top ?? f.label}: ${f.panel.big}${f.panel.unit ? " " + f.panel.unit : ""}`
+			: `${f.label}: ${f.value}${f.sub ? ` (${f.sub})` : ""}`;
+		game.message(`Stream Deck: ${what}`, f.state === "error" ? "warning" : "info");
+	}, 700);
+}
 
 export function note(e: Entry, face: Partial<Face>, ms: number) {
 	e.note = { face, until: Date.now() + ms };
@@ -215,7 +275,7 @@ function faceFor(e: Entry, snap: Snapshot): Face {
 		f = e.impl.face(snap.status, e.settings, e.held, snap.ge ?? {});
 		if (snap.link === "paused") f = { ...f, dim: true, sub: "PAUSED" };
 	}
-	// Through the BeamMP add-on, keys this server doesn't allow say so (read-only keys like gauges still show).
+	// Through BeamDeckNG MP-MCP, keys this server doesn't allow say so (read-only keys like gauges still show).
 	if (game.backend === "addon" && !e.impl.passive && snap.link !== "offline" && snap.link !== "limited" && f.state !== "unsupported") {
 		let cmd: Command = null;
 		try {
@@ -224,7 +284,9 @@ function faceFor(e: Entry, snap: Snapshot): Face {
 			/* no command for this state */
 		}
 		const why = game.blocked(cmd);
-		if (why) f = idle(why, why === "blocked" ? "BLOCKED" : "NOT IN MP");
+		// a key that opens its game menu page instead keeps showing the live state
+		if (why && cmd?.menu && game.canMenu(cmd.menu)) f = { ...f, sub: "OPENS MENU" };
+		else if (why) f = idle(why, why === "blocked" ? "BLOCKED" : "NOT IN MP");
 	}
 	if (e.busy) f = { ...f, flash: true };
 	if (e.note) {
@@ -740,7 +802,7 @@ export class Nitrous extends DeckAction {
 		if (!e || e.busy) return;
 		if (game.snapshot.link !== "ok" || !s?.n2o) return void (s && !s.n2o ? note(e, { value: "N/A", color: C.none }, 1500) : ev.action.showAlert());
 		const why = game.blocked({ action: "n2o", args: {} });
-		if (why) return note(e, blockedNote(why), 1500);
+		if (why) return blockedPress(e, { action: "n2o", args: {} }, why);
 		const mode = e.settings.press ?? "combined";
 		if (mode === "arm") return super.onKeyDown(ev);
 		const startSpray = () => {

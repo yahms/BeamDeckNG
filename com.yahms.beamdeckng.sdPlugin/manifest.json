@@ -29,6 +29,7 @@
 		{
 			"Name": "Ignition",
 			"UUID": "com.yahms.beamdeckng.ignition",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/ignition-icon",
 			"Tooltip": "Shows ignition / engine state. Press to start or stop the engine.",
 			"Controllers": [
@@ -79,6 +80,7 @@
 		{
 			"Name": "Range (high / low)",
 			"UUID": "com.yahms.beamdeckng.range",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/range-icon",
 			"Tooltip": "Shows the transfer case range. Press to switch high / low.",
 			"Controllers": [
@@ -95,6 +97,7 @@
 		{
 			"Name": "2WD / 4WD",
 			"UUID": "com.yahms.beamdeckng.drive",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/drive-icon",
 			"Tooltip": "Shows whether front drive is engaged. Press to switch 2WD / 4WD.",
 			"Controllers": [
@@ -111,6 +114,7 @@
 		{
 			"Name": "Parking brake",
 			"UUID": "com.yahms.beamdeckng.parkingbrake",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/parkingbrake-icon",
 			"Tooltip": "Shows the parking brake. Press to set or release.",
 			"Controllers": [
@@ -144,6 +148,7 @@
 		{
 			"Name": "Fog lights",
 			"UUID": "com.yahms.beamdeckng.fog",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/fog-icon",
 			"Tooltip": "Shows fog lights. Press to toggle.",
 			"Controllers": [
@@ -160,6 +165,7 @@
 		{
 			"Name": "Hazards",
 			"UUID": "com.yahms.beamdeckng.hazards",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/hazards-icon",
 			"Tooltip": "Shows hazard lights (blinks while on). Press to toggle.",
 			"Controllers": [
@@ -193,6 +199,7 @@
 		{
 			"Name": "Lightbar",
 			"UUID": "com.yahms.beamdeckng.lightbar",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/lightbar-icon",
 			"Tooltip": "Shows the lightbar mode. Press to cycle off / mode 1 / mode 2.",
 			"Controllers": [
@@ -209,6 +216,7 @@
 		{
 			"Name": "Horn",
 			"UUID": "com.yahms.beamdeckng.horn",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/horn-icon",
 			"Tooltip": "Sounds the horn while held.",
 			"Controllers": [
@@ -242,6 +250,7 @@
 		{
 			"Name": "Engine brake",
 			"UUID": "com.yahms.beamdeckng.enginebrake",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/enginebrake-icon",
 			"Tooltip": "Shows the engine (compression) brake level. Press to cycle off / 1 / 2 / 3.",
 			"Controllers": [
@@ -258,6 +267,7 @@
 		{
 			"Name": "Retarder",
 			"UUID": "com.yahms.beamdeckng.retarder",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/retarder-icon",
 			"Tooltip": "Shows the retarder setting. Press to cycle off / auto / 20-100 %.",
 			"Controllers": [

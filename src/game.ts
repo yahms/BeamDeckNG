@@ -82,14 +82,18 @@ export type GeStatus = {
 };
 
 /** limited = MCP not answering, but OutGauge is: dashboard state only, no presses. */
-/** What the BeamMP add-on reports about itself (beamdeck_info). Every field may be missing on an old add-on. */
+/** What BeamDeckNG MP-MCP reports about itself (beamdeck_info). Every field may be missing on an old add-on. */
 export type AddonInfo = {
 	version?: string;
 	proto?: number;
 	deckVersion?: string;
-	allow?: { vehicle?: string[]; actions?: string[]; game?: string[] };
+	/** "server": sent by the BeamMP server; "local": installed on this PC (runs outside sessions only). */
+	source?: string;
+	allow?: { vehicle?: string[]; actions?: string[]; game?: string[]; menus?: string[] };
 	always?: string[];
 	functions?: string[];
+	/** Menu pages open_menu knows. */
+	menuPages?: string[];
 };
 /** Lua encodes an empty list as {}; anything that isn't a list of strings counts as "not reported". */
 const strList = (v: unknown): string[] | undefined =>
@@ -100,18 +104,20 @@ function cleanInfo(v: any): AddonInfo {
 		version: typeof v?.version === "string" ? v.version : undefined,
 		proto: typeof v?.proto === "number" ? v.proto : undefined,
 		deckVersion: typeof v?.deckVersion === "string" ? v.deckVersion : undefined,
-		allow: { vehicle: strList(a.vehicle), actions: strList(a.actions), game: strList(a.game) },
+		source: typeof v?.source === "string" ? v.source : undefined,
+		allow: { vehicle: strList(a.vehicle), actions: strList(a.actions), game: strList(a.game), menus: strList(a.menus) },
 		always: strList(v?.always),
 		functions: strList(v?.functions),
+		menuPages: strList(v?.menuPages),
 	};
 }
 /** Add-on tool protocol this plugin was written for. Newer add-ons are still used (log only). */
 const ADDON_PROTO = 1;
-/** Port of the BeamMP add-on's listener (beammp-addon/). */
+/** Port of BeamDeckNG MP-MCP's listener (mp-mcp/). */
 export const ADDON_PORT = 29392;
 
 /** The parts of a key's command the add-on checks (same shape as actions.ts Command). */
-type Cmd = { action?: string; tool?: string; args: object; mp?: { fn: string; args?: object } } | null;
+type Cmd = { action?: string; tool?: string; args: object; mp?: { fn: string; args?: object }; menu?: string } | null;
 
 export type Link = "offline" | "novehicle" | "loading" | "paused" | "ok" | "limited";
 
@@ -189,7 +195,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export class Game {
 	/** The game's own MCP server. */
 	readonly mcp: Mcp;
-	/** The BeamMP add-on's server, used when the game's doesn't answer (BeamMP blocks it in sessions). */
+	/** BeamDeckNG MP-MCP's server, used when the game's doesn't answer (BeamMP blocks it in sessions). */
 	readonly addon: Mcp;
 	backend: "native" | "addon" = "native";
 	addonInfo?: AddonInfo;
@@ -234,12 +240,12 @@ export class Game {
 		const v = this.addonInfo;
 		streamDeck.logger.info(
 			b === "addon"
-				? `using the BeamMP add-on ${v?.version ?? "(old, no version)"} (protocol ${v?.proto ?? "?"}, vehicle library ${v?.deckVersion ?? "?"})`
+				? `using BeamDeckNG MP-MCP ${v?.version ?? "(old, no version)"} (${v?.source ?? "?"} copy, protocol ${v?.proto ?? "?"}, vehicle library ${v?.deckVersion ?? "?"})`
 				: "using the game's own MCP server",
 		);
 	}
 
-	/** Is the BeamMP add-on listening? Reads its tools and what its server allows. */
+	/** Is BeamDeckNG MP-MCP listening? Reads its tools and what its server allows. */
 	private async findAddon(): Promise<boolean> {
 		try {
 			const tools = await this.addon.listTools();
@@ -255,7 +261,7 @@ export class Game {
 			}
 			const proto = this.addonInfo?.proto;
 			if (typeof proto === "number" && proto > ADDON_PROTO)
-				streamDeck.logger.warn(`the BeamMP add-on speaks protocol ${proto}, newer than this plugin's ${ADDON_PROTO}; update the plugin if keys misbehave`);
+				streamDeck.logger.warn(`BeamDeckNG MP-MCP speaks protocol ${proto}, newer than this plugin's ${ADDON_PROTO}; update the plugin if keys misbehave`);
 			this.useBackend("addon");
 			return true;
 		} catch {
@@ -264,7 +270,7 @@ export class Game {
 	}
 
 	/**
-	 * Through the BeamMP add-on, can this key's command run? "blocked": the server's allowlist says no.
+	 * Through BeamDeckNG MP-MCP, can this key's command run? "blocked": the server's allowlist says no.
 	 * "unavailable": the add-on can't do it at all (free-form Lua, or a tool an older add-on lacks).
 	 * Unknown (an old add-on without an allowlist report) counts as allowed; the add-on still checks.
 	 */
@@ -289,9 +295,33 @@ export class Game {
 		return allow?.game && !allow.game.includes(cmd.tool) ? "blocked" : undefined;
 	}
 
+	/** Through MP-MCP: can this key open its game menu page instead (when direct control isn't allowed)? */
+	canMenu(page?: string): boolean {
+		if (!page || this.backend !== "addon" || !this.addonTools.has("open_menu")) return false;
+		const info = this.addonInfo;
+		if (info?.menuPages && !info.menuPages.includes(page)) return false;
+		return !info?.allow?.menus || info.allow.menus.includes(page);
+	}
+
+	openMenu(page: string): Promise<string> {
+		return this.addon.call("open_menu", { page });
+	}
+
+	/** Short in-game message (the game's message app), one line that each new message replaces. */
+	message(text: string, icon = "info"): void {
+		const args = { text, ttl: 3, category: "beamdeckng", icon };
+		const p =
+			this.backend === "addon"
+				? this.addonTools.has("show_message")
+					? this.addon.call("show_message", args)
+					: Promise.resolve("")
+				: this.mcp.call("show_message", args);
+		p.catch(() => undefined);
+	}
+
 	/**
 	 * One poll through whichever server is in use. If the game's own server doesn't answer, try the
-	 * BeamMP add-on; if the add-on stops answering (left the server), go back to the game's.
+	 * BeamDeckNG MP-MCP; if it stops answering (left the server), go back to the game's.
 	 */
 	async poll(): Promise<Snapshot> {
 		const s = await this.pollOnce();

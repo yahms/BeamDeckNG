@@ -84,6 +84,27 @@ check("parse error -> -32700", bad.error?.code === -32700);
 const batch = await (await post(JSON.stringify([{ jsonrpc: "2.0", id: 1, method: "ping" }, { jsonrpc: "2.0", id: 2, method: "nope" }]))).json();
 check("batch", batch.length === 2 && batch[1].error?.code === -32601);
 
+// in-game messages, menus, the game's own action filter
+let st0 = await ctl();
+check("connect message shown once", st0.events.filter((e) => e[0] === "message" && /Stream Deck connected/.test(e[1])).length === 1);
+await g.addon.call("show_message", { text: "hello\nworld", icon: "bogus" });
+st0 = await ctl();
+const hello = st0.events.find((e) => e[0] === "message" && e[1].startsWith("hello"));
+check("show_message: control chars stripped, icon checked, own category", hello && hello[1] === "hello world" && hello[2] === "beamdeckng" && hello[3] === "info", JSON.stringify(hello));
+const spam = await Promise.all(Array.from({ length: 8 }, (_, i) => g.addon.call("show_message", { text: "spam " + i })));
+check("show_message is rate limited", spam.filter((t) => t.startsWith("skipped")).length >= 4, spam.join(" / ").slice(0, 120));
+if (MODE === "new") {
+  await g.openMenu("weather");
+  check("open_menu -> the game's weather page", (await ctl()).events.some((e) => e[0] === "navigate" && e[1] === "pause.environment.weather"));
+  err = undefined;
+  try { await g.addon.call("open_menu", { page: "pause.anything" }); } catch (e) { err = e; }
+  check("open_menu takes page names only, not routes", err && /unknown menu page/.test(err.message));
+  check("canMenu", g.canMenu("environment") && !g.canMenu("nope"));
+  err = undefined;
+  try { await g.addon.call("trigger_action", { action: "photomode" }); } catch (e) { err = e; }
+  check("allowed key the game itself blocks is refused", err instanceof Blocked && /blocked by the game/.test(err.message), err?.message);
+}
+
 // leaving the server: the add-on stops and unloads, the plugin goes back to the game's own MCP
 await ctl("leave");
 await sleep(300);

@@ -1,4 +1,4 @@
--- BeamDeckNG MP add-on: a small MCP server for BeamDeckNG on BeamMP servers.
+-- BeamDeckNG MP-MCP: a small MCP server for BeamDeckNG on BeamMP servers.
 --
 -- BeamMP stops the game's own MCP server from handling requests during a multiplayer session.
 -- A server owner can put this mod on their server (Resources/Client) so players' Stream Decks keep
@@ -11,6 +11,12 @@
 --
 -- Listens on 127.0.0.1:29392 only. (Not 29293: the game's server moves up through 29292..29311 when
 -- its port is taken.)
+--
+-- Where it runs: in a BeamMP session only if this copy was sent by the server (from
+-- /mods/multiplayer/, in BeamMP's list of the server's mods). A copy installed locally runs outside
+-- sessions only (handy for testing; the game's own MCP server can do more anyway), and shuts itself
+-- down if it is still loaded when a session starts, so a modified local copy can't stand in for the
+-- server's.
 
 local M = {}
 
@@ -19,6 +25,12 @@ local PROTO = 1 -- tool protocol: bump only for changes an older plugin can't co
 local HOST, PORT, ROUTE = "127.0.0.1", 29392, "/mcp"
 local ROOT = "/beamdeckng_mp/"
 local MAX_PER_FRAME = 8 -- requests answered per frame; the rest wait for the next one
+local NAME = "BeamDeckNG MP-MCP"
+local SELF = "/lua/ge/extensions/beamdeckngMP.lua"
+
+-- Which zip this code was loaded from, read once now: the files mounted later may be another copy's.
+local LOADED_FROM
+pcall(function() LOADED_FROM = FS:getOriginArchivePathRelative(SELF) end)
 local PROTOCOL_VERSION = "2025-11-25"
 local SUPPORTED_VERSIONS = { ["2025-03-26"] = true, ["2025-06-18"] = true, ["2025-11-25"] = true }
 
@@ -37,6 +49,17 @@ local DEFAULTS = {
     "toggleBigMap", "toggleRadialMenuMulti", "photomode", "couplersToggle", "center_camera", "look_back",
   },
   game = { "set_camera", "cam_step", "cam_driver", "toggle_ui", "walk" },
+  menus = { "environment", "weather", "simulation", "traffic", "vehicle_config", "vehicle_selector", "multiplayer" },
+}
+
+-- Game menu pages a key may open instead of changing something directly (open_menu). Opening one is
+-- the same as the player going there with the mouse, so whatever BeamMP or the server limits there
+-- still applies.
+local MENUS = {
+  environment = "pause.environment", weather = "pause.environment.weather",
+  simulation = "pause.environment.simulation", traffic = "pause.environment.traffic",
+  vehicle_config = "pause.vehicle.configurationcombined", vehicle_selector = "pause.vehicleSelector",
+  multiplayer = "pause.multiplayer",
 }
 
 local server, serverAge, warnedBind = nil, 0, false
@@ -45,6 +68,42 @@ local library, deckVersion = nil, nil
 local allow, allowList = {}, {}
 local lastInstall = -10
 local leaving = false
+local clock = 0 -- seconds of game frames since loading (os.clock is CPU time, not wall time)
+local lastRequest, prevRequest = -100, -100 -- clock of the latest and the one before (for the "connected" message)
+local checkTimer = 0
+local msgTimes = {}
+
+---------------------------------------------------------------- where this copy came from
+
+local function inSession()
+  return MPCoreNetwork ~= nil and MPCoreNetwork.isMPSession ~= nil and MPCoreNetwork.isMPSession() == true
+end
+
+-- Sent by the BeamMP server this session? (BeamMP keeps server mods in /mods/multiplayer/.)
+local function fromServer()
+  local p = LOADED_FROM and LOADED_FROM:lower()
+  if not p or not p:find("^/?mods/multiplayer/") then return false end
+  if MPModManager and MPModManager.isModAllowed then
+    -- BeamMP's own naming: "/mods/multiplayer/x.zip" -> "multiplayerx"
+    local n = p:gsub("^/?mods/", ""):gsub("/", ""):gsub("%.zip$", "")
+    return MPModManager.isModAllowed(n) == true
+  end
+  return true
+end
+
+local function source() return fromServer() and "server" or "local" end
+
+-- In-game message (the game's message app), throttled so a busy Stream Deck can't flood it.
+local function message(text, ttl, icon)
+  local now = clock
+  local recent = {}
+  for _, t in ipairs(msgTimes) do if now - t < 1 then recent[#recent + 1] = t end end
+  msgTimes = recent
+  if #recent >= 4 then return false end
+  msgTimes[#msgTimes + 1] = now
+  if ui_message then ui_message(text, ttl or 3, "beamdeckng", icon or "info") end
+  return true
+end
 
 ---------------------------------------------------------------- settings and vehicle library
 
@@ -67,7 +126,7 @@ local function loadSettings()
     cfg = {}
     log("W", "beamdeckngMP", "no readable " .. ROOT .. "settings.json; using the default allowlist")
   end
-  for _, k in ipairs({ "vehicle", "actions", "game" }) do
+  for _, k in ipairs({ "vehicle", "actions", "game", "menus" }) do
     allowList[k] = stringList(cfg[k]) or DEFAULTS[k]
     allow[k] = toSet(allowList[k])
   end
@@ -192,9 +251,8 @@ function T.beamdeck_status(args)
     out.s = s.json
     -- the vehicle hasn't got our library yet (new vehicle, reset): send it, at most every 2 s
     if type(s.json) == "string" and (s.json:find('"needInit"', 1, true) or s.json:find('"err"', 1, true)) then
-      local now = os.clock()
-      if now - lastInstall > 2 then
-        lastInstall = now
+      if clock - lastInstall > 2 then
+        lastInstall = clock
         veh:queueLuaCommand(library)
       end
     end
@@ -282,6 +340,10 @@ function T.trigger_action(args)
   local name = args and args.action
   if type(name) ~= "string" then return "missing 'action' (input action name)", true end
   if not allow.actions[name] then return notAllowed("game action", name) end
+  -- the game's own filter, which BeamMP and game modes use to block keys
+  if core_input_actionFilter and core_input_actionFilter.isActionBlocked and core_input_actionFilter.isActionBlocked(name) then
+    return notAllowed("game action (blocked by the game)", name)
+  end
   if not core_input_actions then return "core_input_actions unavailable", true end
   local state = args.state
   if state == "down" then core_input_actions.triggerDown(name)
@@ -364,16 +426,45 @@ end
 S.beamdeck_game = { description = "Run one allowed game function (walk, cam_step, cam_driver, replay_eject).",
   inputSchema = { type = "object", properties = { fn = { type = "string" }, args = { type = "object" } }, required = { "fn" } } }
 
+---------------------------------------------------------------- messages and menus
+
+function T.show_message(args)
+  local text = args and args.text
+  if type(text) ~= "string" or #text == 0 then return "missing 'text'", true end
+  text = text:gsub("[%c]", " "):sub(1, 160)
+  local icon = args.icon
+  if icon ~= "info" and icon ~= "warning" and icon ~= "error" then icon = "info" end
+  local shown = message(text, math.max(1, math.min(10, tonumber(args.ttl) or 3)), icon)
+  return shown and ("shown: " .. text) or "skipped (too many messages)", false
+end
+S.show_message = { description = "Show a short message in the game's message app (rate limited).",
+  inputSchema = { type = "object", properties = { text = { type = "string" }, ttl = { type = "number" }, icon = { type = "string" } }, required = { "text" } } }
+
+function T.open_menu(args)
+  local page = args and args.page
+  if type(page) ~= "string" or not MENUS[page] then return "unknown menu page: " .. tostring(page), true end
+  if not allow.menus[page] then return notAllowed("menu page", page) end
+  local r = extensions.ui_router
+  if not (r and r.navigate) then return "ui_router unavailable", true end
+  r.navigate(MENUS[page])
+  return "opened " .. page, false
+end
+S.open_menu = { description = "Open one of the game's menu pages (environment, weather, simulation, traffic, vehicle_config, vehicle_selector, multiplayer).",
+  inputSchema = { type = "object", properties = { page = { type = "string" } }, required = { "page" } } }
+
 ---------------------------------------------------------------- info
 
 function T.beamdeck_info()
   local fns = {}
   for k in pairs(G) do fns[#fns + 1] = k end
   table.sort(fns)
+  local menus = {}
+  for k in pairs(MENUS) do menus[#menus + 1] = k end
+  table.sort(menus)
   return jsonEncode({
-    name = "BeamDeckNG MP add-on", version = VERSION, proto = PROTO, deckVersion = deckVersion,
-    allow = { vehicle = allowList.vehicle, actions = allowList.actions, game = allowList.game },
-    always = { "verify", "read", "list" }, functions = fns,
+    name = NAME, version = VERSION, proto = PROTO, deckVersion = deckVersion, source = source(),
+    allow = { vehicle = allowList.vehicle, actions = allowList.actions, game = allowList.game, menus = allowList.menus },
+    always = { "verify", "read", "list" }, functions = fns, menuPages = menus,
   }), false
 end
 S.beamdeck_info = { description = "Add-on version, protocol and what this server allows." }
@@ -393,14 +484,25 @@ end
 local function result(id, res) return { jsonrpc = "2.0", id = id, result = res } end
 local function rpcError(id, code, msg) return { jsonrpc = "2.0", id = id, error = { code = code, message = msg } } end
 
+local function nAllowed()
+  local n = 0
+  for _ in pairs(allow.vehicle) do n = n + 1 end
+  return n
+end
+
 local function dispatch(rpc)
   local m = rpc.method
   if m == "initialize" then
+    -- a Stream Deck (re)connecting after a quiet spell: say so in the game
+    if clock - prevRequest > 30 then
+      message(string.format("Stream Deck connected to %s %s (%s copy): %d vehicle actions, %d game keys allowed here",
+        NAME, VERSION, source(), nAllowed(), #allowList.actions), 6, "info")
+    end
     local want = rpc.params and rpc.params.protocolVersion
     return result(rpc.id, {
       protocolVersion = (want and SUPPORTED_VERSIONS[want]) and want or PROTOCOL_VERSION,
       capabilities = { tools = { listChanged = false } },
-      serverInfo = { name = "beamdeckng-mp", version = VERSION },
+      serverInfo = { name = "beamdeckng-mp-mcp", version = VERSION },
     })
   elseif m == "tools/list" then
     return result(rpc.id, { tools = toolList() })
@@ -419,6 +521,7 @@ end
 
 local function handleRpc(bodyText)
   local ok, msg = pcall(jsonDecode, bodyText or "")
+  prevRequest, lastRequest = lastRequest, clock
   if not ok or type(msg) ~= "table" then return jsonEncode(rpcError(nil, -32700, "parse error")), 200 end
   if msg[1] ~= nil then
     local out = {}
@@ -443,18 +546,35 @@ end
 local function startServer()
   if server then return end
   if not BNGWebWSServer then log("E", "beamdeckngMP", "BNGWebWSServer unavailable") return end
+  if inSession() and not fromServer() then return end
   server = BNGWebWSServer.getOrCreate(HOST, PORT, "", "", "", false, false)
   serverAge = 0
   if not server then log("E", "beamdeckngMP", "could not create a listener on port " .. PORT) return end
   server:enableHttpHandler(ROUTE)
 end
 
+local function shutDown(why)
+  if why then log("W", "beamdeckngMP", why) end
+  stopServer()
+  extensions.unload("beamdeckngMP")
+end
+
 local function onUpdate(dtReal)
+  clock = clock + (dtReal or 0)
   if leaving then
     leaving = false
-    stopServer()
-    extensions.unload("beamdeckngMP")
+    shutDown()
     return
+  end
+  -- once a second: a local copy must not run in a BeamMP session
+  checkTimer = checkTimer + (dtReal or 0)
+  if checkTimer >= 1 then
+    checkTimer = 0
+    if inSession() and not fromServer() then
+      message(NAME .. ": this copy wasn't sent by the server, so it is off on BeamMP servers", 8, "warning")
+      shutDown("local copy (" .. tostring(LOADED_FROM) .. ") disabled in a BeamMP session; only a copy sent by the server runs there")
+      return
+    end
   end
   if not server then return end
   serverAge = serverAge + (dtReal or 0)
@@ -463,6 +583,7 @@ local function onUpdate(dtReal)
     if not warnedBind then
       warnedBind = true
       log("W", "beamdeckngMP", "port " .. PORT .. " is in use; BeamDeckNG can't connect until it is free (retrying)")
+      message(NAME .. ": port " .. PORT .. " is in use by another program; the Stream Deck can't connect", 8, "warning")
     end
     stopServer()
     startServer()
@@ -486,11 +607,13 @@ end
 local function onExtensionLoaded()
   loadSettings()
   loadLibrary()
+  if inSession() and not fromServer() then
+    log("W", "beamdeckngMP", "not starting: local copy (" .. tostring(LOADED_FROM) .. ") in a BeamMP session")
+    return
+  end
   startServer()
-  local nv = 0
-  for _ in pairs(allow.vehicle) do nv = nv + 1 end
-  log("I", "beamdeckngMP", string.format("BeamDeckNG MP add-on %s listening on http://%s:%d%s (vehicle library %s, %d vehicle actions, %d game actions, %d game functions allowed)",
-    VERSION, HOST, PORT, ROUTE, tostring(deckVersion), nv, #allowList.actions, #allowList.game))
+  log("I", "beamdeckngMP", string.format("%s %s (%s copy, %s) listening on http://%s:%d%s (vehicle library %s, %d vehicle actions, %d game actions, %d game functions, %d menu pages allowed)",
+    NAME, VERSION, source(), tostring(LOADED_FROM), HOST, PORT, ROUTE, tostring(deckVersion), nAllowed(), #allowList.actions, #allowList.game, #allowList.menus))
 end
 
 local function onExtensionUnloaded() stopServer() end
@@ -502,6 +625,7 @@ local function onSerialize() return { active = server ~= nil } end
 local function onDeserialize(data) if data and data.active then loadSettings() loadLibrary() startServer() end end
 
 M.onInit = function() setExtensionUnloadMode(M, "manual") end
+M.loadedFrom = function() return LOADED_FROM end
 M.onExtensionLoaded = onExtensionLoaded
 M.onExtensionUnloaded = onExtensionUnloaded
 M.onUpdate = onUpdate

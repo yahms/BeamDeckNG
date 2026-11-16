@@ -9,6 +9,8 @@ answers, which is what the game's own server does while BeamMP is connected.
   python3 test/mock_mp.py [addon_port (29392)] [blocked_native_port (39292)] [--old] [--settings file.json]
     --old       pretend to be an older add-on: no beamdeck_info / beamdeck_glyphs tools
     --settings  use this allowlist instead of the one in the zip
+    --from server|local   where the mod's zip is (/mods/multiplayer/ = sent by the BeamMP server)
+    --session   start inside a BeamMP session (GET /session toggles it later)
 
 Test control on addon_port + 1: GET / returns what the add-on did to the game (triggered actions,
 cameras, vehicle electrics); GET /leave fires BeamMP's onBeamMPServerLeave.
@@ -19,13 +21,15 @@ from lupa import luajit21 as lupa
 
 HERE = __file__.rsplit("/", 1)[0]
 argv = sys.argv[1:]
-args = [a for i, a in enumerate(argv) if not a.startswith("--") and (i == 0 or argv[i - 1] != "--settings")]
+args = [a for i, a in enumerate(argv) if not a.startswith("--") and (i == 0 or argv[i - 1] not in ("--settings", "--from"))]
 ADDON_PORT = int(args[0]) if len(args) > 0 else 29392
 NATIVE_PORT = int(args[1]) if len(args) > 1 else 39292
 OLD = "--old" in sys.argv
 SETTINGS = sys.argv[sys.argv.index("--settings") + 1] if "--settings" in sys.argv else None
+FROM = sys.argv[sys.argv.index("--from") + 1] if "--from" in sys.argv else "server"
+SESSION = "--session" in sys.argv
 
-zf = zipfile.ZipFile(f"{HERE}/../dist/BeamDeckNG-MP.zip")
+zf = zipfile.ZipFile(f"{HERE}/../dist/BeamDeckNG-MP-MCP.zip")
 VFS = {"/" + n: zf.read(n).decode() for n in zf.namelist()}
 if SETTINGS:
     VFS["/beamdeckng_mp/settings.json"] = open(SETTINGS).read()
@@ -119,9 +123,12 @@ def ws_create(host, port, *a):
     return s
 
 def ws_destroy(s):
+    for k in [k for k, v in servers.items() if v is s]: servers.pop(k)
     s.http.shutdown(); s.http.server_close()
     print("mock BNGWebWSServer destroyed", flush=True)
 
+G.__ORIGIN = "/mods/multiplayer/BeamDeckNG-MP-MCP.zip" if FROM == "server" else "/mods/BeamDeckNG-MP-MCP.zip"
+G.__SESSION = SESSION
 ge.execute("""
 BNGWebWSServer = {}
 local V = {}
@@ -144,6 +151,8 @@ core_camera = {
   setVehicleCameraByIndexOffset = function(_, d) __event("cam_offset", d) end,
   getDriverCameraNameById = function() return "occupant.FL" end,
 }
+-- the game's action filter (BeamMP and game modes block keys with it): pretend photo mode is blocked
+core_input_actionFilter = { isActionBlocked = function(n) return n == "photomode" end }
 core_input_actions = {
   triggerDown = function(n) __event("down", n) end,
   triggerUp = function(n) __event("up", n) end,
@@ -151,7 +160,20 @@ core_input_actions = {
 }
 core_vehicles = { getVehicleDetails = function() return { model = { Name = "Pickup" } } end }
 local uiOn = true
-extensions = { ui_visibility = { getCef = function() return uiOn end, toggle = function() uiOn = not uiOn __event("ui", uiOn) end,
+-- BeamMP and the game's mod manager: where this zip came from, and whether we're in a session
+ORIGIN = __ORIGIN
+SESSION = __SESSION
+FS = { getOriginArchivePathRelative = function(_, p) return ORIGIN end }
+MPCoreNetwork = { isMPSession = function() return SESSION end }
+MPModManager = { isModAllowed = function(n) return n == "multiplayerbeamdeckng-mp-mcp" end }
+function ui_message(text, ttl, cat, icon) __event("message", text, cat, icon) end
+core_environment = {
+  getTimeOfDay = function() return { time = 0.25, play = false, dayLength = 1800 } end,
+  getState = function() return { cloudCover = 0.1, fogDensity = 0.01, windSpeed = 0, gravity = -9.81 } end,
+  getInitState = function() return { fogDensity = 0.01 } end,
+}
+scenetree = { findClassObjects = function() return {} end }
+extensions = { ui_router = { navigate = function(r) __event("navigate", r) end }, ui_visibility = { getCef = function() return uiOn end, toggle = function() uiOn = not uiOn __event("ui", uiOn) end,
   set = function(v) uiOn = v end, get = function() return uiOn end } }
 function extensions.unload(n) __event("unload", n) UNLOADED = true end
 function extensions.load(n) end
@@ -203,8 +225,10 @@ class E(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/leave":
             with lock: ext.onBeamMPServerLeave()
+        if self.path == "/session":
+            with lock: ge.execute("SESSION = not SESSION")
         with lock:
-            out = {"events": events, "frames": frames[0], "unloaded": bool(G.UNLOADED),
+            out = {"events": events, "frames": frames[0], "unloaded": bool(G.UNLOADED), "listening": len(servers) > 0,
                    "veh": {k: veh.eval(f"electrics.values.{k}") for k in ("horn", "hazard_enabled", "lights_state")}}
         b = json.dumps(out).encode()
         self.send_response(200); self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)

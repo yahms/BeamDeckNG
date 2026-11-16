@@ -1,4 +1,4 @@
-// Builds dist/BeamDeckNG-MP.zip: the BeamMP add-on mod, with the plugin's own vehicle Lua inside it.
+// Builds dist/BeamDeckNG-MP-MCP.zip: the BeamDeckNG MP-MCP mod for BeamMP servers, with the plugin's own vehicle Lua inside it.
 // Server owners put the zip in their server's Resources/Client folder.
 import { readFileSync, readdirSync, statSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -47,7 +47,7 @@ const end = Buffer.alloc(22);
 end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(files.length, 8); end.writeUInt16LE(files.length, 10);
 end.writeUInt32LE(cd.length, 12); end.writeUInt32LE(offset, 16);
 mkdirSync(path.join(repo, "dist"), { recursive: true });
-const out = path.join(repo, "dist", "BeamDeckNG-MP.zip");
+const out = path.join(repo, "dist", "BeamDeckNG-MP-MCP.zip");
 writeFileSync(out, Buffer.concat([...parts, cd, end]));
-console.log(`BeamDeckNG MP add-on ${modVersion} (vehicle library ${deck}): ${files.length} files -> ${path.relative(repo, out)}`);
+console.log(`BeamDeckNG MP-MCP ${modVersion} (vehicle library ${deck}): ${files.length} files -> ${path.relative(repo, out)}`);
 for (const [n] of files) console.log("  " + n);

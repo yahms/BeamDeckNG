@@ -20,7 +20,9 @@ type GameFn = {
 	tool?: [string, object];
 	/** Or game-engine Lua (run_lua), for things the game's actions don't do reliably. */
 	lua?: string | ((ge: GeStatus, st: Settings) => string);
-	/** The BeamMP add-on's named equivalent of the lua (it has no free-form Lua); none = not in MP. */
+	/** On BeamMP, when MP-MCP doesn't allow it: the game menu page to open instead. */
+	menu?: string;
+	/** BeamDeckNG MP-MCP's named equivalent of the lua (it has no free-form Lua); none = not in MP. */
 	mp?: (st: Settings) => { fn: string; args?: object };
 };
 
@@ -84,11 +86,12 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 	// gameplay_walk isn't always loaded (e.g. after a level load through MCP), so load it first
 	walk: { label: "Get in / out", key: "walk", mp: () => ({ fn: "walk" }), lua: "if not gameplay_walk then extensions.load('gameplay_walk') end gameplay_walk.toggleWalkingMode() return 'ok'", state: (g) => (g.walking ? { state: "on", value: "ON FOOT" } : { state: "off", value: "IN CAR" }) },
 	map: { label: "Map", key: "map", act: "toggleBigMap" },
-	vehicles: { label: "Vehicles", key: "vehicles", act: "vehicle_selector" },
+	vehicles: { label: "Vehicles", key: "vehicles", act: "vehicle_selector", menu: "vehicle_selector" },
 	radial: { label: "Radial menu", key: "radial", act: "toggleRadialMenuMulti" },
 	slowmo: {
 		label: "Slow motion",
 		key: "slowmo",
+		menu: "simulation",
 		lua: (g) => {
 			const ts = g.timeScale ?? 1;
 			if (ts > 0 && ts < 0.999) lastSlow = ts;
@@ -99,11 +102,11 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 			return n ? { state: "on", value: n, overlay: n } : { state: "off", value: "1x" };
 		},
 	},
-	slower: { label: "Slower", key: "slower", act: "slower_motion", state: (g) => ({ state: "off", overlay: slowName(g.timeScale) }) },
-	faster: { label: "Faster", key: "faster", act: "faster_motion", state: (g) => ({ state: "off", overlay: slowName(g.timeScale) }) },
+	slower: { label: "Slower", key: "slower", act: "slower_motion", menu: "simulation", state: (g) => ({ state: "off", overlay: slowName(g.timeScale) }) },
+	faster: { label: "Faster", key: "faster", act: "faster_motion", menu: "simulation", state: (g) => ({ state: "off", overlay: slowName(g.timeScale) }) },
 	ui: { label: "Game UI", key: "ui", tool: ["toggle_ui", {}], state: (g) => (g.ui === false ? { state: "off", value: "UI OFF" } : { state: "on", value: "UI ON" }) },
 	photo: { label: "Photo mode", key: "photo", act: "photomode" },
-	traffic: { label: "Traffic", key: "traffic", act: "toggleTraffic" },
+	traffic: { label: "Traffic", key: "traffic", act: "toggleTraffic", menu: "traffic" },
 	trailer: { label: "Trailer", key: "trailer", act: "couplersToggle" },
 	// shows the car you're in, in its own paint colour
 	nextveh: {
@@ -210,10 +213,11 @@ export class GameFunction extends DeckAction {
 	}
 	command(_s: VehicleStatus, st: Settings, ge: GeStatus = {}): Command {
 		const [, f] = GameFunction.fn(st);
-		if (f.lua) return { tool: "run_lua", args: { code: typeof f.lua === "function" ? f.lua(ge, st) : f.lua }, mp: f.mp?.(st) };
-		if (f.hold) return { tool: "trigger_action", args: { action: f.hold, state: "down" } };
-		if (f.act) return { tool: "trigger_action", args: { action: f.act } };
-		if (f.tool) return { tool: f.tool[0], args: f.tool[1] };
+		const menu = f.menu;
+		if (f.lua) return { tool: "run_lua", args: { code: typeof f.lua === "function" ? f.lua(ge, st) : f.lua }, mp: f.mp?.(st), menu };
+		if (f.hold) return { tool: "trigger_action", args: { action: f.hold, state: "down" }, menu };
+		if (f.act) return { tool: "trigger_action", args: { action: f.act }, menu };
+		if (f.tool) return { tool: f.tool[0], args: f.tool[1], menu };
 		return null;
 	}
 	override release(_s: VehicleStatus, st: Settings): Command {

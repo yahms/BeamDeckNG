@@ -4,7 +4,7 @@ A Stream Deck plugin that uses **BeamNG.drive's native MCP server**. Enable MCP 
 just works: no game mod, and no bridge program running in the background.
 
 - The plugin talks only to the game's MCP server at `http://127.0.0.1:29292/mcp` (and, on BeamMP
-  servers, to the BeamDeckNG add-on and the game's OutGauge data; see [On BeamMP servers](#on-beammp-servers)).
+  servers, to BeamDeckNG MP-MCP and the game's OutGauge data; see [On BeamMP servers](#on-beammp-servers)).
 - Stream Deck must be on **the same computer the game is running on**.
 - Every button shows the live state of the vehicle or the game.
 
@@ -41,6 +41,10 @@ game running. Icons already read from the game are kept in the plugin's `cache` 
 for this. Other faces: **PAUSED** (dimmed last state while the vehicle isn't answering), **N/A**
 (this vehicle doesn't have it), **NO MAP** (World keys with no map loaded). After a press the
 button flashes until the game confirms. If the command fails it flashes red **ERROR**.
+
+Every key has an **In-game message** setting (on by default): after a press, the game's message
+app shows what happened, e.g. "Stream Deck: Rear diff: LOCKED", or why nothing did. Each new
+message replaces the last one.
 
 ## Category icons for folders and pages
 
@@ -87,17 +91,19 @@ act-then-verify flow (set, then check a moment later that the change took).
 BeamMP turns off the game's own MCP server while you're on a multiplayer server, so the plugin
 falls back, in this order:
 
-1. **The BeamDeckNG MP add-on**, if the server has it (see [beammp-addon/](beammp-addon/README.md)):
-   a client mod the server owner installs, with its own MCP server on `127.0.0.1:29392`. It does
-   what the plugin otherwise does with `run_lua`, but only fixed jobs, checked against the server's
-   allowlist; there is no free-form Lua. Keys the server doesn't allow show **BLOCKED**; keys that
-   need free-form Lua (time, weather, gravity, slow motion, recover...) show **NOT IN MP**.
+1. **BeamDeckNG MP-MCP**, if the server has it (see [mp-mcp/](mp-mcp/README.md)): a client mod
+   the server owner installs, with its own MCP server on `127.0.0.1:29392`. It does what the
+   plugin otherwise does with `run_lua`, but only fixed jobs, checked against the server's
+   allowlist; there is no free-form Lua, and it only runs in a session if the server sent it.
+   Keys the server allows work as usual. Keys it doesn't, and keys that need free-form Lua, open
+   the matching game menu instead where there is one (time of day, weather, gravity, slow motion,
+   traffic, vehicles: **OPENS MENU**); otherwise they show **BLOCKED** or **NOT IN MP**.
 2. **OutGauge**, the game's read-only dashboard data (Options > Other > Protocols > OutGauge, IP
    `127.0.0.1`, port `4444`). Gauges, parking brake, indicators, hazards and high beam keep showing
    their state; other keys show **NO MCP**, and presses don't work. Only one program can listen on
    a UDP port, so if SimHub or another dashboard uses 4444, one of them misses out.
 
-When you leave the server, the add-on unloads and the plugin goes back to the game's own MCP
+When you leave the server, MP-MCP unloads and the plugin goes back to the game's own MCP
 server by itself.
 
 ## Icons
@@ -150,7 +156,7 @@ removed before release.
 npm install
 npm run build          # -> com.yahms.beamdeckng.sdPlugin/bin/plugin.js
 npm run pack           # -> dist/com.yahms.beamdeckng.streamDeckPlugin
-npm run pack:mp        # -> dist/BeamDeckNG-MP.zip (the BeamMP add-on, for server owners)
+npm run pack:mp        # -> dist/BeamDeckNG-MP-MCP.zip (BeamDeckNG MP-MCP, for BeamMP server owners)
 npx streamdeck link com.yahms.beamdeckng.sdPlugin   # dev: run from this folder
 ```
 
@@ -172,15 +178,17 @@ python test/mock_mcp.py 29299 &
 node test/run.mjs      # after compiling src/game.ts + src/mcp.ts into test/build/bin
 ```
 
-BeamMP add-on and OutGauge: `test/mock_mp.py` runs the real add-on (from `dist/BeamDeckNG-MP.zip`)
+MP-MCP and OutGauge: `test/mock_mp.py` runs the real MP-MCP mod (from `dist/BeamDeckNG-MP-MCP.zip`)
 in a LuaJIT game-engine VM with a mock of the game's HTTP listener and the mock 4x4, plus a
 "native" MCP port that accepts and never answers, as on a BeamMP server:
 
 ```
 npm run pack:mp && node test/compile.mjs          # zip + plugin modules into test/build/bin
-python test/mock_mp.py 29392 39292 &              # add --old to act as an add-on without beamdeck_info
+python test/mock_mp.py 29392 39292 &              # add --old to act as an old MP-MCP without beamdeck_info
 node test/mp.mjs 29392 39292                      # (--old with an --old mock) fallback, allowlist, refusals, leave server...
 python test/mock_mp.py --settings test/mp_strict.json &  # a strict server allowlist
 node test/mp_strict.mjs
+node test/mp_keys.mjs                             # key presses: direct, OPENS MENU, BLOCKED, messages (default mock)
+node test/mp_policy.mjs                           # where MP-MCP may run (starts its own mocks)
 node test/outgauge.mjs                            # OutGauge listener (fake UDP packets)
 ```
