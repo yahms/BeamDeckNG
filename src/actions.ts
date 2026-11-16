@@ -228,7 +228,7 @@ export async function keyUp(e: Entry) {
 }
 
 /** Note for a press BeamDeckNG MP-MCP refused. */
-const blockedNote = (why: "blocked" | "unavailable"): Partial<Face> => ({ value: why === "blocked" ? "BLOCKED" : "NOT IN MP", color: C.none });
+const blockedNote = (why: "blocked" | "unavailable"): Partial<Face> => ({ value: why === "blocked" ? "BLOCKED BY MP" : "NOT IN MP", color: C.none });
 
 const MENU_NAMES: Record<string, string> = {
 	environment: "Environment", weather: "Weather", simulation: "Simulation", traffic: "Traffic",
@@ -332,7 +332,7 @@ export function faceFor(e: Entry, snap: Snapshot): Face {
 		const why = game.blocked(cmd);
 		// a key that opens its game menu page instead keeps showing the live state
 		if (why && cmd?.menu && game.canMenu(cmd.menu)) f = { ...f, sub: "OPENS MENU" };
-		else if (why) f = idle(why, why === "blocked" ? "BLOCKED" : "NOT IN MP");
+		else if (why) f = idle(why, why === "blocked" ? "BLOCKED BY MP" : "NOT IN MP");
 	}
 	// the top title: the same in every mode (unless the face sets its own, e.g. "PATTERN 2/4")
 	if (!f.head) {
@@ -703,7 +703,7 @@ export class Lightbar extends DeckAction {
 			const on = Math.round(s.lightbar ?? 0) > 0;
 			return {
 				key: "lightbar", label: "Lightbar pattern", state: on ? "pattern" : "pattern_off", alt: ["off"],
-				value: (s.lbn ?? `PATTERN ${s.lbm}`).toUpperCase(), head: `PATTERN ${s.lbm}/${s.lbc}`, color: on ? C.warn : C.off,
+				value: (s.lbn ?? `PATTERN ${s.lbm}`).toUpperCase(), sub: `${s.lbm} OF ${s.lbc}`, color: on ? C.warn : C.off,
 			};
 		}
 		if (s.lightbar === undefined) return unsupported("lightbar", "Lightbar", ["off"]);

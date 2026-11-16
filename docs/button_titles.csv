@@ -1,4 +1,4 @@
-Button (action),Setting / variant,Now: name,Proposed TOP title,BOTTOM text (current mode; blank = nothing shown)
+Button (action),Setting / variant,Old name,TOP title,BOTTOM text (current mode; blank = nothing shown)
 Ignition,,Ignition,IGNITION,OFF / ACC / START / RUN / STALL
 Traction,cycle drive modes,Drive mode,DRIVE MODE,mode name (COMFORT / SPORT / ESC & TC OFF...) + small TC ON/OFF
 Traction,toggle TC,Traction,TRACTION,TC ON / TC OFF
@@ -6,7 +6,7 @@ Diff lock,front,Front diff,FRONT DIFF,OPEN / LOCKED / AUTO / LSD / PARTIAL
 Diff lock,rear,Rear diff,REAR DIFF,OPEN / LOCKED / AUTO / LSD / PARTIAL
 Diff lock,centre,Centre diff,CENTRE DIFF,OPEN / LOCKED / AUTO / LSD / PARTIAL
 Diff lock,all,Diff locks,ALL DIFFS,OPEN / F / R / F+R / F+C+R...
-Diff lock,cycle,Diff locks,DIFF CYCLE,current step (OPEN / F+R / LOCK 50%...)
+Diff lock,cycle,Diff locks,CYCLE DIFFS,current step (OPEN / F+R / LOCK 50%...)
 Range,,Range,RANGE,HIGH / LOW / MIXED
 2WD / 4WD,,Drive,2WD / 4WD,2WD / 4WD / MIXED
 Parking brake,,Park brake,PARK BRAKE,ON / OFF
@@ -17,8 +17,8 @@ Fog lights,,Fog lights,FOG LIGHTS,ON / OFF
 Hazards,,Hazards,HAZARDS,ON / OFF
 Indicator,left,Left,LEFT SIGNAL,ON / OFF
 Indicator,right,Right,RIGHT SIGNAL,ON / OFF
-Lightbar,cycle,Lightbar,LIGHTBAR,OFF / LIGHTS / LIGHTS+SIREN
-Lightbar,pattern,Lightbar pattern,PATTERN 2/4,pattern name (CHASE / SCENE / LEFT SIGNAL...)
+Lightbar,cycle,Lightbar,LIGHTBAR MODE,OFF / LIGHTS / LIGHTS+SIREN
+Lightbar,pattern,Lightbar pattern,LIGHTBAR PATTERN,pattern name (CHASE / SCENE / LEFT SIGNAL...) + small 1 OF 4
 Horn,,Horn,HORN,(blank)
 Cruise,toggle,Cruise,CRUISE,OFF / set speed (e.g. 80) + small km/h
 Cruise,set,Cruise set,CRUISE SET,current set speed while on
@@ -34,8 +34,8 @@ Doors,boot,Boot,BOOT,SHUT / OPEN
 Doors,single door (FL/FR/RL/RR),FL door,DOOR FL,SHUT / OPEN
 Nitrous,,Nitrous,NITROUS,OFF / ARMED / SPRAY
 JATO,,JATO,JATO,READY / FIRE / EMPTY
-Tyres,inflate,Inflate,TYRES +,group + psi (ALL 32)
-Tyres,deflate,Deflate,TYRES −,group + psi (ALL 32)
+Tyres,inflate,Inflate,INFLATE TYRES,group + psi (ALL 32)
+Tyres,deflate,Deflate,DEFLATE TYRES,group + psi (ALL 32)
 Powertrain bar,button 1-4,game's button name,game's button name,the button's state (e.g. 4WD / LOCKED)
 Vehicle control (auto),slot 1-64,control's own name,control's own name,ON / OFF / OPEN / SHUT / LOCKED / HOLD / MOVING / PRESS
 Gauge,gear,Gear,GEAR,(big gear letter)
@@ -48,9 +48,9 @@ Gauge,boost,Boost,BOOST,(big number) psi
 Gauge,damage,Damage,DAMAGE,OK / damage amount
 Game function,accept,Accept,ACCEPT,(blank)
 Game function,back,Back,BACK,(blank)
-Game function,pause,Pause,PHYSICS,RUNNING / PAUSED
-Game function,repair,Repair,REPAIR,(blank)
-Game function,recover,Recover,RECOVER,(blank)
+Game function,pause,Pause,GAME PHYSICS,RUNNING / PAUSED
+Game function,repair,Repair,REPAIR IN PLACE,(blank)
+Game function,recover,Recover,RECOVER TO ROAD,(blank)
 Game function,respawn,Respawn,RESPAWN,(blank)
 Game function,walk,Get in / out,ON FOOT,GET OUT / GET IN
 Game function,map,Map,MAP,(blank)
@@ -89,7 +89,7 @@ Game function,replay,Replay,REPLAY REC,(blank) / REC
 Game function,replay_eject,Eject replay,EJECT REPLAY,(blank; greyed with no replay)
 Game function,replay_ctl,Replay (record / stop / eject),REPLAY,RECORD / STOP REC / STOP PLAY / EJECT
 Game function,reload_lua,Reload Lua,RELOAD LUA,(blank)
-World,clock,Time,TIME,(big clock) RUNNING / FROZEN
+World,clock,Time,TIME PROGRESS,(big clock) RUNNING / FROZEN
 World,daylen,Day,DAY LENGTH,(big) 30 MIN ... per day
 World,time_sunrise,Sunrise,SUNRISE,06:00
 World,time_noon,Noon,NOON,12:00
@@ -110,4 +110,4 @@ World,grav_cycle,Gravity,GRAVITY,EARTH / MOON / MARS / ZERO-G / JUPITER
 World,grav_earth / moon / mars / zero / jupiter,Gravity,GRAVITY,EARTH / MOON / MARS / ZERO-G / JUPITER
 (every button),no game / no car / loading,—,(same top title),NO GAME / NO CAR / … (icon greyed)
 (every button),not on this vehicle,—,(same top title),N/A (icon greyed)
-(every button),BeamMP blocked,—,(same top title),BLOCKED / NOT IN MP; or the state + small OPENS MENU
+(every button),BeamMP blocked,—,(same top title),BLOCKED BY MP; or the state + small OPENS MENU

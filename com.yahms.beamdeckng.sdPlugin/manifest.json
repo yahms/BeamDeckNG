@@ -1,6 +1,6 @@
 {
 	"Name": "BeamDeckNG",
-	"Version": "0.2.9.0",
+	"Version": "0.2.10.0",
 	"Author": "yahms",
 	"Description": "Live BeamNG.drive controls with state on every button: ignition, drive modes, diff locks, range, 4WD, the game's own powertrain buttons, lights, indicators, parking brake, horn, cruise, truck brakes, air suspension, doors, nitrous, JATO, plus game and camera functions. Talks to the game's MCP server on 127.0.0.1.",
 	"Category": "BeamDeckNG",
