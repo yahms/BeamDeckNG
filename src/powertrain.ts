@@ -12,7 +12,7 @@ import { C, colorName, Face, P } from "./icons";
 const ptColor = (b: PtButton) => (b.color && /^#?[0-9a-f]{6}$/i.test(b.color) ? `#${b.color.replace("#", "")}` : undefined);
 
 function ptFace(b: PtButton | undefined, label: string): Face {
-	if (!b) return A.unsupported("pt", label, []);
+	if (!b) return A.unsupported("pt", label, ["off"]);
 	const color = ptColor(b);
 	// the game's own icon for this button, in the game's colour for it (white when it gives none)
 	const glyph = b.icon ? [b.icon] : undefined;

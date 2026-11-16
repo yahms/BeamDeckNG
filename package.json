@@ -1,10 +1,12 @@
 {
   "name": "beamdeckng",
-  "version": "0.2.2",
+  "version": "0.2.10",
   "scripts": {
     "build": "rollup -c",
     "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.yahms.beamdeckng\"",
-    "pack": "streamdeck pack com.yahms.beamdeckng.sdPlugin -o dist -f"
+    "pack": "streamdeck pack com.yahms.beamdeckng.sdPlugin -o dist -f",
+		"pack:icons": "node scripts/iconpack.mjs",
+		"pack:mp": "node mp-mcp/pack.mjs"
   },
   "dependencies": {
     "@elgato/streamdeck": "^3.0.4"

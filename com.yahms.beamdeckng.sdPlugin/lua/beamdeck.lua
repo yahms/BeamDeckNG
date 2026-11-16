@@ -68,11 +68,14 @@ function BNGS.status()
 
   -- powertrain devices
   local diffs = { front = {}, rear = {}, center = {} }
+  local lsd = { front = 0, rear = 0, center = 0 } -- limited-slip / viscous devices per axle (not open, not locked)
   local where = { diff_front = "front", inter_front = "front", diff_rear = "rear", inter_rear = "rear", center = "center" }
   local range, drive = {}, {}
   for _, c in pairs(BNGS.switchables()) do
     if c.role == "diff" and where[c.cls] then
       table.insert(diffs[where[c.cls]], R.lockedModes[c.mode] and 1 or 0)
+      local m = lower(tostring(c.mode))
+      if m == "lsd" or m == "viscous" or m == "limitedslip" then lsd[where[c.cls]] = lsd[where[c.cls]] + 1 end
     elseif c.role == "range" then
       table.insert(range, c.mode == "low" and 1 or 0)
     elseif c.role == "drive" or c.role == "hub" then
@@ -84,6 +87,10 @@ function BNGS.status()
     rear = agg(diffs.rear, "locked", "open", "partial"),
     center = agg(diffs.center, "locked", "open", "partial"),
   }
+  -- an axle whose unlocked diffs are all limited-slip reads "lsd", not "open" (e.g. Procyon Centauri centre)
+  for axle, n in pairs(lsd) do
+    if n > 0 and n == #diffs[axle] and s.diff[axle] == "open" then s.diff[axle] = "lsd" end
+  end
   -- Active centre diffs with presets (Sunburst centerDiffModes) instead of a lockable device.
   if not s.diff.center then
     local cc = centerCtrl()
@@ -114,6 +121,9 @@ function BNGS.status()
   s.sigR = e.signal_right_input
   s.lightbar = e.lightbar
   s.horn = e.horn
+  -- lightbar flash pattern (Chase, Scene, ...): index, name, how many
+  local lb = BNGS.lightbarPatterns()
+  if lb then s.lbm = lb.index s.lbn = lb.names[lb.index] s.lbc = #lb.names end
 
   -- cruise control (vehicle extension; may not be loaded until first used)
   local cc = BNGS.cruise()
@@ -200,6 +210,21 @@ function BNGS.status()
     boost = r(e.turboBoost or e.boost, 0.1), boostMax = e.turboBoostMax or e.boostMax,
     dmg = beamstate and r(beamstate.damage, 1) or nil,
   }
+
+  -- states for the auto vehicle-control keys: the electrics and couplers they asked to watch (vc_watch)
+  local w = rawget(_G, "BNGSD_VCW")
+  if w then
+    local ev, cv = {}, {}
+    for _, k in ipairs(w.electrics or {}) do ev[k] = electrics.values[k] end
+    for _, n in ipairs(w.couplers or {}) do
+      local cc = controller.getController(n)
+      if cc and cc.getGroupState then
+        local ok, gs = pcall(cc.getGroupState)
+        if ok then cv[n] = tostring(gs) end
+      end
+    end
+    s.vc = { e = ev, c = cv }
+  end
 
   return s
 end
@@ -470,6 +495,62 @@ BNGS.actions.n2o = function(args)
 end
 
 -- Lightbar: 0 off, 1 lights, 2 lights + siren (vehicle dependent). args: state = 0..2
+-- Which electrics / couplers the auto vehicle-control keys show (read-only; kept across library reloads).
+-- args: electrics = { names }, couplers = { controller names }
+BNGS.actions.vc_watch = function(args)
+  local function names(t)
+    local out = {}
+    for i, n in ipairs(type(t) == "table" and t or {}) do
+      if i > 64 then break end
+      if type(n) == "string" and n:match("^[%w_%.]+$") then out[#out + 1] = n end
+    end
+    return out
+  end
+  rawset(_G, "BNGSD_VCW", { electrics = names(args.electrics), couplers = names(args.couplers) })
+  return { action = "vc_watch", status = "applied", targets = {} }
+end
+
+-- Lightbar flash patterns. A police car can have several lightbar controllers (bar, wigwags,
+-- flashers, floodlights) sharing the same pattern list; the game's "toggle lightbar mode" steps them
+-- all, so we do too, keeping them on the same pattern. Names come from the main bar's jbeam.
+local lbNames = {}
+function BNGS.lightbarPatterns()
+  local cs = controller.getControllersByType and controller.getControllersByType("lightbar") or {}
+  local main
+  for _, c in pairs(cs) do if c.name == "lightbar" or not main then main = c end end
+  if not main or not main.getState then return nil end
+  local names = lbNames[main.name]
+  if not names then
+    names = {}
+    for _, d in ipairs(v and v.data and v.data.controller or {}) do
+      if d.name == main.name and type(d.modes) == "table" then
+        for i = 2, #d.modes do
+          local row = d.modes[i]
+          names[#names + 1] = type(row) == "table" and tostring(row[1]) or tostring(i - 1)
+        end
+      end
+    end
+    lbNames[main.name] = names
+  end
+  if #names < 2 then return nil end
+  local ok, st = pcall(main.getState)
+  local idx = ok and type(st) == "table" and tonumber(st[main.name .. "_modeIndex"]) or 1
+  return { index = idx, names = names, controllers = cs }
+end
+
+-- args: index = pattern to select (1-based); omitted = the next one
+BNGS.actions.lightbar_mode = function(args)
+  local lb = BNGS.lightbarPatterns()
+  if not lb then return { action = "lightbar_mode", status = "unsupported", targets = {} } end
+  local want = tonumber(args.index) or (lb.index % #lb.names) + 1
+  if not lb.names[want] then return { action = "lightbar_mode", status = "failed", detail = "no such pattern" } end
+  for _, c in pairs(lb.controllers) do if c.setModeIndex then pcall(c.setModeIndex, want) end end
+  local now = BNGS.lightbarPatterns()
+  local ok = now and now.index == want
+  return { action = "lightbar_mode", status = ok and "applied" or "failed", detail = lb.names[want],
+    targets = { { role = "lightbar", device = "pattern", from = lb.index, want = want, to = now and now.index, ok = ok } } }
+end
+
 BNGS.actions.lightbar = function(args)
   if electrics.values.lightbar == nil then return { action = "lightbar", status = "unsupported", targets = {} } end
   local n = tonumber(args.state) or 0

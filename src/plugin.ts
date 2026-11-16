@@ -5,7 +5,9 @@ import { GameFunction } from "./gamefns";
 import { Powertrain } from "./powertrain";
 import { Game, VERSION } from "./game";
 import { Gauge } from "./gauges";
+import { OutGauge } from "./outgauge";
 import { Tires } from "./tires";
+import { VehicleControl } from "./vehkeys";
 import { World } from "./world";
 
 streamDeck.logger.setLevel("info");
@@ -15,12 +17,16 @@ for (const Action of [
 	A.Ignition, A.Traction, A.DiffLock, A.Range, A.Drive,
 	A.ParkingBrake, A.Headlights, A.FogLights, A.Hazards, A.Indicator, A.Lightbar, A.Horn,
 	A.Cruise, A.EngineBrake, A.Retarder, A.AirSuspension, A.Doors, A.Nitrous, A.Jato,
-	GameFunction, Powertrain, World, Gauge, Tires,
+	GameFunction, Powertrain, World, Gauge, Tires, VehicleControl,
 ]) {
 	streamDeck.actions.registerAction(new Action());
 }
 
 // Only ever talks to the game's own MCP listener on this PC.
-A.start(new Game("127.0.0.1", 29292, "/mcp"));
+const game = new Game("127.0.0.1", 29292, "/mcp");
+// OutGauge (read-only dashboard data) for when MCP isn't answering, e.g. on BeamMP servers.
+game.og = new OutGauge("127.0.0.1", 4444, (m) => streamDeck.logger.info(m));
+game.og.start();
+A.start(game);
 
 streamDeck.connect();

@@ -8,12 +8,16 @@ import streamDeck, {
 	WillAppearEvent,
 	WillDisappearEvent,
 } from "@elgato/streamdeck";
+import { titleFor } from "./titles";
 import { DiffState, Game, GeStatus, ResolverResult, Snapshot, VehicleStatus } from "./game";
 import { withGlyph } from "./glyphmap";
+import { Blocked } from "./mcp";
 import { C, colorName, Face, P, render } from "./icons";
 
 export type Settings = {
 	fn?: string; // game function buttons: which function
+	msg?: boolean; // every key: show an in-game message when pressed (on unless unticked)
+	slot?: number; // Vehicle control keys: which of the vehicle's controls (1 = first)
 	action?: string; // custom game action: the game's input action name
 	label?: string; // custom game action: text on the key
 	index?: string; // powertrain buttons: which button of the game's bar (1-based)
@@ -31,7 +35,17 @@ export type Settings = {
 	gamecams?: boolean; // camera buttons: cycle only the cameras enabled in the game's own settings
 };
 /** A vehicle resolver action ({action, args}) or one of the game's MCP tools ({tool, args}). */
-export type Command = { action?: string; tool?: string; args: object } | null;
+export type Command = {
+	action?: string;
+	tool?: string;
+	args: object;
+	/** For run_lua tools: BeamDeckNG MP-MCP's named equivalent (it has no free-form Lua). */
+	mp?: { fn: string; args?: object };
+	/** On BeamMP: the game menu page to open instead when MP-MCP doesn't allow this directly. */
+	menu?: string;
+	/** One of the vehicle's own controls (auto Vehicle control keys): press or release. */
+	vc?: { id: string; value: number; phase: "down" | "up"; t?: number };
+} | null;
 
 export type Entry = {
 	action: KeyAction<Settings>;
@@ -44,6 +58,13 @@ export type Entry = {
 };
 
 export const entries = new Map<string, Entry>();
+/** True for a step inside a Multi Action (it has no key of its own). */
+const inMulti = (a: unknown): boolean => {
+	const k = a as { isKey?: () => boolean; isInMultiAction?: () => boolean };
+	return typeof k.isKey === "function" && k.isKey() && typeof k.isInMultiAction === "function" && k.isInMultiAction();
+};
+/** Multi Action steps whose key down has been handled (see DeckAction.multiPress). */
+const multiDown = new Set<string>();
 export let game: Game;
 let requestPoll: () => void = () => undefined;
 
@@ -65,6 +86,8 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 	vehicle = true;
 	/** True for read-only keys (gauges): a press with nothing to do is ignored instead of showing N/A. */
 	passive = false;
+	/** Auto Vehicle control keys: keep the vehicle's control list current while one is on screen. */
+	autoControls = false;
 	/** Face for the current vehicle status (ge = game-engine state, for game-level functions). */
 	abstract face(s: VehicleStatus, settings: Settings, held?: boolean, ge?: GeStatus): Face;
 
@@ -74,7 +97,8 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 	release?(s: VehicleStatus, settings: Settings): Command;
 
 	override onWillAppear(ev: WillAppearEvent<Settings>): void {
-		if (!ev.action.isKey()) return;
+		// inside a Multi Action: no face of its own to draw, presses are handled by multiPress
+		if (!ev.action.isKey() || inMulti(ev.action)) return;
 		entries.set(ev.action.id, { action: ev.action, impl: this, settings: ev.payload.settings ?? {}, busy: false });
 		ev.action.setTitle("");
 		requestPoll();
@@ -88,6 +112,7 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 	}
 
 	override async onKeyUp(ev: KeyUpEvent<Settings>): Promise<void> {
+		if (inMulti(ev.action)) return this.multiPress(ev.action.id, ev.payload?.settings ?? {}, "up");
 		const e = entries.get(ev.action.id);
 		if (e) await keyUp(e);
 	}
@@ -101,21 +126,56 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 		}
 	}
 
+	/**
+	 * A step of a Multi Action (e.g. a gravity preset, then Switch Profile back to the page): no key face,
+	 * just do it. Some Stream Deck versions only send key up to a Multi Action's steps, so a key up
+	 * without a key down does the press first.
+	 */
+	private async multiPress(id: string, st: Settings, phase: "down" | "up"): Promise<void> {
+		const snap = game.snapshot;
+		const ready = this.vehicle ? snap.link === "ok" && !!snap.status : snap.link !== "offline" && snap.link !== "limited";
+		if (phase === "down" || !multiDown.has(id)) {
+			multiDown.add(id);
+			const cmd = ready ? this.command(snap.status ?? {}, st, snap.ge ?? {}) : null;
+			if (cmd && !game.blocked(cmd)) {
+				if (cmd.tool || cmd.vc) await run(cmd).catch((err) => streamDeck.logger.warn(`multi action step failed: ${(err as Error).message}`));
+				else if (cmd.action) await game.resolve(cmd.action, cmd.args).catch(() => undefined);
+				requestPoll();
+			}
+			if (phase === "down") return;
+		}
+		multiDown.delete(id);
+		const rel = this.release?.(snap.status ?? {}, st);
+		if (rel) await run(rel).catch(() => undefined);
+	}
+
 	override async onKeyDown(ev: KeyDownEvent<Settings>): Promise<void> {
+		if (inMulti(ev.action)) return this.multiPress(ev.action.id, ev.payload?.settings ?? {}, "down");
 		const e = entries.get(ev.action.id);
 		if (!e || e.busy) return;
 		const snap = game.snapshot;
-		const ready = this.vehicle ? snap.link === "ok" && !!snap.status : snap.link !== "offline";
+		// OutGauge alone (limited) is read-only: presses need MCP
+		const ready = this.vehicle ? snap.link === "ok" && !!snap.status : snap.link !== "offline" && snap.link !== "limited";
 		if (!ready) {
 			await ev.action.showAlert();
 			return;
 		}
 		const cmd = this.command(snap.status ?? {}, e.settings, snap.ge ?? {});
-		if (this.release || cmd?.tool) {
-			if (!cmd) return this.passive ? undefined : note(e, { value: "N/A", color: C.none }, 1500);
+		// through BeamDeckNG MP-MCP: if this server doesn't allow it, open its game menu page, or say so
+		const why = game.blocked(cmd);
+		if (why) return blockedPress(e, cmd, why);
+		if (this.release || cmd?.tool || cmd?.vc) {
+			if (!cmd) return this.passive || e.impl.autoControls ? undefined : note(e, { value: "N/A", color: C.none }, 1500);
 			e.held = true;
 			redraw(true);
-			await run(cmd).catch((err) => streamDeck.logger.warn(`${cmd.tool ?? cmd.action} failed: ${(err as Error).message}`));
+			let ok = true;
+			await run(cmd).catch((err) => {
+				ok = false;
+				if (err instanceof Blocked) return blockedPress(e, cmd, err.why, err.byGame);
+				streamDeck.logger.warn(`${cmd.tool ?? cmd.action ?? cmd.vc?.id} failed: ${(err as Error).message}`);
+				tell(e, `${labelOf(e)}: failed`);
+			});
+			if (ok) tell(e);
 			if (!this.release) {
 				// taps (game actions): show the press briefly, then pick up the new state
 				setTimeout(() => {
@@ -141,16 +201,20 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 		}
 		e.busy = false;
 		if (!r || r.status === "failed") note(e, { value: "ERROR", color: C.alert, flash: true }, 2500);
+		else if (r.status === "unsupported" && (r.detail === "BLOCKED" || r.detail === "NOT IN MP"))
+			return blockedPress(e, cmd, r.detail === "BLOCKED" ? "blocked" : "unavailable");
 		else if (r.status === "unsupported") note(e, { value: "N/A", color: C.none, sub: r.detail ?? undefined }, 2000);
 		else if (r.status === "partial") note(e, { sub: "PARTIAL" }, 2000);
 		requestPoll();
 		redraw(true);
+		tell(e);
 	}
 }
 
 /** Fire-and-forget: a game tool, or a resolver action through the library already in the vehicle. */
 export async function run(cmd: NonNullable<Command>): Promise<void> {
-	if (cmd.tool) await game.tool(cmd.tool, cmd.args);
+	if (cmd.vc) await game.vehicleControl(cmd.vc.id, cmd.vc.value, cmd.vc.phase, cmd.vc.t ?? 0);
+	else if (cmd.tool) await game.tool(cmd.tool, cmd.args, cmd.mp);
 	else await game.fire(cmd.action!, cmd.args);
 }
 
@@ -163,6 +227,65 @@ export async function keyUp(e: Entry) {
 	if (rel) await run(rel).catch(() => undefined);
 }
 
+/** Note for a press BeamDeckNG MP-MCP refused. */
+const blockedNote = (why: "blocked" | "unavailable"): Partial<Face> => ({ value: why === "blocked" ? "BLOCKED BY MP" : "NOT IN MP", color: C.none });
+
+const MENU_NAMES: Record<string, string> = {
+	environment: "Environment", weather: "Weather", simulation: "Simulation", traffic: "Traffic",
+	vehicle_config: "Vehicle configuration", vehicle_selector: "Vehicles", multiplayer: "Multiplayer",
+};
+
+/**
+ * A press BeamDeckNG MP-MCP won't do directly. If the key has a game menu page for it, open that
+ * instead (so the player changes it there, under whatever BeamMP and the server allow); else say so.
+ */
+export async function blockedPress(e: Entry, cmd: Command, why: "blocked" | "unavailable", byGame = false) {
+	if (byGame) {
+		// the game's own action filter (BeamMP, a game mode): MP-MCP already says so in the game
+		note(e, blockedNote("blocked"), 1500);
+		if (game.backend !== "addon") tell(e, `${labelOf(e)}: the game is blocking this right now`, "warning");
+		return;
+	}
+	if (cmd?.menu && game.canMenu(cmd.menu)) {
+		try {
+			await game.openMenu(cmd.menu);
+			note(e, { sub: "MENU" }, 1500);
+			tell(e, `${labelOf(e)}: opened the ${MENU_NAMES[cmd.menu] ?? cmd.menu} menu (no direct control on this server)`);
+			return;
+		} catch (err) {
+			streamDeck.logger.warn(`open_menu ${cmd.menu} failed: ${(err as Error).message}`);
+		}
+	}
+	note(e, blockedNote(why), 1500);
+	tell(e, `${labelOf(e)}: ${why === "blocked" ? "not allowed on this server" : "not available on BeamMP servers"}`, "warning");
+}
+
+/** The key's name for messages. */
+export function labelOf(e: Entry): string {
+	try {
+		const f = e.impl.face({}, e.settings, false, {});
+		return f.panel?.top ?? f.label;
+	} catch {
+		return "Stream Deck";
+	}
+}
+
+/**
+ * In-game message for a press (each key's "Show in-game message" setting, on unless unticked).
+ * Without text: once the game has caught up, what the key now shows.
+ */
+export function tell(e: Entry, text?: string, icon = "info") {
+	if (e.settings.msg === false || !game) return;
+	if (text) return game.message(`Stream Deck: ${text}`, icon);
+	setTimeout(() => {
+		const f = faceFor(e, game.snapshot);
+		const what = f.panel
+			? `${f.panel.top ?? f.label}: ${f.panel.big}${f.panel.unit ? " " + f.panel.unit : ""}`
+			: `${f.label}${f.value ? `: ${f.value}` : ""}${f.sub ? ` (${f.sub})` : ""}`;
+		game.message(`Stream Deck: ${what}`, f.state === "error" ? "warning" : "info");
+	}, 700);
+}
+
 export function note(e: Entry, face: Partial<Face>, ms: number) {
 	e.note = { face, until: Date.now() + ms };
 	redraw(true);
@@ -172,7 +295,7 @@ export function note(e: Entry, face: Partial<Face>, ms: number) {
 
 let phase = 0;
 
-function faceFor(e: Entry, snap: Snapshot): Face {
+export function faceFor(e: Entry, snap: Snapshot): Face {
 	// No game / no car / loading: the button still shows what it is (its idle icon, dimmed, or its name),
 	// so a layout can be built without the game running.
 	const idle = (state: string, text: string): Face => {
@@ -182,22 +305,45 @@ function faceFor(e: Entry, snap: Snapshot): Face {
 		} catch {
 			b = { key: "common", state, label: "BeamDeckNG", value: text, color: C.none };
 		}
-		return { ...b, alt: [...(b.state === "unsupported" ? [] : [b.state]), ...(b.alt ?? [])], state: "unsupported", dim: true, flash: false, color: C.none, value: text, overlay: text, sub: undefined, ring: undefined, panel: b.panel && { big: text, top: b.panel.top ?? b.label } };
+		return { ...b, alt: [...(b.state === "unsupported" ? [] : [b.state]), ...(b.alt ?? [])], state: "unsupported", dim: true, flash: false, color: C.none, value: text, overlay: text, sub: undefined, ring: undefined, panel: b.glyph ? undefined : b.panel && { big: text, top: b.panel.top ?? b.label } };
 	};
 	let f: Face;
 	if (snap.link === "offline") f = idle("offline", "NO GAME");
-	else if (!e.impl.vehicle) f = e.impl.face(snap.status ?? {}, e.settings, e.held, snap.ge ?? {});
+	else if (snap.link === "limited") {
+		// MCP isn't answering (BeamMP server) but OutGauge is: keys it covers keep showing their state,
+		// the rest say so instead of showing N/A, which would read as "not on this vehicle"
+		f = e.impl.vehicle ? e.impl.face(snap.status ?? {}, e.settings, e.held, {}) : idle("limited", "NO MCP");
+		if (f.state === "unsupported" || f.value === "N/A") f = idle("limited", "NO MCP");
+	} else if (!e.impl.vehicle) f = e.impl.face(snap.status ?? {}, e.settings, e.held, snap.ge ?? {});
 	else if (snap.link === "novehicle") f = idle("novehicle", "NO CAR");
 	else if (!snap.status) f = idle("loading", "…");
 	else {
 		f = e.impl.face(snap.status, e.settings, e.held, snap.ge ?? {});
 		if (snap.link === "paused") f = { ...f, dim: true, sub: "PAUSED" };
 	}
+	// Through BeamDeckNG MP-MCP, keys this server doesn't allow say so (read-only keys like gauges still show).
+	if (game.backend === "addon" && !e.impl.passive && snap.link !== "offline" && snap.link !== "limited" && f.state !== "unsupported") {
+		let cmd: Command = null;
+		try {
+			cmd = e.impl.command(snap.status ?? {}, e.settings, snap.ge ?? {});
+		} catch {
+			/* no command for this state */
+		}
+		const why = game.blocked(cmd);
+		// a key that opens its game menu page instead keeps showing the live state
+		if (why && cmd?.menu && game.canMenu(cmd.menu)) f = { ...f, sub: "OPENS MENU" };
+		else if (why) f = idle(why, why === "blocked" ? "BLOCKED BY MP" : "NOT IN MP");
+	}
+	// the top title: the same in every mode (unless the face sets its own, e.g. "PATTERN 2/4")
+	if (!f.head) {
+		const t = titleFor(e.impl.manifestId, e.settings);
+		if (t) f = { ...f, head: t };
+	}
 	if (e.busy) f = { ...f, flash: true };
 	if (e.note) {
 		if (Date.now() < e.note.until) {
 			// short result notes (N/A, ERROR) are text keys
-			f = { ...f, ...e.note.face, state: e.note.face.color === C.alert ? "error" : f.state, glyph: undefined };
+			f = { ...f, ...e.note.face, state: e.note.face.color === C.alert ? "error" : f.state, glyph: undefined, overlay: undefined };
 			return f;
 		}
 		e.note = undefined;
@@ -229,17 +375,29 @@ export function start(g: Game) {
 	(async () => {
 		for (;;) {
 			if (entries.size > 0) {
-				const before = game.snapshot.link;
+				const before = game.mcpLink;
 				await game.poll().catch(() => undefined);
-				if (game.snapshot.link !== "offline") await game.fetchGlyphs();
-				if (game.snapshot.link !== before) streamDeck.logger.info(`game link: ${before} -> ${game.snapshot.link}`);
+				if (game.mcpLink !== "offline") await game.fetchGlyphs();
+				// auto Vehicle control keys on screen: keep the vehicle's control list current
+				if (game.snapshot.link === "ok" && [...entries.values()].some((x) => x.impl.autoControls))
+					await game.refreshControls(game.snapshot.vid);
+				if (game.mcpLink !== before) streamDeck.logger.info(`game link: ${before} -> ${game.mcpLink}`);
 				redraw();
 			}
-			const wait = entries.size === 0 ? 1000 : game.snapshot.link === "offline" ? 2000 : 250;
+			const wait = entries.size === 0 ? 1000 : game.mcpLink === "offline" ? 2000 : 250;
 			await Promise.race([sleep(wait), new Promise<void>((r) => (wake = r))]);
 			wake = undefined;
 		}
 	})();
+
+	// OutGauge-only (MCP not answering): redraw as packets arrive, at most ~8 times a second.
+	let ogDrawn = 0;
+	game.og?.onData(() => {
+		const now = Date.now();
+		if (entries.size === 0 || now - ogDrawn < 125 || game.mcpLink !== "offline") return;
+		ogDrawn = now;
+		redraw();
+	});
 
 	// Flash clock: 2 Hz.
 	setInterval(() => {
@@ -355,7 +513,6 @@ function stepIndex(s: VehicleStatus, steps: DiffStep[]): number {
 	const ck = s.centerModes?.length ? s.centerMode?.key ?? undefined : s.diff?.center === "locked" ? "locked" : s.diff?.center ? "open" : undefined;
 	return steps.findIndex((st) => st.rear === rL && st.front === fL && (st.center === undefined || st.center === ck));
 }
-const DIFF_TAG = { front: "FRONT", rear: "REAR", center: "CENTRE" };
 
 function allDiffs(s: VehicleStatus): DiffState {
 	const v = [s.diff?.front, s.diff?.rear, s.diff?.center].filter((x) => x);
@@ -385,9 +542,10 @@ export class DiffLock extends DeckAction {
 		const label = DIFF_LABEL[scope];
 		const multi = scope === "all" || scope === "cycle";
 		const cur = multi ? allDiffs(s) : s.diff?.[scope];
-		let overlay = multi ? lockedList(s) : DIFF_TAG[scope];
+		// one diff: the title says which, the bottom says how it's set; all / cycle: which are locked
+		let overlay = multi ? lockedList(s) : undefined;
 		if (scope === "cycle") {
-			if (diffCycle(s).length < 2) return { ...unsupported(key, label, ["open"]), base, overlay };
+			if (diffCycle(s).length < 2) return { ...unsupported(key, label, ["open"]), base };
 			// centre-mode steps: show the centre mode (e.g. "LOCK 50%") instead of OPEN
 			const steps = diffCycle(s);
 			const i = stepIndex(s, steps);
@@ -405,8 +563,11 @@ export class DiffLock extends DeckAction {
 				return { ...f, ...unlocked, value: "AUTO", color: C.off };
 			case "partial":
 				return { ...f, state: "partial", value: "PARTIAL", color: C.acc };
+			case "lsd":
+				// limited-slip (e.g. the Procyon Centauri's centre): not locked, not fully open
+				return { ...f, ...unlocked, value: "LSD", color: C.off };
 		}
-		return { ...unsupported(key, label, [unlocked.state, "open"]), base, overlay };
+		return { ...unsupported(key, label, [unlocked.state, "open"]), base };
 	}
 	command(s: VehicleStatus, st: Settings): Command {
 		const scope = st.scope ?? "rear";
@@ -535,13 +696,25 @@ export class Indicator extends DeckAction {
 
 @action({ UUID: "com.yahms.beamdeckng.lightbar" })
 export class Lightbar extends DeckAction {
-	face(s: VehicleStatus): Face {
+	face(s: VehicleStatus, st: Settings): Face {
+		// flash pattern key: shows the pattern, press for the next one
+		if (st.press === "pattern") {
+			if (!s.lbc || !s.lbm) return unsupported("lightbar", "Lightbar pattern", ["off"]);
+			const on = Math.round(s.lightbar ?? 0) > 0;
+			return {
+				key: "lightbar", label: "Lightbar pattern", state: on ? "pattern" : "pattern_off", alt: ["off"],
+				value: (s.lbn ?? `PATTERN ${s.lbm}`).toUpperCase(), sub: `${s.lbm} OF ${s.lbc}`, color: on ? C.warn : C.off,
+			};
+		}
 		if (s.lightbar === undefined) return unsupported("lightbar", "Lightbar", ["off"]);
 		const n = Math.round(s.lightbar);
 		const state = n === 0 ? "off" : `mode${n}`;
-		return { key: "lightbar", label: "Lightbar", state, alt: ["mode1"], value: n === 0 ? "OFF" : `MODE ${n}`, color: n ? C.warn : C.off };
+		// 1 = lights, 2 = lights and siren
+		const value = n === 0 ? "OFF" : n === 1 ? "LIGHTS" : n === 2 ? "LIGHTS+SIREN" : `MODE ${n}`;
+		return { key: "lightbar", label: "Lightbar", state, alt: ["mode1"], value, color: n ? C.warn : C.off };
 	}
-	command(s: VehicleStatus): Command {
+	command(s: VehicleStatus, st: Settings): Command {
+		if (st.press === "pattern") return s.lbc ? { action: "lightbar_mode", args: {} } : null;
 		if (s.lightbar === undefined) return null;
 		return { action: "lightbar", args: { state: (Math.round(s.lightbar) + 1) % 3 } };
 	}
@@ -550,7 +723,7 @@ export class Lightbar extends DeckAction {
 @action({ UUID: "com.yahms.beamdeckng.horn" })
 export class Horn extends DeckAction {
 	face(_s: VehicleStatus, _st: Settings, held?: boolean): Face {
-		return binary("horn", "Horn", !!held);
+		return { ...binary("horn", "Horn", !!held), value: "" }; // the title says it all
 	}
 	command(): Command {
 		return { action: "horn", args: { state: 1 } };
@@ -625,7 +798,7 @@ export class AirSuspension extends DeckAction {
 		const key = `air_${dir}`;
 		const label = dir === "raise" ? "Air up" : "Air down";
 		if (!s.air) return unsupported(key, label, ["off"]);
-		return { ...binary(key, label, !!held), value: dir === "raise" ? "RAISE" : "LOWER", overlay: "AIR" };
+		return { ...binary(key, label, !!held), value: dir === "raise" ? "RAISE" : "LOWER" };
 	}
 	command(s: VehicleStatus, st: Settings): Command {
 		if (!s.air) return null;
@@ -697,6 +870,8 @@ export class Nitrous extends DeckAction {
 		const s = game.snapshot.status;
 		if (!e || e.busy) return;
 		if (game.snapshot.link !== "ok" || !s?.n2o) return void (s && !s.n2o ? note(e, { value: "N/A", color: C.none }, 1500) : ev.action.showAlert());
+		const why = game.blocked({ action: "n2o", args: {} });
+		if (why) return blockedPress(e, { action: "n2o", args: {} }, why);
 		const mode = e.settings.press ?? "combined";
 		if (mode === "arm") return super.onKeyDown(ev);
 		const startSpray = () => {

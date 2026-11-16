@@ -1,6 +1,6 @@
 {
 	"Name": "BeamDeckNG",
-	"Version": "0.2.3.0",
+	"Version": "0.2.10.0",
 	"Author": "yahms",
 	"Description": "Live BeamNG.drive controls with state on every button: ignition, drive modes, diff locks, range, 4WD, the game's own powertrain buttons, lights, indicators, parking brake, horn, cruise, truck brakes, air suspension, doors, nitrous, JATO, plus game and camera functions. Talks to the game's MCP server on 127.0.0.1.",
 	"Category": "BeamDeckNG",
@@ -29,6 +29,7 @@
 		{
 			"Name": "Ignition",
 			"UUID": "com.yahms.beamdeckng.ignition",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/ignition-icon",
 			"Tooltip": "Shows ignition / engine state. Press to start or stop the engine.",
 			"Controllers": [
@@ -79,6 +80,7 @@
 		{
 			"Name": "Range (high / low)",
 			"UUID": "com.yahms.beamdeckng.range",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/range-icon",
 			"Tooltip": "Shows the transfer case range. Press to switch high / low.",
 			"Controllers": [
@@ -95,6 +97,7 @@
 		{
 			"Name": "2WD / 4WD",
 			"UUID": "com.yahms.beamdeckng.drive",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/drive-icon",
 			"Tooltip": "Shows whether front drive is engaged. Press to switch 2WD / 4WD.",
 			"Controllers": [
@@ -111,6 +114,7 @@
 		{
 			"Name": "Parking brake",
 			"UUID": "com.yahms.beamdeckng.parkingbrake",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/parkingbrake-icon",
 			"Tooltip": "Shows the parking brake. Press to set or release.",
 			"Controllers": [
@@ -144,6 +148,7 @@
 		{
 			"Name": "Fog lights",
 			"UUID": "com.yahms.beamdeckng.fog",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/fog-icon",
 			"Tooltip": "Shows fog lights. Press to toggle.",
 			"Controllers": [
@@ -160,6 +165,7 @@
 		{
 			"Name": "Hazards",
 			"UUID": "com.yahms.beamdeckng.hazards",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/hazards-icon",
 			"Tooltip": "Shows hazard lights (blinks while on). Press to toggle.",
 			"Controllers": [
@@ -193,8 +199,9 @@
 		{
 			"Name": "Lightbar",
 			"UUID": "com.yahms.beamdeckng.lightbar",
+			"PropertyInspectorPath": "ui/lightbar.html",
 			"Icon": "imgs/actions/lightbar-icon",
-			"Tooltip": "Shows the lightbar mode. Press to cycle off / mode 1 / mode 2.",
+			"Tooltip": "Shows the lightbar: off / lights / lights + siren. Press to cycle. Or set it to show and step the flash pattern (Chase, Scene...).",
 			"Controllers": [
 				"Keypad"
 			],
@@ -209,6 +216,7 @@
 		{
 			"Name": "Horn",
 			"UUID": "com.yahms.beamdeckng.horn",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/horn-icon",
 			"Tooltip": "Sounds the horn while held.",
 			"Controllers": [
@@ -242,6 +250,7 @@
 		{
 			"Name": "Engine brake",
 			"UUID": "com.yahms.beamdeckng.enginebrake",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/enginebrake-icon",
 			"Tooltip": "Shows the engine (compression) brake level. Press to cycle off / 1 / 2 / 3.",
 			"Controllers": [
@@ -258,6 +267,7 @@
 		{
 			"Name": "Retarder",
 			"UUID": "com.yahms.beamdeckng.retarder",
+			"PropertyInspectorPath": "ui/press.html",
 			"Icon": "imgs/actions/retarder-icon",
 			"Tooltip": "Shows the retarder setting. Press to cycle off / auto / 20-100 %.",
 			"Controllers": [
@@ -365,7 +375,7 @@
 			"Controllers": [
 				"Keypad"
 			],
-			"SupportedInMultiActions": false,
+			"SupportedInMultiActions": true,
 			"States": [
 				{
 					"Image": "imgs/actions/gamefn",
@@ -382,7 +392,7 @@
 			"Controllers": [
 				"Keypad"
 			],
-			"SupportedInMultiActions": false,
+			"SupportedInMultiActions": true,
 			"States": [
 				{
 					"Image": "imgs/actions/world",
@@ -420,6 +430,23 @@
 			"States": [
 				{
 					"Image": "imgs/actions/tires",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Vehicle control (auto)",
+			"UUID": "com.yahms.beamdeckng.vehcontrol",
+			"Icon": "imgs/actions/vehcontrol-icon",
+			"Tooltip": "Filled in from the vehicle you drive: tray, hydraulics, fifth wheel, spinner... Put several on a page with slots 1, 2, 3.",
+			"PropertyInspectorPath": "ui/vehcontrol.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/vehcontrol",
 					"ShowTitle": false
 				}
 			]

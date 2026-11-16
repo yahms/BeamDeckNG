@@ -50,7 +50,7 @@ export class Tires extends DeckAction {
 	/** Held: start on key down, stop on key up. */
 	command(s: VehicleStatus, st: Settings): Command {
 		if (!pick(s, st)) return null;
-		return { action: "tire_pressure", args: { group: st.group ?? "all", dir: this.dir(st), state: 1 } };
+		return { action: "tire_pressure", args: { group: st.group ?? "all", dir: this.dir(st), state: 1 }, menu: "vehicle_config" };
 	}
 	override release(): Command {
 		return { action: "tire_pressure", args: { state: 0 } };

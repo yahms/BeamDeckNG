@@ -14,8 +14,12 @@
 					<option value="time_noon">Noon 12:00</option>
 					<option value="time_sunset">Sunset 18:00</option>
 					<option value="time_midnight">Midnight 00:00</option>
-					<option value="time_fwd">Time +1 hour</option>
-					<option value="time_back">Time -1 hour</option>
+					<option value="time_p10m">Time +10 min</option>
+					<option value="time_m10m">Time -10 min</option>
+					<option value="time_p1h">Time +1 hour</option>
+					<option value="time_m1h">Time -1 hour</option>
+					<option value="time_p4h">Time +4 hours</option>
+					<option value="time_m4h">Time -4 hours</option>
 					<option value="daylen">Day length (cycle)</option>
 				</optgroup>
 				<optgroup label="Weather">
@@ -29,15 +33,31 @@
 					<option value="fog">Fog only: off / light / heavy</option>
 					<option value="wind">Wind: calm / breezy / storm</option>
 				</optgroup>
+				<optgroup label="More / less">
+					<option value="cloud_up">Clouds +</option>
+					<option value="cloud_down">Clouds -</option>
+					<option value="fog_up">Fog +</option>
+					<option value="fog_down">Fog -</option>
+					<option value="fogh_up">Fog height +</option>
+					<option value="fogh_down">Fog height -</option>
+					<option value="rain_up">Rain +</option>
+					<option value="rain_down">Rain -</option>
+					<option value="wind_up">Wind +</option>
+					<option value="wind_down">Wind -</option>
+				</optgroup>
 				<optgroup label="Gravity">
 					<option value="grav_cycle">Gravity (cycle)</option>
 					<option value="grav_earth">Earth</option>
 					<option value="grav_moon">Moon</option>
 					<option value="grav_mars">Mars</option>
 					<option value="grav_zero">Zero-G</option>
+					<option value="grav_jupiter">Jupiter</option>
 				</optgroup>
 			</sdpi-select>
 		</sdpi-item>
 		<p style="color:#aaa;font-size:12px;margin:8px">Needs a loaded map. Preset keys light up green when that preset is the current one, however it was set.</p>
+		<sdpi-item label="In-game message">
+			<sdpi-checkbox setting="msg" default="true" label="show what happened when pressed"></sdpi-checkbox>
+		</sdpi-item>
 	</body>
 </html>

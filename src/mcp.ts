@@ -1,8 +1,28 @@
 // Minimal MCP client for the BeamNG game server: JSON-RPC over streamable HTTP.
 // The game replies with plain JSON; SSE "data:" lines are handled too.
 
-export class McpError extends Error {}
+export class McpError extends Error {
+	constructor(
+		message: string,
+		readonly code?: number, // JSON-RPC error code, when the server sent one
+	) {
+		super(message);
+	}
+}
 
+/** BeamDeckNG MP-MCP refused: not on its server's allowlist, or not something it can do at all. */
+export class Blocked extends McpError {
+	constructor(
+		message: string,
+		readonly why: "blocked" | "unavailable" = "blocked",
+	) {
+		super(message);
+	}
+	/** The game itself blocked it (its action filter), not the server's allowlist. */
+	get byGame(): boolean {
+		return /blocked by the game/.test(this.message);
+	}
+}
 export class Mcp {
 	private id = 0;
 	private ready = false;
@@ -42,7 +62,7 @@ export class Mcp {
 	private async rpc(method: string, params: object): Promise<any> {
 		const id = ++this.id;
 		const v = parseBody(await this.post({ jsonrpc: "2.0", id, method, params }));
-		if (v.error) throw new McpError(`MCP error: ${JSON.stringify(v.error)}`);
+		if (v.error) throw new McpError(`MCP error: ${JSON.stringify(v.error)}`, typeof v.error.code === "number" ? v.error.code : undefined);
 		return v.result ?? null;
 	}
 
@@ -60,21 +80,39 @@ export class Mcp {
 		this.ready = true;
 	}
 
-	/** Call a tool and return its text content. isError results throw. */
-	call(name: string, args: object): Promise<string> {
+	/** Run one request after the ones before it (initializing first if needed). */
+	private queue<T>(fn: () => Promise<T>): Promise<T> {
 		const run = async () => {
 			if (!this.ready) await this.initialize();
+			return fn();
+		};
+		const p = this.chain.then(run, run);
+		this.chain = p.catch(() => undefined);
+		return p;
+	}
+
+	/** Call a tool and return its text content. isError results throw (Blocked for the add-on's refusals). */
+	call(name: string, args: object): Promise<string> {
+		return this.queue(async () => {
 			const r = await this.rpc("tools/call", { name, arguments: args });
 			const text = (r?.content ?? [])
 				.map((c: any) => c?.text)
 				.filter((t: unknown) => typeof t === "string")
 				.join("\n");
-			if (r?.isError) throw new McpError(`${name} failed: ${text.slice(0, 300)}`);
+			if (r?.isError) {
+				if (text.startsWith("not allowed on this server")) throw new Blocked(text);
+				throw new McpError(`${name} failed: ${text.slice(0, 300)}`);
+			}
 			return text;
-		};
-		const p = this.chain.then(run, run);
-		this.chain = p.catch(() => undefined);
-		return p;
+		});
+	}
+
+	/** Names of the server's tools. */
+	listTools(): Promise<string[]> {
+		return this.queue(async () => {
+			const r = await this.rpc("tools/list", {});
+			return (r?.tools ?? []).map((t: any) => t?.name).filter((n: unknown): n is string => typeof n === "string");
+		});
 	}
 
 	/** Run Lua in the game-engine VM (synchronous; returns tostring() of the result). */

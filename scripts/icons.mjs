@@ -65,6 +65,7 @@ const ACTIONS = {
 	parkingbrake: "own:pbrake", headlights: "own:headlight", fog: "foggy", hazards: "own:hazard", indicator: "own:signals",
 	lightbar: "own:lightbar", horn: "campaign", cruise: "speed", enginebrake: "compress", retarder: "compress",
 	airsuspension: "height", doors: "door_front", nitrous: "bolt", jato: "rocket_launch", powertrain: "car_gear", gamefn: "sports_esports", world: "partly_cloudy_day", gauge: "speed", tires: "tire_repair",
+	vehcontrol: "precision_manufacturing",
 };
 // Folder / page icons (white, plus green for the active one). yes / no are a green tick and a red cross.
 const CATEGORY = {
@@ -74,6 +75,7 @@ const CATEGORY = {
 	hydraulics: "height", camera: "videocam", replay: "replay", time: "schedule", map: "map", game_menu: "menu",
 	radial_menu: "apps", garage: "garage", repair: "build", recover: "autorenew", home: "home", on_foot: "directions_walk",
 	traffic: "traffic", back: "arrow_back", next: "arrow_forward",
+	mech: "construction", weather: "partly_cloudy_day", dashboard: "dashboard", lightbar: "own:lightbar", gravity: "public",
 };
 
 const act = path.join(PLUGIN, "imgs/actions");
