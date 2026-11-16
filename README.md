@@ -1,4 +1,4 @@
-# BeamDeckNG: Stream Deck plugin for BeamNG.drive (0.2.3 beta)
+# BeamDeckNG: Stream Deck plugin for BeamNG.drive
 
 A Stream Deck plugin that uses **BeamNG.drive's native MCP server**. Enable MCP in the game and it
 just works: no game mod, and no bridge program running in the background.
@@ -7,6 +7,26 @@ just works: no game mod, and no bridge program running in the background.
   servers, to BeamDeckNG MP-MCP and the game's OutGauge data; see [On BeamMP servers](#on-beammp-servers)).
 - Stream Deck must be on **the same computer the game is running on**.
 - Every button shows the live state of the vehicle or the game.
+
+## What it looks like
+
+Six pages of the example 15-key layout ([Example profiles](#example-profiles-tabs)): the coloured tabs
+along the top say which group you're in, the dots which page of it.
+
+![Example pages: DRIVE, LIGHTS, DASH, MENU, WEATHER, TIME](docs/images/pages.png)
+
+Keys follow the game as it changes: what the key does on top, its current mode underneath, coloured
+for the state (green on, blue mode / info, yellow caution, red alert).
+
+![Keys changing state: ignition, drive modes, headlights, diffs, lightbar, replay, fuel, get in / out](docs/images/states.png)
+
+And the same keys in every situation: paused, not fitted to this vehicle, no car, no game, and on a
+BeamMP server.
+
+![The same keys live, paused, not on this vehicle, with no car, with no game, and on BeamMP](docs/images/modes.png)
+
+*These pictures use BeamDeckNG's own stand-in icons. With the game running, keys use the game's own
+icons where it has one.*
 
 ## Buttons
 
@@ -21,7 +41,7 @@ just works: no game mod, and no bridge program running in the background.
 | Headlights | off / low / high (black / green / blue) | cycle, or low-beam / high-beam toggle (setting) |
 | Fog lights, Hazards | on / off (hazards blink) | toggle |
 | Indicator | left or right (setting), blinks while on | toggle |
-| Lightbar | off / mode 1 / mode 2 | cycle |
+| Lightbar | off / lights / lights + siren; or the flash pattern (Chase, Scene...) | cycle, or next pattern (setting) |
 | Horn | sounding while held | hold |
 | Cruise control | on/off + set speed, or set / + / - (setting) | toggle / set / adjust |
 | Engine brake, Retarder | level | cycle levels |
