@@ -62,9 +62,32 @@ In the Stream Deck app: select the folder/page button > click its icon > **Set f
 one from the plugin folder (`%appdata%\Elgato\StreamDeck\Plugins\com.yahms.beamdeckng.sdPlugin\icons\`)
 or from `BeamDeckNG-icons.zip` on the releases page.
 
+## Example profiles (tabs)
+
+`profiles/` holds a suggested layout for the 15-key Stream Deck and the 32-key XL. The top-left
+three keys are always tabs, one colour per group:
+
+| Tab | Colour | Pages (15-key) | Pages (32-key) |
+|---|---|---|---|
+| GAME | blue | MENU, TOOLS, WORLD | GAME, WORLD |
+| CAR | green | DRIVE, POWER, EXTRAS | DRIVE, EXTRAS |
+| CAMERA | purple | CAMERA | CAMERA |
+
+Tap a tab to jump to its group's first page; tap it again to step through the group (the lit tab
+shows the page name, the dots show which page of the group). A second tap on CAMERA goes back to
+DRIVE. On the XL the left 5x3 block of each page is the same as the 15-key page with the same name;
+the extra columns hold what the 15-key deck keeps on the next page.
+
+- `profiles/layouts.mjs`: the layout (edit here), `node profiles/layouts.mjs > profiles/plan.json`
+- `scripts/tabicons.mjs`: tab key icons (`profiles/tabs/`)
+- `node profiles/preview.mjs`: draws `profiles/preview-15.png` / `preview-32.png`
+
+The XL page EXTRAS leaves columns 5-7 free for **Vehicle control (auto)** slots.
+
 ## Install
 
-Requires Stream Deck 7.1 or later, on the same computer as the game, and the MCP server enabled in
+Requires Stream Deck 7.1 or later (7.4 and 8.x tested against the same SDK v3 / Node 24 manifest),
+on the same computer as the game, and the MCP server enabled in
 BeamNG.drive. Double-click `com.yahms.beamdeckng.streamDeckPlugin`, then drag
 the buttons from the **BeamDeckNG** category.
 
