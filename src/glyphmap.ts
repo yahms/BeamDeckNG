@@ -90,7 +90,7 @@ export const GLYPHS: Record<string, Record<string, G>> = {
 	slowmo: { off: g("mission_system_time", P.white), on: g("mission_system_time", P.yellow) },
 	slower: { off: g("material_fast_rewind", P.white), on: g("material_fast_rewind", P.green) },
 	faster: { off: g("material_fast_forward", P.white), on: g("material_fast_forward", P.green) },
-	ui: { on: g(["material_dashboard", "material_widgets"], P.white), off: g(["material_dashboard", "material_widgets"], P.off) },
+	ui: { on: g(["material_dashboard", "material_widgets"], P.green), off: g(["material_dashboard", "material_widgets"], P.red) },
 	photo: { off: g("material_camera", P.white), on: g("material_camera", P.green) },
 	traffic: { off: g("material_traffic", P.white), on: g("material_traffic", P.green) },
 	trailer: { off: g(["radial_couplers", "own_hitch"], P.white), on: g(["radial_couplers", "own_hitch"], P.green) },
@@ -101,6 +101,9 @@ export const GLYPHS: Record<string, Record<string, G>> = {
 	right: { off: g("material_keyboard_arrow_right", P.white), on: g("material_keyboard_arrow_right", P.green), walk: g("material_keyboard_arrow_right", P.blue) },
 	cam_cycle: { off: g("material_switch_camera", P.white), on: g("material_switch_camera", P.green) },
 	cam_prev: { off: g("material_switch_video", P.white), on: g("material_switch_video", P.green) },
+	// "only the cameras enabled in the game": a camera with a settings cog, so the two kinds look different
+	cam_cycle_game: { off: g("material_video_settings", P.white), on: g("material_video_settings", P.green) },
+	cam_prev_game: { off: g("material_video_settings", P.white), on: g("material_video_settings", P.green) },
 	cam_free: { off: g("material_directions_car", P.white), on: g("material_videocam", P.green) },
 	cam_center: { off: g("material_center_focus_strong", P.white), on: g("material_center_focus_strong", P.green) },
 	cam_orbit: { off: g("tech_camerafocusonvehicle2", P.white), on: g("tech_camerafocusonvehicle2", P.green) },

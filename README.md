@@ -47,16 +47,24 @@ Every key has an **In-game message** setting (on by default): after a press, the
 app shows what happened, e.g. "Stream Deck: Rear diff: LOCKED", or why nothing did. Each new
 message replaces the last one.
 
-## Category icons for folders and pages
+## Category icons for folders, pages and hotkeys
 
-`com.yahms.beamdeckng.sdPlugin/icons/` has 31 category icons, each in **white** and **green** (for
-highlighting the active folder/page), for Stream Deck's own Folder, Page and Profile buttons:
+`com.yahms.beamdeckng.sdPlugin/icons/` has 36 category icons, each in **white** and **green** (for
+highlighting the active folder/page), for Stream Deck's own Folder, Page, Profile and Hotkey buttons:
 
 vehicle, truck, trailer, engine, powertrain, diffs, range, drive_modes, lights, signals, hazards, doors,
 parking_brake, cruise, boost, jato, hydraulics, camera, replay, time, map, game_menu, radial_menu,
 garage, repair, recover, home, on_foot, traffic, back, next, mech, weather, dashboard, lightbar, gravity.
 
 Plus **yes** (green tick) and **no** (red cross), e.g. for Hotkey buttons mapped to Enter / Esc.
+
+**Plugin keys or keyboard hotkeys?** Not everything has to be a BeamDeckNG key. Some controls suit a
+plain Stream Deck **Hotkey** better, or you may simply prefer one: anything you've bound to a key in
+BeamNG.drive (Options > Controls) works as a hotkey, including your own custom bindings and mod actions.
+Hotkeys only reach the game while its window has focus and can't show the game's state, but they need
+nothing from MCP. The icon pack is there for exactly this, so hotkey, folder and page buttons can match
+the plugin's look. (The icons are BeamDeckNG's own, drawn from Material Symbols; any likeness to the
+earlier "Beam Deck" icon set is accidental.)
 
 They come as a Stream Deck icon pack: double-click `com.yahms.beamdeckng.streamDeckIconPack` (built by
 `node scripts/iconpack.mjs`) and they appear in the Stream Deck app's **Icon Library** under BeamDeckNG
