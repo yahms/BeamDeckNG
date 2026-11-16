@@ -6,8 +6,9 @@ import { PLAN } from "./layouts.mjs";
 import { tabSvg } from "../scripts/tabicons.mjs";
 
 const label = (k) => {
+	if (k.type === "FOLDER") return `${k.name} folder`;
 	const t = k.type.split(".").pop(), s = k.settings;
-	const v = s.fn || s.gauge || s.side || s.scope || s.dir || s.part || s.op || (s.tdir ? `tyres ${s.tdir}` : "");
+	const v = s.fn || s.gauge || s.side || s.scope || s.dir || s.part || s.op || s.press || (s.tdir ? `tyres ${s.tdir}` : "");
 	return (t === "gamefn" || t === "world" ? v : v ? `${t} ${v}` : t).replace(/_/g, " ");
 };
 const inner = (svg) => svg.replace(/^<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");

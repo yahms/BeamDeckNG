@@ -11,7 +11,9 @@ type GameFn = {
 	label: string;
 	key: string; // icon folder under imgs/states
 	/** Icon state for the current game state; "off" by default, "on" shows the active (green) icon. */
-	state?: (ge: GeStatus) => { state: string; value?: string; overlay?: string; flash?: boolean; glyph?: string[]; tint?: string };
+	state?: (ge: GeStatus) => { state: string; value?: string; overlay?: string; flash?: boolean; glyph?: string[]; tint?: string; head?: string; dim?: boolean };
+	/** On foot (walking mode): held as this input action instead (the arrows walk you about). */
+	walk?: string;
 	/** Tap: trigger_action name. */
 	act?: string;
 	/** Hold: trigger_action with down/up. */
@@ -74,17 +76,22 @@ core_camera.setVehicleCameraByNameWithId(id, nxt)
 return nxt`;
 }
 
+/** Arrows: blue while on foot (they walk you), white in menus. */
+const walkState = (g: GeStatus) => (g.walking ? { state: "walk", value: "WALK" } : { state: "off" });
+/** Arrow keys held down as walking actions: fn id -> the action to release. */
+const walkHeld = new Map<string, string>();
+
 export const GAME_FUNCS: Record<string, GameFn> = {
 	// fixed buttons
 	accept: { label: "Accept", key: "accept", act: "menu_item_select" },
 	back: { label: "Back", key: "back", act: "menu_item_back" },
-	pause: { label: "Pause", key: "pause", act: "pause", state: (g) => (g.paused ? { state: "on", value: "PAUSED" } : { state: "off", value: "RUN" }) },
+	pause: { label: "Pause", key: "pause", act: "pause", state: (g) => (g.paused ? { state: "on", value: "PAUSED" } : { state: "off", value: "RUNNING" }) },
 	repair: { label: "Repair", key: "repair", act: "recover_vehicle_alt" },
 	recover: { label: "Recover", key: "recover", tool: ["recover_vehicle", {}] },
 	respawn: { label: "Respawn", key: "home", act: "loadHome" },
 	// game tab
 	// gameplay_walk isn't always loaded (e.g. after a level load through MCP), so load it first
-	walk: { label: "Get in / out", key: "walk", mp: () => ({ fn: "walk" }), lua: "if not gameplay_walk then extensions.load('gameplay_walk') end gameplay_walk.toggleWalkingMode() return 'ok'", state: (g) => (g.walking ? { state: "on", value: "ON FOOT" } : { state: "off", value: "IN CAR" }) },
+	walk: { label: "Get in / out", key: "walk", mp: () => ({ fn: "walk" }), lua: "if not gameplay_walk then extensions.load('gameplay_walk') end gameplay_walk.toggleWalkingMode() return 'ok'", state: (g) => (g.walking ? { state: "on", value: "GET IN" } : { state: "off", value: "GET OUT" }) },
 	map: { label: "Map", key: "map", act: "toggleBigMap" },
 	vehicles: { label: "Vehicles", key: "vehicles", act: "vehicle_selector", menu: "vehicle_selector" },
 	radial: { label: "Radial menu", key: "radial", act: "toggleRadialMenuMulti" },
@@ -107,7 +114,8 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 	ui: { label: "Game UI", key: "ui", tool: ["toggle_ui", {}], state: (g) => (g.ui === false ? { state: "off", value: "UI OFF" } : { state: "on", value: "UI ON" }) },
 	photo: { label: "Photo mode", key: "photo", act: "photomode" },
 	traffic: { label: "Traffic", key: "traffic", act: "toggleTraffic", menu: "traffic" },
-	trailer: { label: "Trailer", key: "trailer", act: "couplersToggle" },
+	// says what a press will do: hitch when nothing's coupled, unhitch when towing
+	trailer: { label: "Trailer", key: "trailer", act: "couplersToggle", state: (g) => (g.towing ? { state: "on", head: "UNHITCH", value: "TRAILER" } : { state: "off", head: "HITCH", value: "TRAILER" }) },
 	// shows the car you're in, in its own paint colour
 	nextveh: {
 		label: "Next vehicle",
@@ -115,10 +123,15 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 		act: "switch_next_vehicle",
 		state: (g) => ({ state: "off", value: g.veh?.name ?? "NEXT CAR", glyph: ["material_directions_car"], tint: paint(g.veh?.color) }),
 	},
-	up: { label: "Up", key: "up", act: "menu_item_up" },
-	down: { label: "Down", key: "down", act: "menu_item_down" },
-	left: { label: "Left", key: "left", act: "menu_item_left" },
-	right: { label: "Right", key: "right", act: "menu_item_right" },
+	// menu arrows; on foot they walk (held), like the keyboard's arrow keys
+	up: { label: "Up", key: "up", act: "menu_item_up", walk: "unicycle__walkUp", state: walkState },
+	down: { label: "Down", key: "down", act: "menu_item_down", walk: "unicycle__walkDown", state: walkState },
+	left: { label: "Left", key: "left", act: "menu_item_left", walk: "unicycle__walkLeft", state: walkState },
+	right: { label: "Right", key: "right", act: "menu_item_right", walk: "unicycle__walkRight", state: walkState },
+	// on foot: turn the camera (and so where you walk), and run
+	turn_left: { label: "Turn camera left", key: "turn_left", hold: "rotate_camera_left", state: () => ({ state: "off", value: "CAM LEFT" }) },
+	turn_right: { label: "Turn camera right", key: "turn_right", hold: "rotate_camera_right", state: () => ({ state: "off", value: "CAM RIGHT" }) },
+	sprint: { label: "Sprint (shift)", key: "sprint", hold: "unicycle__sprintHold", state: (g) => ({ state: "off", value: "SPRINT", dim: !g.walking }) },
 	// camera tab
 	cam_cycle: { label: "Next camera", key: "cam_cycle", mp: (st) => ({ fn: "cam_step", args: { dir: 1, gamecams: !!st.gamecams } }), lua: (_g, st) => camStep(1, st), state: (g) => ({ state: "off", value: camName(g.cam) }) },
 	cam_prev: { label: "Previous camera", key: "cam_prev", mp: (st) => ({ fn: "cam_step", args: { dir: -1, gamecams: !!st.gamecams } }), lua: (_g, st) => camStep(-1, st), state: (g) => ({ state: "off", value: camName(g.cam) }) },
@@ -157,7 +170,30 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 		key: "replay_eject",
 		mp: () => ({ fn: "replay_eject" }),
 		lua: "if core_replay.stopAndUnload then core_replay.stopAndUnload() else core_replay.stop() end return 'ok'",
-		state: (g) => ({ state: !g.replay || g.replay === "inactive" ? "off" : "on", value: "EJECT" }),
+		// grey with nothing loaded
+		state: (g) => (!g.replay || g.replay === "inactive" ? { state: "off", value: "EJECT REPLAY", dim: true } : { state: "on", value: "EJECT REPLAY" }),
+	},
+	// one key for the whole cycle: record, stop recording (the game then loads it, paused), play is
+	// stopped if it's playing, and a stopped replay is ejected
+	replay_ctl: {
+		label: "Replay (record / stop / eject)",
+		key: "replay_ctl",
+		mp: () => ({ fn: "replay_ctl" }),
+		lua: `local s = core_replay.getState()
+if s == 'recording' then core_replay.toggleRecording() return 'stopped recording' end
+if s == 'playback' then
+  if core_replay.isPaused() then core_replay.stopAndUnload() return 'ejected' end
+  core_replay.togglePlay() return 'stopped playing'
+end
+core_replay.toggleRecording() return 'recording'`,
+		state: (g) =>
+			g.replay === "recording"
+				? { state: "recording", value: "STOP REC", flash: true }
+				: g.replay === "playback"
+					? g.replayPaused
+						? { state: "loaded", value: "EJECT REPLAY" }
+						: { state: "playing", value: "STOP PLAY" }
+					: { state: "record", value: "RECORD" },
 	},
 	reload_lua: { label: "Reload Lua", key: "reload_lua", tool: ["reload_lua", {}], state: () => ({ state: "off", value: "RELOAD LUA" }) },
 };
@@ -208,12 +244,18 @@ export class GameFunction extends DeckAction {
 			color: on || held ? C.warn : C.off,
 			overlay: s.overlay,
 			flash: s.flash,
+			head: s.head,
+			dim: s.dim,
 			...(s.glyph ? { glyph: s.glyph, tint: s.tint } : {}),
 		};
 	}
 	command(_s: VehicleStatus, st: Settings, ge: GeStatus = {}): Command {
-		const [, f] = GameFunction.fn(st);
+		const [id, f] = GameFunction.fn(st);
 		const menu = f.menu;
+		if (f.walk && ge.walking) {
+			walkHeld.set(id, f.walk);
+			return { tool: "trigger_action", args: { action: f.walk, state: "down" } };
+		}
 		if (f.lua) return { tool: "run_lua", args: { code: typeof f.lua === "function" ? f.lua(ge, st) : f.lua }, mp: f.mp?.(st), menu };
 		if (f.hold) return { tool: "trigger_action", args: { action: f.hold, state: "down" }, menu };
 		if (f.act) return { tool: "trigger_action", args: { action: f.act }, menu };
@@ -221,7 +263,12 @@ export class GameFunction extends DeckAction {
 		return null;
 	}
 	override release(_s: VehicleStatus, st: Settings): Command {
-		const [, f] = GameFunction.fn(st);
+		const [id, f] = GameFunction.fn(st);
+		const w = walkHeld.get(id);
+		if (w) {
+			walkHeld.delete(id);
+			return { tool: "trigger_action", args: { action: w, state: "up" } };
+		}
 		return f.hold ? { tool: "trigger_action", args: { action: f.hold, state: "up" } } : null;
 	}
 }

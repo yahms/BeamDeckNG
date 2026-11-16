@@ -11,6 +11,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { OWN_GLYPHS } from "./ownglyphs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const STATES_DIR = path.join(here, "..", "imgs", "states");
@@ -52,6 +53,7 @@ export type Face = {
 	label: string; // top line on the placeholder
 	value: string; // big middle text
 	sub?: string; // small bottom line (mode name, "PAUSED"...)
+	head?: string; // small line above the glyph, for two-line labels ("GRAVITY" / "EARTH", "UNHITCH" / "TRAILER")
 	color: string;
 	flash?: boolean;
 	dim?: boolean;
@@ -133,6 +135,7 @@ const BUILTIN: Record<string, Glyph> = {
 		viewBox: "0 0 96 96",
 		inner: `<g fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round"><path d="${LAMP}"/></g><path d="${beams(true)}"/>`,
 	},
+	...OWN_GLYPHS,
 }; // id -> when the game last said it has no such icon
 
 // Icons already read from the game are kept on this PC (cache/glyphs.json in the plugin folder), so keys
@@ -202,18 +205,25 @@ function pickGlyph(ids: string[] | undefined): Glyph | undefined {
 function glyphSvg(f: Face, g: Glyph, dark: boolean): string {
 	const tint = dark ? P.dimmed : f.dim ? P.dimmed : f.tint ?? P.white;
 	// every button says what it is / what state it's in, so a key is never blank
-	const text = (f.overlay ?? f.value ?? "").toUpperCase();
-	const size = text ? 84 : 100;
+	let text = (f.overlay ?? f.value ?? "").toUpperCase();
+	let head = f.head?.toUpperCase();
+	// a status line (OPENS MENU) takes the bottom; what the key shows moves up top
+	if (f.sub) {
+		head = head ? `${head} ${text}`.trim() : text;
+		text = f.sub.toUpperCase();
+	}
+	const size = head ? 64 : text ? 84 : 100;
 	const [vx, vy, vw, vh] = (g.viewBox.trim().split(/[\s,]+/).map(Number) ?? []).map((n) => (Number.isFinite(n) ? n : 0));
 	const k = size / Math.max(vw || 24, vh || 24);
 	const tx = (144 - (vw || 24) * k) / 2 - vx * k;
-	const ty = (text ? 10 : (144 - size) / 2) + (size - (vh || 24) * k) / 2 - vy * k;
+	const ty = (head ? 34 : text ? 10 : (144 - size) / 2) + (size - (vh || 24) * k) / 2 - vy * k;
 	const inner = g.inner.replace(/currentColor/g, tint);
 	const n = (x: number) => Number(x.toFixed(3));
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
 <rect x="0" y="0" width="144" height="144" fill="#000"/>
 <g transform="translate(${n(tx)} ${n(ty)}) scale(${n(k)})" fill="${tint}">${inner}</g>
 ${decorations({ ...f, overlay: undefined })}
+${head ? `<text x="72" y="26" font-family="Arial, Helvetica, sans-serif" font-size="${head.length > 9 ? 16 : 19}" font-weight="bold" fill="${f.dim ? P.off : "#fff"}" fill-opacity="0.8" text-anchor="middle">${esc(clip(head, 13))}</text>` : ""}
 ${text ? `<text x="72" y="130" font-family="Arial, Helvetica, sans-serif" font-size="${text.length > 9 ? 17 : 21}" font-weight="bold" fill="${f.dim ? P.off : "#fff"}" text-anchor="middle">${esc(clip(text, 13))}</text>` : ""}
 </svg>`;
 }

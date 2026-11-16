@@ -52,15 +52,31 @@ export function tabPng(group, opts) {
 
 // The page plans, shared by both profile builders: [group, page name] per page, in order.
 export const PAGES15 = [
-	["game", "MENU"], ["game", "TOOLS"], ["game", "WORLD"],
-	["car", "DRIVE"], ["car", "POWER"], ["car", "EXTRAS"],
+	["game", "MENU"], ["game", "TOOLS"], ["game", "WEATHER"], ["game", "TIME"],
+	["car", "DRIVE"], ["car", "LIGHTS"], ["car", "DASH"], ["car", "POWER"], ["car", "EXTRAS"],
 	["cam", "CAMERA"],
 ];
 export const PAGES32 = [
 	["game", "GAME"], ["game", "WORLD"],
-	["car", "DRIVE"], ["car", "EXTRAS"],
+	["car", "DRIVE"], ["car", "DASH"], ["car", "POWER"],
 	["cam", "CAMERA"],
 ];
+
+// Static key icons (folders and Multi Action keys show these; they have no live face).
+const PLANETS = { earth: ["Earth", "#238BE6"], moon: ["Moon", "#BBBBBB"], mars: ["Mars", "#DD1C1A"], zero: ["Zero-G", "#9D4EDD"], jupiter: ["Jupiter", "#FFC300"] };
+export function staticSvg(glyph, color, top, bottom, folder = false) {
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
+<rect width="144" height="144" fill="#000"/>
+${folder ? `<rect x="6" y="6" width="132" height="132" rx="16" fill="none" stroke="#fff" stroke-width="3" stroke-opacity="0.5" stroke-dasharray="10 6"/>` : ""}
+${top ? `<text x="72" y="28" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="bold" fill="#fff" fill-opacity="0.8" text-anchor="middle">${top}</text>` : ""}
+<svg x="40" y="${top ? 36 : 22}" width="64" height="64" viewBox="0 -960 960 960"><g fill="${color}">${sym(glyph)}</g></svg>
+<text x="72" y="128" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">${bottom}</text>
+</svg>`;
+}
+export const STATIC = {
+	"gravity-folder": () => staticSvg("public", "#fff", "GRAVITY", "PICK ▸", true),
+	...Object.fromEntries(Object.entries(PLANETS).map(([k, [n, c]]) => [`grav-${k}`, () => staticSvg("public", c, "GRAVITY", n.toUpperCase())])),
+};
 
 // Icon for group g's tab while page p (index into plan) is showing.
 export function tabFor(plan, g, p) {
@@ -91,6 +107,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 				if (tag === "15") cells.push(tabSvg(g, o));
 			}
 		});
+	for (const [k, f] of Object.entries(STATIC)) writeFileSync(path.join(OUT, `${k}.png`), new Resvg(f(), { font: { loadSystemFonts: true } }).render().asPng());
 	// preview: one row per 15-key page
 	const rows = PAGES15.length;
 	const prev = `<svg xmlns="http://www.w3.org/2000/svg" width="${3 * 150}" height="${rows * 150}">${cells

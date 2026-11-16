@@ -20,7 +20,7 @@
 
 local M = {}
 
-local VERSION = "0.1.1" -- this mod
+local VERSION = "0.1.2" -- this mod
 local PROTO = 1 -- tool protocol: bump only for changes an older plugin can't cope with
 local HOST, PORT, ROUTE = "127.0.0.1", 29392, "/mcp"
 local ROOT = "/beamdeckng_mp/"
@@ -47,6 +47,9 @@ local DEFAULTS = {
   actions = {
     "menu_item_select", "menu_item_back", "menu_item_up", "menu_item_down", "menu_item_left", "menu_item_right",
     "toggleBigMap", "toggleRadialMenuMulti", "photomode", "couplersToggle", "center_camera", "look_back",
+    -- on foot
+    "rotate_camera_left", "rotate_camera_right", "unicycle__walkUp", "unicycle__walkDown", "unicycle__walkLeft",
+    "unicycle__walkRight", "unicycle__sprintHold",
   },
   game = { "set_camera", "cam_step", "cam_driver", "toggle_ui", "walk" },
   menus = { "environment", "weather", "simulation", "traffic", "vehicle_config", "vehicle_selector", "multiplayer" },
@@ -207,14 +210,15 @@ local function geState()
   pcall(function() g.paused = simTimeAuthority.getPause() end)
   pcall(function() g.timeScale = simTimeAuthority.get() end)
   pcall(function() g.cam = core_camera.getActiveCamName() end)
-  pcall(function() g.replay = core_replay.getState() end)
+  pcall(function() g.replay = core_replay.getState() g.replayPaused = core_replay.isPaused() end)
   pcall(function() g.ui = extensions.ui_visibility.getCef() end)
+  pcall(function() local d = core_trailerRespawn.getTrailerData() g.towing = d[be:getPlayerVehicleID(0)] ~= nil end)
   pcall(function()
     local t = core_environment.getTimeOfDay()
     if not t then return end
     g.tod = { time = t.time, play = t.play, dayLength = t.dayLength }
     local e = core_environment.getState()
-    g.cloud = e.cloudCover g.fog = e.fogDensity g.wind = e.windSpeed g.grav = e.gravity
+    g.cloud = e.cloudCover g.fog = e.fogDensity g.wind = e.windSpeed g.grav = e.gravity g.fogH = e.fogAtmosphereHeight
     local i = core_environment.getInitState()
     g.fog0 = i and i.fogDensity
     local n = 0
@@ -437,6 +441,16 @@ function G.replay_eject()
   if core_replay.stopAndUnload then core_replay.stopAndUnload() else core_replay.stop() end
   return "ok"
 end
+-- record > stop recording > stop playing > eject (one key)
+function G.replay_ctl()
+  local s = core_replay.getState()
+  if s == "recording" then core_replay.toggleRecording() return "stopped recording" end
+  if s == "playback" then
+    if core_replay.isPaused() then core_replay.stopAndUnload() return "ejected" end
+    core_replay.togglePlay() return "stopped playing"
+  end
+  core_replay.toggleRecording() return "recording"
+end
 
 function T.beamdeck_game(args)
   args = args or {}
@@ -447,7 +461,7 @@ function T.beamdeck_game(args)
   if not ok then return "error: " .. tostring(res), true end
   return tostring(res), false
 end
-S.beamdeck_game = { description = "Run one allowed game function (walk, cam_step, cam_driver, replay_eject).",
+S.beamdeck_game = { description = "Run one allowed game function (walk, cam_step, cam_driver, replay_eject, replay_ctl).",
   inputSchema = { type = "object", properties = { fn = { type = "string" }, args = { type = "object" } }, required = { "fn" } } }
 
 ---------------------------------------------------------------- the vehicle's own controls

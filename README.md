@@ -69,9 +69,14 @@ three keys are always tabs, one colour per group:
 
 | Tab | Colour | Pages (15-key) | Pages (32-key) |
 |---|---|---|---|
-| GAME | blue | MENU, TOOLS, WORLD | GAME, WORLD |
-| CAR | green | DRIVE, POWER, EXTRAS | DRIVE, EXTRAS |
+| GAME | blue | MENU, TOOLS, WEATHER, TIME | GAME, WORLD |
+| CAR | green | DRIVE, LIGHTS, DASH, POWER, EXTRAS | DRIVE, DASH, POWER |
 | CAMERA | purple | CAMERA | CAMERA |
+
+MENU doubles as the on-foot controls: the arrows walk you when you're out of the car, with turn
+camera left / right either side of Up and Sprint (shift) left of Left. The WEATHER page's Gravity key
+is a folder of presets; each preset is a Multi Action (set gravity, then Switch Profile back to
+WEATHER), so you land back where you were.
 
 Tap a tab to jump to its group's first page; tap it again to step through the group (the lit tab
 shows the page name, the dots show which page of the group). A second tap on CAMERA goes back to
@@ -82,7 +87,8 @@ the extra columns hold what the 15-key deck keeps on the next page.
 - `scripts/tabicons.mjs`: tab key icons (`profiles/tabs/`)
 - `node profiles/preview.mjs`: draws `profiles/preview-15.png` / `preview-32.png`
 
-The XL page EXTRAS leaves columns 5-7 free for **Vehicle control (auto)** slots.
+The XL DASH page leaves columns 5-7 free, and the 15-key LIGHTS page its bottom row, for
+**Vehicle control (auto)** keys (beacons, work lights, trays...).
 
 ## Install
 

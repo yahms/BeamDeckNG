@@ -57,6 +57,13 @@ export type Entry = {
 };
 
 export const entries = new Map<string, Entry>();
+/** True for a step inside a Multi Action (it has no key of its own). */
+const inMulti = (a: unknown): boolean => {
+	const k = a as { isKey?: () => boolean; isInMultiAction?: () => boolean };
+	return typeof k.isKey === "function" && k.isKey() && typeof k.isInMultiAction === "function" && k.isInMultiAction();
+};
+/** Multi Action steps whose key down has been handled (see DeckAction.multiPress). */
+const multiDown = new Set<string>();
 export let game: Game;
 let requestPoll: () => void = () => undefined;
 
@@ -89,7 +96,8 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 	release?(s: VehicleStatus, settings: Settings): Command;
 
 	override onWillAppear(ev: WillAppearEvent<Settings>): void {
-		if (!ev.action.isKey()) return;
+		// inside a Multi Action: no face of its own to draw, presses are handled by multiPress
+		if (!ev.action.isKey() || inMulti(ev.action)) return;
 		entries.set(ev.action.id, { action: ev.action, impl: this, settings: ev.payload.settings ?? {}, busy: false });
 		ev.action.setTitle("");
 		requestPoll();
@@ -103,6 +111,7 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 	}
 
 	override async onKeyUp(ev: KeyUpEvent<Settings>): Promise<void> {
+		if (inMulti(ev.action)) return this.multiPress(ev.action.id, ev.payload?.settings ?? {}, "up");
 		const e = entries.get(ev.action.id);
 		if (e) await keyUp(e);
 	}
@@ -116,7 +125,31 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 		}
 	}
 
+	/**
+	 * A step of a Multi Action (e.g. a gravity preset, then Switch Profile back to the page): no key face,
+	 * just do it. Some Stream Deck versions only send key up to a Multi Action's steps, so a key up
+	 * without a key down does the press first.
+	 */
+	private async multiPress(id: string, st: Settings, phase: "down" | "up"): Promise<void> {
+		const snap = game.snapshot;
+		const ready = this.vehicle ? snap.link === "ok" && !!snap.status : snap.link !== "offline" && snap.link !== "limited";
+		if (phase === "down" || !multiDown.has(id)) {
+			multiDown.add(id);
+			const cmd = ready ? this.command(snap.status ?? {}, st, snap.ge ?? {}) : null;
+			if (cmd && !game.blocked(cmd)) {
+				if (cmd.tool || cmd.vc) await run(cmd).catch((err) => streamDeck.logger.warn(`multi action step failed: ${(err as Error).message}`));
+				else if (cmd.action) await game.resolve(cmd.action, cmd.args).catch(() => undefined);
+				requestPoll();
+			}
+			if (phase === "down") return;
+		}
+		multiDown.delete(id);
+		const rel = this.release?.(snap.status ?? {}, st);
+		if (rel) await run(rel).catch(() => undefined);
+	}
+
 	override async onKeyDown(ev: KeyDownEvent<Settings>): Promise<void> {
+		if (inMulti(ev.action)) return this.multiPress(ev.action.id, ev.payload?.settings ?? {}, "down");
 		const e = entries.get(ev.action.id);
 		if (!e || e.busy) return;
 		const snap = game.snapshot;

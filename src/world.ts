@@ -79,10 +79,48 @@ const level = (list: number[], cur: number) => list.reduce((best, v, i) => (Math
 const LEVELS = ["OFF", "LIGHT", "HEAVY"];
 
 const run = (code: string): Command => ({ tool: "run_lua", args: { code } });
-const icon = (key: string, label: string, glyph: string, on: boolean, overlay?: string, tint?: string): Face => ({
+const icon = (key: string, label: string, glyph: string | string[], on: boolean, overlay?: string, tint?: string, head?: string): Face => ({
 	key: "world", state: key, label, value: (overlay ?? label).toUpperCase(), color: on ? C.on : C.off,
-	glyph: [glyph], tint: tint ?? (on ? P.green : P.white), overlay,
+	glyph: Array.isArray(glyph) ? glyph : [glyph], tint: tint ?? (on ? P.green : P.white), overlay, head,
 });
+
+// --- more / less: each press moves one rung up or down a ladder of sensible values
+const CLOUD_STEPS = [0, 0.25, 0.5, 1, 1.5, 2, 2.5, 3, 4, 5];
+const FOG_STEPS = [0, 0.05, 0.1, 0.2, 0.5, 1, 2, 3, 5, 8, 12, 20, 35, 50]; // environment menu units
+const FOGH_STEPS = [10, 25, 50, 100, 150, 200, 300, 500, 750, 1000, 1500, 2000]; // metres
+const RAIN_STEPS = [0, 100, 300, 700, 1200, 2200, 3500, 5000]; // drops
+const WIND_STEPS = [0, 0.5, 1, 2, 3, 5, 7, 10, 15, 20];
+export function stepOf(list: number[], cur: number, dir: 1 | -1): number {
+	const eps = 1e-6 + Math.abs(cur) * 0.01;
+	if (dir > 0) return list.find((v) => v > cur + eps) ?? list[list.length - 1];
+	return [...list].reverse().find((v) => v < cur - eps) ?? list[0];
+}
+const num = (v: number) => (v >= 100 ? String(Math.round(v)) : v >= 10 ? v.toFixed(0) : v >= 1 ? +v.toFixed(1) + "" : +v.toFixed(2) + "");
+type Amount = { name: string; glyph: string[]; steps: number[]; get: (g: GeStatus) => number; set: (v: number) => string; unit?: string };
+const AMOUNTS: Record<string, Amount> = {
+	cloud: { name: "Clouds", glyph: ["material_wb_cloudy", "own_cloud"], steps: CLOUD_STEPS, get: (g) => g.cloud ?? 0, set: (v) => `core_environment.setState({ cloudCover = ${v} })` },
+	fog: { name: "Fog", glyph: ["own_fog", "radial_fog_lights"], steps: FOG_STEPS, get: (g) => g.fog ?? 0, set: (v) => `core_environment.setState({ fogDensity = ${v} })` },
+	fogh: { name: "Fog height", glyph: ["own_fog_height"], steps: FOGH_STEPS, get: (g) => g.fogH ?? 0, set: (v) => `core_environment.setState({ fogAtmosphereHeight = ${v} })`, unit: " m" },
+	rain: { name: "Rain", glyph: ["own_rain", "material_grain"], steps: RAIN_STEPS, get: (g) => g.rain ?? 0, set: (v) => rainLua(v) },
+	wind: { name: "Wind", glyph: ["own_wind"], steps: WIND_STEPS, get: (g) => g.wind ?? 0, set: (v) => `core_environment.setWindSpeed(${v})` },
+};
+const amountKey = (id: string, dir: 1 | -1): WorldFn => {
+	const a = AMOUNTS[id];
+	return {
+		label: `${a.name} ${dir > 0 ? "+" : "-"}`,
+		face: (g) => icon(`${id}_${dir > 0 ? "up" : "down"}`, a.name, a.glyph, false, num(a.get(g)) + (a.unit ?? ""), a.get(g) > 0 ? P.blue : P.white, `${a.name} ${dir > 0 ? "+" : "-"}`),
+		press: (g) => run(`${a.set(stepOf(a.steps, a.get(g), dir))}\nreturn 'ok'`),
+	};
+};
+// time steps, in minutes
+const timeStep = (min: number): WorldFn => {
+	const name = `${min > 0 ? "+" : "-"}${Math.abs(min) >= 60 ? `${Math.abs(min) / 60} H` : `${Math.abs(min)} MIN`}`;
+	return {
+		label: `Time ${name.toLowerCase()}`,
+		face: (g) => icon(`time_${min}`, "Time", min > 0 ? "material_fast_forward" : "material_fast_rewind", false, clock(hourOf(g.tod!.time)), undefined, `TIME ${name}`),
+		press: (g) => run(`core_environment.setTimeOfDay({ time = ${timeOf(hourOf(g.tod!.time) + 24 + min / 60)} }) return 'ok'`),
+	};
+};
 
 type WorldFn = { label: string; face: (g: GeStatus) => Face; press: (g: GeStatus) => Command };
 const timeKey = (label: string, h: number, glyph: string): WorldFn => ({
@@ -97,7 +135,7 @@ const wxKey = (id: string): WorldFn => ({
 });
 const gravKey = (id: string): WorldFn => ({
 	label: GRAV[id].name,
-	face: (g) => icon(`grav_${id}`, GRAV[id].name, "material_public", gravNow(g) === id, GRAV[id].name),
+	face: (g) => icon(`grav_${id}`, GRAV[id].name, ["material_public", "own_gravity"], gravNow(g) === id, GRAV[id].name, undefined, "Gravity"),
 	press: () => run(`core_environment.setGravity(${GRAV[id].g}) return 'ok'`),
 });
 
@@ -164,7 +202,7 @@ export const WORLD_FUNCS: Record<string, WorldFn> = {
 		label: "Gravity",
 		face: (g) => {
 			const id = gravNow(g);
-			return icon("grav_cycle", "Gravity", "material_public", !!id && id !== "earth", id ? GRAV[id].name : `${(-(g.grav ?? 0)).toFixed(1)} m/s2`, id === "earth" ? P.white : P.blue);
+			return icon("grav_cycle", "Gravity", ["material_public", "own_gravity"], !!id && id !== "earth", id ? GRAV[id].name : `${(-(g.grav ?? 0)).toFixed(1)} m/s2`, id === "earth" ? P.white : P.blue, "Gravity");
 		},
 		press: (g) => run(`core_environment.setGravity(${GRAV[GRAV_ORDER[(GRAV_ORDER.indexOf(gravNow(g) ?? "jupiter") + 1) % GRAV_ORDER.length]].g}) return 'ok'`),
 	},
@@ -172,12 +210,31 @@ export const WORLD_FUNCS: Record<string, WorldFn> = {
 	grav_moon: gravKey("moon"),
 	grav_mars: gravKey("mars"),
 	grav_zero: gravKey("zero"),
+	grav_jupiter: gravKey("jupiter"),
+	// more / less
+	cloud_up: amountKey("cloud", 1),
+	cloud_down: amountKey("cloud", -1),
+	fog_up: amountKey("fog", 1),
+	fog_down: amountKey("fog", -1),
+	fogh_up: amountKey("fogh", 1),
+	fogh_down: amountKey("fogh", -1),
+	rain_up: amountKey("rain", 1),
+	rain_down: amountKey("rain", -1),
+	wind_up: amountKey("wind", 1),
+	wind_down: amountKey("wind", -1),
+	// time steps
+	time_p10m: timeStep(10),
+	time_m10m: timeStep(-10),
+	time_p1h: timeStep(60),
+	time_m1h: timeStep(-60),
+	time_p4h: timeStep(240),
+	time_m4h: timeStep(-240),
 };
 
 /** On BeamMP (no direct control through MP-MCP): the game menu page where the player can change it. */
 function worldMenu(id: string): string {
 	if (id.startsWith("grav")) return "simulation";
-	if (id.startsWith("wx") || id === "rain" || id === "fog" || id === "wind") return "weather";
+	if (id.startsWith("wx") || /^(rain|fog|fogh|wind|cloud)(_up|_down)?$/.test(id)) return "weather";
 	return "environment"; // time of day, day length
 }
 

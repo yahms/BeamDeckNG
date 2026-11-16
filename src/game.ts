@@ -17,7 +17,7 @@ import { Blocked, Mcp } from "./mcp";
 import { classify, RawControl, VControl } from "./vehcontrols";
 import { OutGauge } from "./outgauge";
 
-export const VERSION = "0.2.5";
+export const VERSION = "0.2.6";
 export const DECK_VERSION = "0.2.4"; // bump when the vehicle Lua changes, so vehicles reload it
 
 export type DiffState = "locked" | "open" | "partial" | "auto" | "lsd" | null | undefined;
@@ -70,7 +70,9 @@ export type GeStatus = {
 	paused?: boolean;
 	timeScale?: number; // 1 = normal, < 1 = slow motion
 	cam?: string; // active camera name
-	replay?: string; // inactive | recording | playing ...
+	replay?: string; // inactive | recording | playback
+	replayPaused?: boolean; // playback is paused (a stopped recording is loaded paused)
+	towing?: boolean; // the player vehicle has a trailer coupled
 	ui?: boolean; // game UI visible
 	walking?: boolean; // player is on foot
 	/** Time of day: time 0..1 (0 = noon, 0.5 = midnight), play = clock running, dayLength in seconds. */
@@ -78,6 +80,7 @@ export type GeStatus = {
 	cloud?: number; // cloud cover
 	fog?: number; // fog density (environment-menu units)
 	fog0?: number; // the level's own fog density
+	fogH?: number; // fog atmosphere height (m)
 	wind?: number;
 	grav?: number; // m/s2, negative = down
 	rain?: number; // rain drops (0 = dry)
@@ -418,14 +421,15 @@ local g = {}
 pcall(function() g.paused = simTimeAuthority.getPause() end)
 pcall(function() g.timeScale = simTimeAuthority.get() end)
 pcall(function() g.cam = core_camera.getActiveCamName() end)
-pcall(function() g.replay = core_replay.getState() end)
+pcall(function() g.replay = core_replay.getState() g.replayPaused = core_replay.isPaused() end)
 pcall(function() g.ui = extensions.ui_visibility.getCef() end)
+pcall(function() local d = core_trailerRespawn.getTrailerData() g.towing = d[be:getPlayerVehicleID(0)] ~= nil end)
 pcall(function()
   local t = core_environment.getTimeOfDay()
   if not t then return end
   g.tod = { time = t.time, play = t.play, dayLength = t.dayLength }
   local e = core_environment.getState()
-  g.cloud = e.cloudCover g.fog = e.fogDensity g.wind = e.windSpeed g.grav = e.gravity
+  g.cloud = e.cloudCover g.fog = e.fogDensity g.wind = e.windSpeed g.grav = e.gravity g.fogH = e.fogAtmosphereHeight
   local i = core_environment.getInitState()
   g.fog0 = i and i.fogDensity
   local n = 0
