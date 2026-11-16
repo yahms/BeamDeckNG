@@ -22,6 +22,7 @@ const walk = (dir, rel = "") => {
 walk(path.join(here, "mod"));
 const luaDir = path.join(repo, "com.yahms.beamdeckng.sdPlugin/lua");
 files.push(["beamdeckng_mp/lua/resolver.lua", readFileSync(path.join(luaDir, "resolver.lua"))]);
+files.push(["beamdeckng_mp/lua/controls.lua", readFileSync(path.join(luaDir, "controls.lua"))]);
 files.push(["beamdeckng_mp/lua/beamdeck.lua", Buffer.from(readFileSync(path.join(luaDir, "beamdeck.lua"), "utf8").replace("__DECK_VERSION__", deck))]);
 
 // minimal zip writer (deflate)

@@ -1,0 +1,2015 @@
+{
+"bastion/police_v8_awd_A": [
+{
+"change": false,
+"code": "controller.getControllerSafe('door_FL_coupler').toggleGroup()",
+"down": true,
+"id": "door_FL",
+"title": "Toggle Front Left Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('door_FR_coupler').toggleGroup()",
+"down": true,
+"id": "door_FR",
+"title": "Toggle Front Right Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('door_RL_coupler').toggleGroup()",
+"down": true,
+"id": "door_RL",
+"title": "Toggle Rear Left Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('door_RR_coupler').toggleGroup()",
+"down": true,
+"id": "door_RR",
+"title": "Toggle Rear Right Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hoodCatchCoupler').toggleGroupConditional({{'hoodLatchCoupler','attached','vehicle.advancedCouplerControl.releaseHoodFirstInterior'}})",
+"down": true,
+"id": "hoodCatch",
+"title": "Toggle Hood",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hoodLatchCoupler').toggleGroup()",
+"down": true,
+"id": "hoodRelease",
+"title": "Release Hood",
+"up": false
+},
+{
+"change": false,
+"code": "for _,v in pairs(controller.getControllersByType('lightbar')) do v.setModeIndex(1) end",
+"down": true,
+"id": "lightbar_setmode_1",
+"title": "Set Light Bar Mode 1",
+"up": false
+},
+{
+"change": false,
+"code": "for _,v in pairs(controller.getControllersByType('lightbar')) do v.setModeIndex(2) end",
+"down": true,
+"id": "lightbar_setmode_2",
+"title": "Set Light Bar Mode 2",
+"up": false
+},
+{
+"change": false,
+"code": "for _,v in pairs(controller.getControllersByType('lightbar')) do v.setModeIndex(3) end",
+"down": true,
+"id": "lightbar_setmode_3",
+"title": "Set Light Bar Mode 3",
+"up": false
+},
+{
+"change": false,
+"code": "for _,v in pairs(controller.getControllersByType('lightbar')) do v.setModeIndex(4) end",
+"down": true,
+"id": "lightbar_setmode_4",
+"title": "Set Light Bar Mode 4",
+"up": false
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_L_movement > 0.01 then electrics.values.sunvisor_L = -0.75 else electrics.values.sunvisor_L = 0 end",
+"down": true,
+"id": "sunvisor_L_close",
+"title": "Close Left Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_L_movement < 0.99 then electrics.values.sunvisor_L =  0.75 else electrics.values.sunvisor_L = 0 end",
+"down": true,
+"id": "sunvisor_L_open",
+"title": "Open Left Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_R_movement > 0.01 then electrics.values.sunvisor_R = -0.75 else electrics.values.sunvisor_R = 0 end",
+"down": true,
+"id": "sunvisor_R_close",
+"title": "Close Right Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_R_movement < 0.99 then electrics.values.sunvisor_R =  0.75 else electrics.values.sunvisor_R = 0 end",
+"down": true,
+"id": "sunvisor_R_open",
+"title": "Open Right Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "electrics.set_lightbar_signal(electrics.values.lightbar == 0 and 1 or 0)",
+"down": true,
+"id": "toggle_lightbar",
+"title": "Toggle Light Bar",
+"up": false
+},
+{
+"change": false,
+"code": "electrics.set_lightbar_signal(electrics.values.lightbar == 2 and 1 or 2)",
+"down": true,
+"id": "toggle_siren",
+"title": "Toggle Siren",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('trunkCoupler').toggleGroup()",
+"down": true,
+"id": "trunk",
+"title": "Toggle Trunk",
+"up": false
+}
+],
+"bluebuck/lowrider": [
+{
+"change": false,
+"code": "controller.getControllerSafe('door_FL_coupler').toggleGroup()",
+"down": true,
+"id": "door_FL",
+"title": "Toggle Front Left Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('door_FR_coupler').toggleGroup()",
+"down": true,
+"id": "door_FR",
+"title": "Toggle Front Right Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('door_RL_coupler').toggleGroup()",
+"down": true,
+"id": "door_RL",
+"title": "Toggle Rear Left Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('door_RR_coupler').toggleGroup()",
+"down": true,
+"id": "door_RR",
+"title": "Toggle Rear Right Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hoodCatchCoupler').toggleGroupConditional({{'hoodLatchCoupler','attached','vehicle.advancedCouplerControl.releaseHoodFirstInterior'}})",
+"down": true,
+"id": "hoodCatch",
+"title": "Toggle Hood",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hoodLatchCoupler').toggleGroup()",
+"down": true,
+"id": "hoodRelease",
+"title": "Release Hood",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsPosition({'frontAxle'},1, 15)",
+"down": true,
+"id": "hydraulics_jump_front",
+"title": "Lowrider: Hop Front",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsPosition({'full'},     1, 15)",
+"down": true,
+"id": "hydraulics_jump_full",
+"title": "Lowrider: Hop All",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsPosition({'leftSide'}, 1, 15)",
+"down": true,
+"id": "hydraulics_jump_left",
+"title": "Lowrider: Hop Left",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsPosition({'rearAxle'}, 1, 15)",
+"down": true,
+"id": "hydraulics_jump_rear",
+"title": "Lowrider: Hop Rear",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsPosition({'rightSide'},1, 15)",
+"down": true,
+"id": "hydraulics_jump_right",
+"title": "Lowrider: Hop Right",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsBleed({'frontLeft'}, 0.1)",
+"down": true,
+"id": "hydraulics_lower_FL",
+"title": "Lowrider: Lower Front Left",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsBleed({'frontRight'},0.1)",
+"down": true,
+"id": "hydraulics_lower_FR",
+"title": "Lowrider: Lower Front Right",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsBleed({'rearLeft'},  0.1)",
+"down": true,
+"id": "hydraulics_lower_RL",
+"title": "Lowrider: Lower Rear Left",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsBleed({'rearRight'}, 0.1)",
+"down": true,
+"id": "hydraulics_lower_RR",
+"title": "Lowrider: Lower Rear Right",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsBleed({'frontAxle'}, 0.1)",
+"down": true,
+"id": "hydraulics_lower_front",
+"title": "Lowrider: Lower Front",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsBleed({'full'},0.1)",
+"down": true,
+"id": "hydraulics_lower_full",
+"title": "Lowrider: Lower All",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsBleed({'rearAxle'},  0.1)",
+"down": true,
+"id": "hydraulics_lower_rear",
+"title": "Lowrider: Lower Rear",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsMomentaryIncrease({'frontLeft'}, true,1)",
+"down": true,
+"id": "hydraulics_raise_FL",
+"title": "Lowrider: Raise Front Left",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsMomentaryIncrease({'frontRight'},true,1)",
+"down": true,
+"id": "hydraulics_raise_FR",
+"title": "Lowrider: Raise Front Right",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsMomentaryIncrease({'rearLeft'},  true,1)",
+"down": true,
+"id": "hydraulics_raise_RL",
+"title": "Lowrider: Raise Rear Left",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsMomentaryIncrease({'rearRight'}, true,1)",
+"down": true,
+"id": "hydraulics_raise_RR",
+"title": "Lowrider: Raise Rear Right",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsMomentaryIncrease({'frontAxle'}, true,1)",
+"down": true,
+"id": "hydraulics_raise_front",
+"title": "Lowrider: Raise Front",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsMomentaryIncrease({'full'},true,1)",
+"down": true,
+"id": "hydraulics_raise_full",
+"title": "Lowrider: Raise All",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicSuspension').setGroupsMomentaryIncrease({'rearAxle'},  true,1)",
+"down": true,
+"id": "hydraulics_raise_rear",
+"title": "Lowrider: Raise Rear",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_L_movement > 0.01 then electrics.values.sunvisor_L = -0.75 else electrics.values.sunvisor_L = 0 end",
+"down": true,
+"id": "sunvisor_L_close",
+"title": "Close Left Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_L_movement < 0.99 then electrics.values.sunvisor_L =  0.75 else electrics.values.sunvisor_L = 0 end",
+"down": true,
+"id": "sunvisor_L_open",
+"title": "Open Left Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_R_movement > 0.01 then electrics.values.sunvisor_R = -0.75 else electrics.values.sunvisor_R = 0 end",
+"down": true,
+"id": "sunvisor_R_close",
+"title": "Close Right Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_R_movement < 0.99 then electrics.values.sunvisor_R =  0.75 else electrics.values.sunvisor_R = 0 end",
+"down": true,
+"id": "sunvisor_R_open",
+"title": "Open Right Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('trunkCoupler').toggleGroup()",
+"down": true,
+"id": "trunk",
+"title": "Toggle Trunk",
+"up": false
+}
+],
+"cannon/cannon": [
+{
+"change": true,
+"code": "custom_input.liftBarrel(       VALUE)",
+"down": false,
+"id": "lift",
+"title": "Lift Up/Down",
+"up": false
+},
+{
+"change": true,
+"code": "custom_input.liftBarrel( 0.5 * VALUE)",
+"down": false,
+"id": "liftUp",
+"title": "Lift Up",
+"up": false
+},
+{
+"change": true,
+"code": "custom_input.liftBarrel(-0.5 * VALUE)",
+"down": false,
+"id": "lowerDown",
+"title": "Lower Down",
+"up": false
+},
+{
+"change": true,
+"code": "custom_input.fire(             VALUE)",
+"down": false,
+"id": "shoot",
+"title": "Shoot ball",
+"up": false
+}
+],
+"dumptruck/standard": [
+{
+"change": true,
+"code": "electrics.values.hydraulicPTOControl = VALUE",
+"down": false,
+"id": "PTOAxis",
+"title": "Tilt Up/Down",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicsControl').setIdleRaise(false)",
+"down": true,
+"id": "disableManualIdleRaise",
+"title": "Disable Manual Idle Raise",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('door_L_coupler').toggleGroup()",
+"down": true,
+"id": "door_L",
+"title": "Toggle Left Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('door_R_coupler').toggleGroup()",
+"down": true,
+"id": "door_R",
+"title": "Toggle Right Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicsControl').setIdleRaise(true)",
+"down": true,
+"id": "enableManualIdleRaise",
+"title": "Enable Manual Idle Raise",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicPumpBrake').setFrontLockOutEnabled(VALUE > 0)",
+"down": true,
+"id": "frontBrakeCutoffSet",
+"title": "Set Front Brake Cutoff",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicPumpBrake').toggleFrontLockOutEnabled()",
+"down": true,
+"id": "frontBrakeCutoffToggle",
+"title": "Toggle Front Brake Cutoff",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicPumpBrake').changeHillAssistCoef(-0.1)",
+"down": true,
+"id": "hillAssistDec",
+"title": "Hill Assist Brake Coef Down",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicPumpBrake').setHillAssistCoef(0)",
+"down": true,
+"id": "hillAssistDis",
+"title": "Disable Hill Assist",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicPumpBrake').changeHillAssistCoef(0.1)",
+"down": true,
+"id": "hillAssistInc",
+"title": "Hill Assist Brake Coef Up",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicPumpBrake').setHillAssistCoef(VALUE)",
+"down": true,
+"id": "hillAssistSet",
+"title": "Set Hill Assist Brake Coef",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hoodCatchCoupler').toggleGroupConditional({{'hoodLatchCoupler','attached','vehicle.advancedCouplerControl.releaseHoodFirstInterior'}})",
+"down": true,
+"id": "hoodCatch",
+"title": "Toggle Hood",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicsControl').setIdleRaise(true)",
+"down": true,
+"id": "setMomentaryManualIdleRaise",
+"title": "Momentary Manual Idle Raise",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_L_movement > 0.01 then electrics.values.sunvisor_L = -0.75 else electrics.values.sunvisor_L = 0 end",
+"down": true,
+"id": "sunvisor_L_close",
+"title": "Close Left Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_L_movement < 0.99 then electrics.values.sunvisor_L =  0.75 else electrics.values.sunvisor_L = 0 end",
+"down": true,
+"id": "sunvisor_L_open",
+"title": "Open Left Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_R_movement > 0.01 then electrics.values.sunvisor_R = -0.75 else electrics.values.sunvisor_R = 0 end",
+"down": true,
+"id": "sunvisor_R_close",
+"title": "Close Right Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_R_movement < 0.99 then electrics.values.sunvisor_R =  0.75 else electrics.values.sunvisor_R = 0 end",
+"down": true,
+"id": "sunvisor_R_open",
+"title": "Open Right Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicsControl').toggleIdleRaise()",
+"down": true,
+"id": "toggleManualIdleRaise",
+"title": "Toggle Manual Idle Raise",
+"up": false
+},
+{
+"change": false,
+"code": "electrics.set_lightbar_signal(electrics.values.lightbar == 0 and 1 or 0)",
+"down": true,
+"id": "toggle_beacon",
+"title": "Toggle Beacon Light",
+"up": false
+},
+{
+"change": false,
+"code": "electrics.values.worklights = 1 - electrics.values.worklights or 0",
+"down": true,
+"id": "worklights",
+"title": "Work Lights",
+"up": false
+}
+],
+"fullsuv/high-offroad": [
+{
+"change": false,
+"code": "controller.getControllerSafe('airSuspension').changePSI(15)",
+"down": true,
+"id": "airheighthigher",
+"title": "Raise Air Suspension",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('airSuspension').changePSI(-15)",
+"down": true,
+"id": "airheightlower",
+"title": "Lower Air Suspension",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('airSuspension').resetHeight()",
+"down": true,
+"id": "airheightreset",
+"title": "Reset Air Suspension Height",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('airSuspension').toggleBounceMode()",
+"down": true,
+"id": "bouncemode",
+"title": "Bounce Mode (Air Suspension)",
+"up": false
+},
+{
+"change": false,
+"code": "electrics.values.rooflights = 1 - (electrics.values.rooflights or 0)",
+"down": true,
+"id": "rooflights",
+"title": "Rooflights",
+"up": false
+},
+{
+"change": false,
+"code": "electrics.values.boot = 1-(electrics.values.boot or 0) ",
+"down": true,
+"id": "toggle_Boot",
+"title": "Open/Close Boot",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('thirdSeatRow').toggle()",
+"down": true,
+"id": "toggle_ThirdRow",
+"title": "Toggle Third Row",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hoodCatchCoupler').toggleGroupConditional({{'hoodLatchCoupler','attached','vehicle.advancedCouplerControl.releaseHoodFirstInterior'}})",
+"down": true,
+"id": "hoodCatch",
+"title": "Toggle Hood",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hoodLatchCoupler').toggleGroup()",
+"down": true,
+"id": "hoodRelease",
+"title": "Release Hood",
+"up": false
+}
+],
+"large_cannon/standard": [
+{
+"change": true,
+"code": "controller.getControllerSafe('large_cannon').targetInclinationChange(VALUE)",
+"down": false,
+"id": "liftLower",
+"title": "Lift / Lower Barrel",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('large_cannon').targetInclinationChange(VALUE)",
+"down": false,
+"id": "liftUp",
+"title": "Lift Up",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('large_cannon').targetInclinationChange(-VALUE)",
+"down": false,
+"id": "lowerDown",
+"title": "Lower Down",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('large_cannon').fireCannon(VALUE)",
+"down": false,
+"id": "shoot",
+"title": "Shoot",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('large_cannon').shootStrengthChange(-VALUE)",
+"down": false,
+"id": "shootStrengthDecrease",
+"title": "Decrease Force",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('large_cannon').shootStrengthChange(VALUE)",
+"down": false,
+"id": "shootStrengthIncrease",
+"title": "Increase Force",
+"up": false
+}
+],
+"large_crusher/crusher_T": [
+{
+"change": true,
+"code": "input.event('close', VALUE, FILTERTYPE)",
+"down": false,
+"id": "close",
+"title": "Close",
+"up": false
+},
+{
+"change": true,
+"code": "input.event('open',  VALUE, FILTERTYPE)",
+"down": false,
+"id": "open",
+"title": "Open",
+"up": false
+},
+{
+"change": true,
+"code": "input.event('openclose', VALUE, FILTERTYPE)",
+"down": false,
+"id": "openclose",
+"title": "Open & close (axis)",
+"up": false
+}
+],
+"large_hamster_wheel/standard": [
+{
+"change": true,
+"code": "beamstate.detachCouplers('wheel', true, false)",
+"down": false,
+"id": "detach",
+"title": "Detach wheel",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('hamster_wheel').setTargetRPMRatioDecrease(VALUE)",
+"down": false,
+"id": "rpm_decrease",
+"title": "RPM Decrease",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('hamster_wheel').setTargetRPMRatioIncrease(VALUE)",
+"down": false,
+"id": "rpm_increase",
+"title": "RPM Increase",
+"up": false
+}
+],
+"large_roller/standard": [
+{
+"change": true,
+"code": "controller.getControllerSafe('large_roller').setTargetRollerHeightInput(-VALUE)",
+"down": false,
+"id": "roller_lift",
+"title": "Lift Roller",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('large_roller').setTargetRollerHeightInput(VALUE)",
+"down": false,
+"id": "roller_lower",
+"title": "Lower Roller",
+"up": false
+},
+{
+"change": false,
+"code": "controller.mainController.shiftToGearIndex(2)",
+"down": true,
+"id": "setGearD",
+"title": "Forward Gear",
+"up": false
+},
+{
+"change": false,
+"code": "controller.mainController.shiftToGearIndex(-1)",
+"down": true,
+"id": "setGearR",
+"title": "Reverse Gear",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('large_roller').setThrottleLeverInput(-VALUE)",
+"down": false,
+"id": "throttleDecrease",
+"title": "RPM Decrease",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('large_roller').setThrottleLeverInput(VALUE)",
+"down": false,
+"id": "throttleIncrease",
+"title": "RPM Increase",
+"up": false
+}
+],
+"large_spinner/base": [
+{
+"change": true,
+"code": "controller.getControllerSafe('spinner').setTargetRPMRatioDecrease(VALUE)",
+"down": false,
+"id": "rpm_decrease",
+"title": "RPM Decrease",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('spinner').setTargetRPMRatioIncrease(VALUE)",
+"down": false,
+"id": "rpm_increase",
+"title": "RPM Increase",
+"up": false
+}
+],
+"large_spinner/mobile": [
+{
+"change": true,
+"code": "controller.getControllerSafe('trailerFeet').moveFeet(VALUE)",
+"down": false,
+"id": "feet_down",
+"title": "Feet Down",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('trailerFeet').moveFeet(-VALUE)",
+"down": false,
+"id": "feet_up",
+"title": "Feet Up",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('fifthwheel').detachFifthwheel()",
+"down": true,
+"id": "fifthwheelDecouple",
+"title": "Detach Fifthwheel",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('spinner').setTargetRPMRatioDecrease(VALUE)",
+"down": false,
+"id": "rpm_decrease",
+"title": "RPM Decrease",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('spinner').setTargetRPMRatioIncrease(VALUE)",
+"down": false,
+"id": "rpm_increase",
+"title": "RPM Increase",
+"up": false
+}
+],
+"large_tilt/standard": [],
+"midtruck/6x6_carrier_diesel": [
+{
+"change": false,
+"code": "controller.getControllerSafe('door_FL_coupler').toggleGroup()",
+"down": true,
+"id": "door_FL",
+"title": "Toggle Front Left Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('door_FR_coupler').toggleGroup()",
+"down": true,
+"id": "door_FR",
+"title": "Toggle Front Right Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('frontLockControl').setDriveMode('locked')",
+"down": true,
+"id": "lockFrontDiff",
+"title": "Lock Front Differential",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rearLockControl').setDriveMode('locked')",
+"down": true,
+"id": "lockRearDiff",
+"title": "Lock Rear Differential",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('transfercaseControl').setDriveMode('locked')",
+"down": true,
+"id": "lockTransfercase",
+"title": "Set Transfercase To Locked",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('frontLockControl').setDriveMode(VALUE > 0.5 and 'locked' or 'unlocked')",
+"down": false,
+"id": "setFrontDiffModeAxis",
+"title": "Set Front Differential Mode",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rangeboxControl').setDriveMode('high')",
+"down": true,
+"id": "setRangeboxHigh",
+"title": "Set Rangebox To Low Gear",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rangeboxControl').setDriveMode('low')",
+"down": true,
+"id": "setRangeboxLow",
+"title": "Set Rangebox To High Gear",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('rangeboxControl').setDriveMode(VALUE > 0.5 and 'high' or 'low')",
+"down": false,
+"id": "setRangeboxModeAxis",
+"title": "Set Rangebox Mode",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('rearLockControl').setDriveMode(VALUE > 0.5 and 'locked' or 'unlocked')",
+"down": false,
+"id": "setRearDiffModeAxis",
+"title": "Set Rear Differential Mode",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('transfercaseControl').setDriveMode(VALUE > 0.5 and 'locked' or 'unlocked')",
+"down": false,
+"id": "setTransfercaseModeAxis",
+"title": "Set Transfercase Mode",
+"up": false
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_L_movement > 0.01 then electrics.values.sunvisor_L = -0.75 else electrics.values.sunvisor_L = 0 end",
+"down": true,
+"id": "sunvisor_L_close",
+"title": "Close Left Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_L_movement < 0.99 then electrics.values.sunvisor_L =  0.75 else electrics.values.sunvisor_L = 0 end",
+"down": true,
+"id": "sunvisor_L_open",
+"title": "Open Left Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_R_movement > 0.01 then electrics.values.sunvisor_R = -0.75 else electrics.values.sunvisor_R = 0 end",
+"down": true,
+"id": "sunvisor_R_close",
+"title": "Close Right Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_R_movement < 0.99 then electrics.values.sunvisor_R =  0.75 else electrics.values.sunvisor_R = 0 end",
+"down": true,
+"id": "sunvisor_R_open",
+"title": "Open Right Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('tailgateCoupler').toggleGroup()",
+"down": true,
+"id": "tailgate",
+"title": "Toggle Tailgate",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('frontLockControl').nextDriveMode()",
+"down": true,
+"id": "toggleFrontDiff",
+"title": "Toggle Front Differential Mode",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rangeboxControl').nextDriveMode()",
+"down": true,
+"id": "toggleRangebox",
+"title": "Toggle Rangebox Mode",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rearLockControl').nextDriveMode()",
+"down": true,
+"id": "toggleRearDiff",
+"title": "Toggle Rear Differential Mode",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('transfercaseControl').nextDriveMode()",
+"down": true,
+"id": "toggleTransfercase",
+"title": "Toggle Transfercase Mode",
+"up": false
+},
+{
+"change": false,
+"code": "beamstate.toggleCouplers('tow_hitch', true, false, false)",
+"down": true,
+"id": "towHitchToggle",
+"title": "Actuate Tow Hitch",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('frontLockControl').setDriveMode('unlocked')",
+"down": true,
+"id": "unlockFrontDiff",
+"title": "Unlock Front Differential",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rearLockControl').setDriveMode('unlocked')",
+"down": true,
+"id": "unlockRearDiff",
+"title": "Unlock Rear Differential",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('transfercaseControl').setDriveMode('unlocked')",
+"down": true,
+"id": "unlockTransfercase",
+"title": "Set Transfercase To Unlocked",
+"up": false
+}
+],
+"percheron/s450_8x8_flatbed_A": [
+{
+"change": false,
+"code": "if extensions.use('cruiseControl').getConfiguration().isEnabled then extensions.use('cruiseControl').setEnabled(false) print('cc disabled') else extensions.use('cruiseControl').holdCurrentSpeed() prin",
+"down": true,
+"id": "basicCruiseCointrol",
+"title": "Toggle Cruise Control (Current Speed)",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('cabTilt_coupler').toggleGroupConditional({{'fascia_coupler','attached','vehicle.interaction.eu_truck.cabTilt_coupler.msg'}})",
+"down": true,
+"id": "cabTilt_coupler",
+"title": "Toggle Cab Tilt Latch",
+"up": false
+},
+{
+"change": true,
+"code": "electrics.values.cabTilt = -VALUE",
+"down": false,
+"id": "cabTilt_dn",
+"title": "Tilt Cab Down",
+"up": false
+},
+{
+"change": true,
+"code": "electrics.values.cabTilt = VALUE",
+"down": false,
+"id": "cabTilt_up",
+"title": "Tilt Cab Up (Unlock Interior Latch First)",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('retarderControl').changeRetarderSettingIndex(-1)",
+"down": true,
+"id": "decreaseRetarderLevel",
+"title": "Decrease Retarder Level",
+"up": false
+},
+{
+"change": false,
+"code": "electrics.values.domelights = 1 - (electrics.values.domelights or 0) electrics.values.domelight_switch_a = electrics.values.domelights",
+"down": true,
+"id": "domelight_a",
+"title": "Dome Light (Toggle)",
+"up": false
+},
+{
+"change": false,
+"code": "electrics.values.domelights = 1 - (electrics.values.domelights or 0) electrics.values.domelight_switch_b = 1",
+"down": true,
+"id": "domelight_b",
+"title": "Dome Light (Toggle)",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('door_L_coupler').toggleGroup()",
+"down": true,
+"id": "door_L",
+"title": "Toggle Left Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('door_R_coupler').toggleGroup()",
+"down": true,
+"id": "door_R",
+"title": "Toggle Right Door",
+"up": false
+},
+{
+"change": false,
+"code": "electrics.values.doorlights = 0",
+"down": true,
+"id": "doorlights_a",
+"title": "Door Lights: Off",
+"up": false
+},
+{
+"change": false,
+"code": "electrics.values.doorlights = 1",
+"down": true,
+"id": "doorlights_b",
+"title": "Door Lights: On When Door Open",
+"up": false
+},
+{
+"change": false,
+"code": "electrics.values.doorlights = 2",
+"down": true,
+"id": "doorlights_c",
+"title": "Door Lights: Always On",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('fascia_coupler').toggleGroupConditional({{'cabTilt_coupler','autoCoupling','vehicle.interaction.eu_truck.fascia_coupler.msg'}})",
+"down": true,
+"id": "fascia_coupler",
+"title": "Toggle Front Fascia",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('retarderControl').changeRetarderSettingIndex(1)",
+"down": true,
+"id": "increaseRetarderLevel",
+"title": "Increase Retarder Level",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('frontLockControl').setDriveMode('locked')",
+"down": true,
+"id": "lockFrontDiff",
+"title": "Lock Front Differential",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rearLockControl').setDriveMode('locked')",
+"down": true,
+"id": "lockRearDiff",
+"title": "Lock Rear Differential",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('transfercaseControl').setDriveMode('locked')",
+"down": true,
+"id": "lockTransfercase",
+"title": "Set Transfercase To Locked",
+"up": false
+},
+{
+"change": false,
+"code": "electrics.values.nightlights = 1 - electrics.values.nightlights or 0",
+"down": true,
+"id": "nightlights",
+"title": "Toggle Night Lights",
+"up": false
+},
+{
+"change": false,
+"code": "beamstate.toggleCouplers('pintle', true, false, false)",
+"down": true,
+"id": "pintleHitchToggle",
+"title": "Actuate Pintle Hitch",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('frontLockControl').setDriveMode(VALUE > 0.5 and 'locked' or 'unlocked')",
+"down": false,
+"id": "setFrontDiffModeAxis",
+"title": "Set Front Differential Mode",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rangeboxControl').setDriveMode('high')",
+"down": true,
+"id": "setRangeboxHigh",
+"title": "Set Rangebox To Low Gear",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rangeboxControl').setDriveMode('low')",
+"down": true,
+"id": "setRangeboxLow",
+"title": "Set Rangebox To High Gear",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('rangeboxControl').setDriveMode(VALUE > 0.5 and 'high' or 'low')",
+"down": false,
+"id": "setRangeboxModeAxis",
+"title": "Set Rangebox Mode",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('rearLockControl').setDriveMode(VALUE > 0.5 and 'locked' or 'unlocked')",
+"down": false,
+"id": "setRearDiffModeAxis",
+"title": "Set Rear Differential Mode",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('transfercaseControl').setDriveMode(VALUE > 0.5 and 'locked' or 'unlocked')",
+"down": false,
+"id": "setTransfercaseModeAxis",
+"title": "Set Transfercase Mode",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('sideskirt_L_coupler').toggleGroup()",
+"down": true,
+"id": "sideskirt_L_coupler",
+"title": "Toggle Left Sideskirt",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('sideskirt_R_coupler').toggleGroup()",
+"down": true,
+"id": "sideskirt_R_coupler",
+"title": "Toggle Right Sideskirt",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('steerColumn').toggleGroup()",
+"down": true,
+"id": "steerColumn",
+"title": "Toggle Steering Column Lock",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('sunroof_coupler').toggleGroup()",
+"down": true,
+"id": "sunroof_coupler",
+"title": "Toggle Sunroof",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('sunshade_coupler').toggleGroup()",
+"down": true,
+"id": "sunshade_coupler",
+"title": "Toggle Sunshade",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('frontLockControl').nextDriveMode()",
+"down": true,
+"id": "toggleFrontDiff",
+"title": "Toggle Front Differential Mode",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rangeboxControl').nextDriveMode()",
+"down": true,
+"id": "toggleRangebox",
+"title": "Toggle Rangebox Mode",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rearLockControl').nextDriveMode()",
+"down": true,
+"id": "toggleRearDiff",
+"title": "Toggle Rear Differential Mode",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('transfercaseControl').nextDriveMode()",
+"down": true,
+"id": "toggleTransfercase",
+"title": "Toggle Transfercase Mode",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('frontLockControl').setDriveMode('unlocked')",
+"down": true,
+"id": "unlockFrontDiff",
+"title": "Unlock Front Differential",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rearLockControl').setDriveMode('unlocked')",
+"down": true,
+"id": "unlockRearDiff",
+"title": "Unlock Rear Differential",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('transfercaseControl').setDriveMode('unlocked')",
+"down": true,
+"id": "unlockTransfercase",
+"title": "Set Transfercase To Unlocked",
+"up": false
+}
+],
+"testroller/single": [
+{
+"change": true,
+"code": "if controller.mainController.changeRampAngle then controller.mainController.changeRampAngle(-VALUE) end",
+"down": false,
+"id": "rampDown",
+"title": "Ramp Down",
+"up": false
+},
+{
+"change": true,
+"code": "if controller.mainController.changeRampAngle then controller.mainController.changeRampAngle(VALUE) end",
+"down": false,
+"id": "rampUp",
+"title": "Ramp Up",
+"up": false
+}
+],
+"tiltdeck/30ft_standard": [
+{
+"change": true,
+"code": "controller.getControllerSafe('hydraulicTrailerFeet').moveFeet(VALUE)",
+"down": false,
+"id": "jack_down",
+"title": "Jack Down",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('hydraulicTrailerFeet').moveFeet(-VALUE)",
+"down": false,
+"id": "jack_up",
+"title": "Jack Up",
+"up": false
+},
+{
+"change": true,
+"code": "electrics.values.ramp = VALUE",
+"down": false,
+"id": "ramp_down",
+"title": "Ramp Down",
+"up": false
+},
+{
+"change": true,
+"code": "electrics.values.ramp = -VALUE",
+"down": false,
+"id": "ramp_up",
+"title": "Ramp Up",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('toolboxCoupler').toggleGroup()",
+"down": false,
+"id": "toolbox",
+"title": "Toggle Front Compartment Door",
+"up": false
+}
+],
+"us_semi/t83_longhaul": [
+{
+"change": true,
+"code": "electrics.values.hydraulicPTOControl = VALUE",
+"down": false,
+"id": "PTOAxis",
+"title": "Set Hydraulic PTO Control Output",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('cabinetDoorLCoupler').toggleGroup()",
+"down": true,
+"id": "cabinet_door_L",
+"title": "Toggle Left Sleeper Cabinet Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('cabinetDoorRCoupler').toggleGroup()",
+"down": true,
+"id": "cabinet_door_R",
+"title": "Toggle Right Sleeper Cabinet Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('compressionBrake').changeCompressionBrakeLevel(-1)",
+"down": true,
+"id": "decreaseCompressionBrakeLevel",
+"title": "Decrease Compression Brake Level",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('airSuspension').setAdjustmentRate('rearAxle',-1)",
+"down": true,
+"id": "decrease_rideHeight",
+"title": "Decrease suspension height",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('door_FL_coupler').toggleGroup()",
+"down": true,
+"id": "door_FL",
+"title": "Toggle Front Left Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('door_FR_coupler').toggleGroup()",
+"down": true,
+"id": "door_FR",
+"title": "Toggle Front Right Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('fifthwheel').detachFifthwheel()",
+"down": true,
+"id": "fifthwheelDecouple",
+"title": "Detach Fifthwheel",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('sliderLatch').toggleGroup()",
+"down": true,
+"id": "fifthwheelSliderLock",
+"title": "Actuate Fifthwheel Slider Locks",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('tiltLocks').toggleGroup()",
+"down": true,
+"id": "fifthwheelTiltLock",
+"title": "Actuate Fifthwheel Tilt Lock",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hoodLatchCouplerL').toggleGroupConditional({{'bullbarLatch','attached','vehicle.advancedCouplerControl.lowerBullbarConv'}})",
+"down": true,
+"id": "hoodLatchL",
+"title": "Toggle Left Hood Latch",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hoodLatchCouplerR').toggleGroupConditional({{'bullbarLatch','attached','vehicle.advancedCouplerControl.lowerBullbarConv'}})",
+"down": true,
+"id": "hoodLatchR",
+"title": "Toggle Right Hood Latch",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('compressionBrake').changeCompressionBrakeLevel(1)",
+"down": true,
+"id": "increaseCompressionBrakeLevel",
+"title": "Increase Compression Brake Level",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('airSuspension').setAdjustmentRate('rearAxle', 1)",
+"down": true,
+"id": "increase_rideHeight",
+"title": "Increase suspension height",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('interaxleLockControl').setDriveMode('locked')",
+"down": true,
+"id": "lockInteraxleDiff",
+"title": "Lock Center Differential",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rearLockControl').setDriveMode('locked')",
+"down": true,
+"id": "lockRearDiff",
+"title": "Lock Rear Differential",
+"up": false
+},
+{
+"change": false,
+"code": "beamstate.toggleCouplers('pintle', true, false, false)",
+"down": true,
+"id": "pintleHitchToggle",
+"title": "Actuate Pintle Hitch",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('interaxleLockControl').setDriveMode(VALUE > 0.5 and ''unlocked'' or 'locked')",
+"down": false,
+"id": "setInteraxleDiffModeAxis",
+"title": "Set Center Differential Mode",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('splitterControl').setDriveMode(VALUE > 0.5 and 'high' or 'low')",
+"down": false,
+"id": "setRangeboxModeAxis",
+"title": "Set Splitter Mode",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('rearLockControl').setDriveMode(VALUE > 0.5 and 'locked' or 'unlocked')",
+"down": false,
+"id": "setRearDiffModeAxis",
+"title": "Set Rear Differential Mode",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('sleeperDoorLCoupler').toggleGroup()",
+"down": true,
+"id": "sleeper_door_L",
+"title": "Toggle Left Sleeper Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('sleeperDoorRCoupler').toggleGroup()",
+"down": true,
+"id": "sleeper_door_R",
+"title": "Toggle Right Sleeper Door",
+"up": false
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_L_movement > 0.01 then electrics.values.sunvisor_L = -0.75 else electrics.values.sunvisor_L = 0 end",
+"down": true,
+"id": "sunvisor_L_close",
+"title": "Close Left Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_L_movement < 0.99 then electrics.values.sunvisor_L =  0.75 else electrics.values.sunvisor_L = 0 end",
+"down": true,
+"id": "sunvisor_L_open",
+"title": "Open Left Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_R_movement > 0.01 then electrics.values.sunvisor_R = -0.75 else electrics.values.sunvisor_R = 0 end",
+"down": true,
+"id": "sunvisor_R_close",
+"title": "Close Right Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_R_movement < 0.99 then electrics.values.sunvisor_R =  0.75 else electrics.values.sunvisor_R = 0 end",
+"down": true,
+"id": "sunvisor_R_open",
+"title": "Open Right Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('compressionBrake').toggleCompressionBrakeState()",
+"down": true,
+"id": "toggleCompressionBrake",
+"title": "Toggle Compression Brake",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('interaxleLockControl').nextDriveMode()",
+"down": true,
+"id": "toggleInteraxleDiff",
+"title": "Toggle Center Differential Mode",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hydraulicsControl').toggleIdleRaise()",
+"down": true,
+"id": "toggleManualIdleRaise",
+"title": "Toggle Manual Idle Raise",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('splitterControl').nextDriveMode()",
+"down": true,
+"id": "toggleRangebox",
+"title": "Toggle Splitter Mode",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rearLockControl').nextDriveMode()",
+"down": true,
+"id": "toggleRearDiff",
+"title": "Toggle Rear Differential Mode",
+"up": false
+},
+{
+"change": false,
+"code": "energyStorage.getStorageSafe('mainAirTank'):toggleConsumerPressureCoef()",
+"down": true,
+"id": "toggleTrailerAirSupply",
+"title": "Toggle Trailer Air Supply",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('interaxleLockControl').setDriveMode('unlocked')",
+"down": true,
+"id": "unlockInteraxleDiff",
+"title": "Unlock Center Differential",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rearLockControl').setDriveMode('unlocked')",
+"down": true,
+"id": "unlockRearDiff",
+"title": "Unlock Rear Differential",
+"up": false
+}
+],
+"van/h45_rollback": [
+{
+"change": false,
+"code": "controller.getControllerSafe('door_FL_coupler').toggleGroup()",
+"down": true,
+"id": "door_FL",
+"title": "Toggle Front Left Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('door_FR_coupler').toggleGroup()",
+"down": true,
+"id": "door_FR",
+"title": "Toggle Front Right Door",
+"up": false
+},
+{
+"change": true,
+"code": "electrics.values.upfit_extendRetract = VALUE",
+"down": false,
+"id": "extend",
+"title": "Extend",
+"up": false
+},
+{
+"change": true,
+"code": "electrics.values.upfit_extendRetractFeet = VALUE",
+"down": false,
+"id": "extendFeet",
+"title": "Extend feet",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hoodCatchCoupler').toggleGroupConditional({{'hoodLatchCoupler','attached','vehicle.advancedCouplerControl.releaseHoodFirstInterior'}})",
+"down": true,
+"id": "hoodCatch",
+"title": "Toggle Hood",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('hoodLatchCoupler').toggleGroup()",
+"down": true,
+"id": "hoodRelease",
+"title": "Release Hood",
+"up": false
+},
+{
+"change": false,
+"code": "for _,v in pairs(controller.getControllersByType('lightbar')) do v.setModeIndex(1) end",
+"down": true,
+"id": "lightbar_setmode_1",
+"title": "Set Light Bar Mode 1",
+"up": false
+},
+{
+"change": false,
+"code": "for _,v in pairs(controller.getControllersByType('lightbar')) do v.setModeIndex(2) end",
+"down": true,
+"id": "lightbar_setmode_2",
+"title": "Set Light Bar Mode 2",
+"up": false
+},
+{
+"change": false,
+"code": "for _,v in pairs(controller.getControllersByType('lightbar')) do v.setModeIndex(3) end",
+"down": true,
+"id": "lightbar_setmode_3",
+"title": "Set Light Bar Mode 3",
+"up": false
+},
+{
+"change": false,
+"code": "for _,v in pairs(controller.getControllersByType('lightbar')) do v.setModeIndex(4) end",
+"down": true,
+"id": "lightbar_setmode_4",
+"title": "Set Light Bar Mode 4",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rearLockControl').setDriveMode('locked')",
+"down": true,
+"id": "lockRearDiff",
+"title": "Lock Rear Differential",
+"up": false
+},
+{
+"change": true,
+"code": "electrics.values.upfit_extendRetract = -VALUE",
+"down": false,
+"id": "retract",
+"title": "Retract",
+"up": false
+},
+{
+"change": true,
+"code": "electrics.values.upfit_extendRetractFeet = -VALUE",
+"down": false,
+"id": "retractFeet",
+"title": "Retract feet",
+"up": false
+},
+{
+"change": true,
+"code": "controller.getControllerSafe('rearLockControl').setDriveMode(VALUE > 0.5 and 'locked' or 'unlocked')",
+"down": false,
+"id": "setRearDiffModeAxis",
+"title": "Set Rear Differential Mode",
+"up": false
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_L_movement > 0.01 then electrics.values.sunvisor_L = -0.75 else electrics.values.sunvisor_L = 0 end",
+"down": true,
+"id": "sunvisor_L_close",
+"title": "Close Left Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_L_movement < 0.99 then electrics.values.sunvisor_L =  0.75 else electrics.values.sunvisor_L = 0 end",
+"down": true,
+"id": "sunvisor_L_open",
+"title": "Open Left Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_R_movement > 0.01 then electrics.values.sunvisor_R = -0.75 else electrics.values.sunvisor_R = 0 end",
+"down": true,
+"id": "sunvisor_R_close",
+"title": "Close Right Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_R_movement < 0.99 then electrics.values.sunvisor_R =  0.75 else electrics.values.sunvisor_R = 0 end",
+"down": true,
+"id": "sunvisor_R_open",
+"title": "Open Right Sunvisor",
+"up": true
+},
+{
+"change": true,
+"code": "electrics.values.upfit_tilt = -VALUE",
+"down": false,
+"id": "tiltDown",
+"title": "Tilt down",
+"up": false
+},
+{
+"change": true,
+"code": "electrics.values.upfit_tilt = VALUE",
+"down": false,
+"id": "tiltUp",
+"title": "Tilt up",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rearLockControl').nextDriveMode()",
+"down": true,
+"id": "toggleRearDiff",
+"title": "Toggle Rear Differential Mode",
+"up": false
+},
+{
+"change": false,
+"code": "electrics.set_lightbar_signal(electrics.values.lightbar == 0 and 1 or 0)",
+"down": true,
+"id": "toggle_lightbar",
+"title": "Toggle Light Bar",
+"up": false
+},
+{
+"change": false,
+"code": "electrics.set_lightbar_signal(electrics.values.lightbar == 2 and 1 or 2)",
+"down": true,
+"id": "toggle_siren",
+"title": "Toggle Siren",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('rearLockControl').setDriveMode('unlocked')",
+"down": true,
+"id": "unlockRearDiff",
+"title": "Unlock Rear Differential",
+"up": false
+}
+],
+"wl40/arm_bucket": [
+{
+"change": false,
+"code": "electrics.values.domelight_L = electrics.values.domelight_L == 1 and 0 or 1",
+"down": true,
+"id": "domelight_L",
+"title": "Toggle Left Dome Lights",
+"up": false
+},
+{
+"change": false,
+"code": "electrics.values.domelight_R = electrics.values.domelight_R == 1 and 0 or 1",
+"down": true,
+"id": "domelight_R",
+"title": "Toggle Right Dome Lights",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('door_L_coupler').toggleGroup()",
+"down": true,
+"id": "door_L",
+"title": "Toggle Left Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('door_R_coupler').toggleGroup()",
+"down": true,
+"id": "door_R",
+"title": "Toggle Right Door",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('panel_access_RL_coupler').toggleGroup()",
+"down": true,
+"id": "panel_access_RL_coupler",
+"title": "Toggle Front Left Access Panel",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('panel_access_RR_coupler').toggleGroup()",
+"down": true,
+"id": "panel_access_RR_coupler",
+"title": "Toggle Front Right Access Panel",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('panel_access_grille_RL_coupler').toggleGroup()",
+"down": true,
+"id": "panel_access_grille_RL_coupler",
+"title": "Toggle Rear Left Access Panel",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('panel_access_grille_RR_coupler').toggleGroup()",
+"down": true,
+"id": "panel_access_grille_RR_coupler",
+"title": "Toggle Rear Right Access Panel",
+"up": false
+},
+{
+"change": false,
+"code": "controller.getControllerSafe('panel_access_transmission_coupler').toggleGroup()",
+"down": true,
+"id": "panel_access_transmission_coupler",
+"title": "Toggle Top Access Panel",
+"up": false
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_movement > 0.01 then electrics.values.sunvisor = -0.75 else electrics.values.sunvisor = 0 end",
+"down": true,
+"id": "sunvisor_close",
+"title": "Close Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "if electrics.values.sunvisor_movement < 0.99 then electrics.values.sunvisor =  0.75 else electrics.values.sunvisor = 0 end",
+"down": true,
+"id": "sunvisor_open",
+"title": "Open Sunvisor",
+"up": true
+},
+{
+"change": false,
+"code": "electrics.set_lightbar_signal(electrics.values.lightbar == 0 and 1 or 0)",
+"down": true,
+"id": "toggle_beacon",
+"title": "Toggle Beacon Light",
+"up": false
+},
+{
+"change": true,
+"code": "input.event('liftArm', VALUE, FILTERTYPE)",
+"down": false,
+"id": "wloader_liftArm",
+"title": "Lift Arm Axis",
+"up": false
+},
+{
+"change": true,
+"code": "input.event('rimPull', VALUE, FILTERTYPE)",
+"down": false,
+"id": "wloader_rimPull",
+"title": "Rimpull",
+"up": false
+},
+{
+"change": true,
+"code": "input.event('tiltArm', VALUE, FILTERTYPE)",
+"down": false,
+"id": "wloader_tiltArm",
+"title": "Tilt Arm Axis",
+"up": false
+},
+{
+"change": false,
+"code": "electrics.values.worklights = 1 - electrics.values.worklights or 0",
+"down": true,
+"id": "worklights",
+"title": "Work Lights",
+"up": false
+}
+]
+}

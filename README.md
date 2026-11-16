@@ -33,6 +33,7 @@ just works: no game mod, and no bridge program running in the background.
 | World | **time of day** clock with a sky-coloured background (night blue, dawn/dusk orange, day blue); time presets (sunrise, noon, sunset, midnight), ±1 hour, day length; **weather** presets (clear, cloudy, fog, rain, storm) and separate rain / fog / wind keys; **gravity** (Earth, Moon, Mars, Zero-G, Jupiter). Preset keys are green when that preset is current | apply the preset, or cycle. The clock key runs / freezes time |
 | Gauge | speed, gear with shift light (green > yellow > red flash near the limiter), rpm, fuel, coolant and oil temperature, boost, damage | none (damage: repair) |
 | Tyre pressure | one axle or all wheels, with that group's pressure in psi (vehicles with a central tyre inflation system, e.g. the Stambecco 6x6) | hold to inflate or deflate |
+| Vehicle control (auto) | slot N of the vehicle's own controls: tray tilt, hydraulics, fifth wheel, spinner speed... (see [Vehicle controls](#vehicle-controls-auto)) | hold to move, or tap to toggle |
 | Game function | pause, repair, recover, respawn, accept, back, get in/out, map, vehicles, radial menu, slow motion (1x <-> last slow speed), slower/faster, game UI, photo mode, traffic, trailer, next vehicle (shows the car you are in, in its paint colour), menu arrows, next / previous camera (every camera the vehicle has: driver, hood, chase, orbit, external, top...), free camera on / off, fixed camera keys, look back, replay record / stop, eject replay, reload Lua | per function |
 
 When the game isn't running (**NO GAME**), no vehicle is spawned (**NO CAR**) or a map is loading, each
@@ -86,12 +87,89 @@ installed into each vehicle VM once (as the global `BNGSD_BNGS`), and is re-inst
 automatically after a vehicle switch or reload. Presses send the full library and use the same
 act-then-verify flow (set, then check a moment later that the change took).
 
+## Vehicle controls (auto)
+
+Many vehicles have controls of their own, beyond what every car has: a rollback's tray, a dump
+truck's bed, a lowrider's hydraulics, a semi's fifth wheel, a spinner's speed. The game lists them
+under the vehicle in its Controls menu. The **Vehicle control (auto)** key shows one of them, picked
+by its **slot** number, for whatever you're driving. Put a run of them on a page with slots 1, 2,
+3... and they fill in when you get into a vehicle; slots it doesn't use stay blank.
+
+- Things that have their own BeamDeckNG key are left out: diffs, range and 2WD/4WD, lights,
+  lightbar and siren, cruise, engine brake, retarder, parking brake, JATO, nitrous, bonnet and boot,
+  air suspension height. So are passenger doors, sunvisors and interior lights.
+  Tailgates, cargo doors, toolboxes and latches stay in.
+- Held movements are one key per direction (Tilt up / Tilt down), and run as long as you hold the
+  key. A single up/down axis (the HT-55's bed, a wheel loader's arms) is split into two keys.
+- Toggles show their state when the game says what they toggle (work lights ON / OFF, a latch
+  LOCKED / UNLOCKED).
+- **Trailers:** when you tow something, its controls follow the vehicle's own, marked TRAILER
+  (the tilt deck's ramp and jack, a mobile spinner's feet).
+- Presses run the control's own code, the same way a key bound in the game does, and respect the
+  game's action filter.
+
+How many keys a few vehicles need (from the game, Small Grid):
+
+| Vehicle | Keys | |
+|---|---|---|
+| Gavril H45 Rollback | 6 | tilt up / down, extend, retract, feet out / in |
+| Hirochi HT-55 | 9 | bed up / down, front brake cut-off, hill assist (up / down / off), idle-up (hold / toggle), work lights |
+| Hirochi WL-40 | 6 | lift arm and tilt arm (both ways), rimpull, work lights |
+| Gavril T83 Long Haul | 8 | PTO (both ways), fifth wheel (detach, slider locks, tilt lock), pintle hitch, trailer air, idle-up |
+| Cherrier Percheron 8x8 | 7 | cab tilt up / down, cab latch, pintle hitch, sunroof, steering column lock, night lights |
+| Autobello Stambecco 6x6 | 2 | tow hitch, tailgate |
+| Procyon Centauri (mod) | 7 | boot, rooflights, third row, air suspension raise / lower / reset, bounce mode |
+| Gavril Bluebuck Lowrider | 19 | raise / lower each corner, front, rear and all, and five hops |
+| Bruckell Bastion Police | 0 | everything it has is a set button (lightbar, siren...) |
+| Tilt Deck Trailer | 5 | jack down / up, ramp down / up, front locker |
+| Large Spinner (mobile) | 5 | feet down / up, rpm down / up, detach |
+| Large Roller | 6 | roller lift / lower, rpm down / up, forward / reverse |
+| Large Cannon | 5 | barrel up / down, shoot, force down / up |
+
+Every action of each of these vehicles, and what became of it, is in
+[docs/vehicle_controls.csv](docs/vehicle_controls.csv).
+
+## BeamDeckNG MP-MCP (for BeamMP)
+
+**Why it exists.** BeamMP turns off the game's own MCP server while you're on a multiplayer server
+(it stops the server handling requests in `MPVehicleGE.lua`). The game's MCP server lets any
+program on the PC run any Lua in the game, which a multiplayer mod can't allow, so without help
+every BeamDeckNG key goes dark on a server.
+
+**What it is.** A small client mod, `BeamDeckNG-MP-MCP.zip`, that a **server owner** puts in the
+server's `Resources/Client` folder. BeamMP sends it to every player. It runs its own MCP server
+inside the game on `127.0.0.1:29392`, with the same protocol as the game's, and BeamDeckNG switches
+to it by itself when the game's own server doesn't answer. Players install nothing extra.
+
+**What it allows.** Only fixed jobs, never free-form Lua: reading the vehicle's state, the
+vehicle actions BeamDeckNG uses (lights, diffs, ignition...), the vehicle's own controls (tray,
+hydraulics...), a set of game keys, cameras, and opening game menu pages. Each is checked against
+the server owner's allowlist (`beamdeckng_mp/settings.json` in the zip), and anything the game
+itself has blocked (its action filter, used by BeamMP and game modes) stays blocked, with a
+message in the game saying so.
+
+**Where it runs.** Only from the server: in a BeamMP session it runs only if the server sent it.
+A copy installed locally works in single player (for testing) and switches itself off when a
+session starts, so a modified copy can't stand in for the server's.
+
+**What players see.** A message in the game when the Stream Deck connects. Keys the server allows
+work as usual. Keys it doesn't, and keys that need free-form Lua, open the matching game menu
+where there is one (time of day, weather, gravity, slow motion, traffic, vehicles: **OPENS MENU**),
+so the player changes it the normal way; otherwise they show **BLOCKED** or **NOT IN MP**.
+
+**Versions.** The plugin reads MP-MCP's version, protocol, tools and allowlist, and only uses what
+is there, so a server with an older MP-MCP keeps working with a newer plugin (keys it doesn't know
+show N/A or NOT IN MP).
+
+Server owners: see [mp-mcp/README.md](mp-mcp/README.md) for installing it and every allowlist name.
+
 ## On BeamMP servers
 
 BeamMP turns off the game's own MCP server while you're on a multiplayer server, so the plugin
 falls back, in this order:
 
-1. **BeamDeckNG MP-MCP**, if the server has it (see [mp-mcp/](mp-mcp/README.md)): a client mod
+1. **BeamDeckNG MP-MCP**, if the server has it (see [above](#beamdeckng-mp-mcp-for-beammp) and
+   [mp-mcp/](mp-mcp/README.md)): a client mod
    the server owner installs, with its own MCP server on `127.0.0.1:29392`. It does what the
    plugin otherwise does with `run_lua`, but only fixed jobs, checked against the server's
    allowlist; there is no free-form Lua, and it only runs in a session if the server sent it.
@@ -190,5 +268,7 @@ python test/mock_mp.py --settings test/mp_strict.json &  # a strict server allow
 node test/mp_strict.mjs
 node test/mp_keys.mjs                             # key presses: direct, OPENS MENU, BLOCKED, messages (default mock)
 node test/mp_policy.mjs                           # where MP-MCP may run (starts its own mocks)
+node test/mp_controls.mjs                         # vehicle controls through MP-MCP, towing (default mock)
+node test/vehcontrols.mjs                         # which controls become keys, from real vehicles (test/data/)
 node test/outgauge.mjs                            # OutGauge listener (fake UDP packets)
 ```

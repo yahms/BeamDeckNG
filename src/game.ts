@@ -14,12 +14,13 @@ import { fileURLToPath } from "node:url";
 import streamDeck from "@elgato/streamdeck";
 import { glyphCount, storeGlyphs, takeWantedGlyphs } from "./icons";
 import { Blocked, Mcp } from "./mcp";
+import { classify, RawControl, VControl } from "./vehcontrols";
 import { OutGauge } from "./outgauge";
 
 export const VERSION = "0.2.4";
-export const DECK_VERSION = "0.2.3"; // bump when the vehicle Lua changes, so vehicles reload it
+export const DECK_VERSION = "0.2.4"; // bump when the vehicle Lua changes, so vehicles reload it
 
-export type DiffState = "locked" | "open" | "partial" | "auto" | null | undefined;
+export type DiffState = "locked" | "open" | "partial" | "auto" | "lsd" | null | undefined;
 export type ModeInfo = { ctrl: string; key: string | null; name: string | null; color?: string };
 
 /** What the vehicle-side BNGS.status() reports. Missing fields mean "this vehicle doesn't have it". */
@@ -53,6 +54,8 @@ export type VehicleStatus = {
 	n2o?: { armed: boolean; override: boolean; active: boolean; bottle?: number };
 	jato?: { on: boolean; firing: boolean; fuel?: number };
 	pt?: PtButton[]; // the game's own powertrain button bar
+	/** States the auto vehicle-control keys watch (vc_watch): electrics values and coupler group states. */
+	vc?: { e?: Record<string, number>; c?: Record<string, string> };
 	/** Gauge readings. spd m/s, temps in C, boost in psi, fuel 0..1, dmg = the game's damage score. */
 	/** Tyre pressure groups (CTIS): k = group key, n = name, psi, min, max, a = selected. */
 	tp?: { k: string; n?: string; psi?: number; min?: number; max?: number; a?: boolean }[];
@@ -89,7 +92,7 @@ export type AddonInfo = {
 	deckVersion?: string;
 	/** "server": sent by the BeamMP server; "local": installed on this PC (runs outside sessions only). */
 	source?: string;
-	allow?: { vehicle?: string[]; actions?: string[]; game?: string[]; menus?: string[] };
+	allow?: { vehicle?: string[]; actions?: string[]; game?: string[]; menus?: string[]; controls?: string[] };
 	always?: string[];
 	functions?: string[];
 	/** Menu pages open_menu knows. */
@@ -105,7 +108,7 @@ function cleanInfo(v: any): AddonInfo {
 		proto: typeof v?.proto === "number" ? v.proto : undefined,
 		deckVersion: typeof v?.deckVersion === "string" ? v.deckVersion : undefined,
 		source: typeof v?.source === "string" ? v.source : undefined,
-		allow: { vehicle: strList(a.vehicle), actions: strList(a.actions), game: strList(a.game), menus: strList(a.menus) },
+		allow: { vehicle: strList(a.vehicle), actions: strList(a.actions), game: strList(a.game), menus: strList(a.menus), controls: strList(a.controls) },
 		always: strList(v?.always),
 		functions: strList(v?.functions),
 		menuPages: strList(v?.menuPages),
@@ -117,7 +120,19 @@ const ADDON_PROTO = 1;
 export const ADDON_PORT = 29392;
 
 /** The parts of a key's command the add-on checks (same shape as actions.ts Command). */
-type Cmd = { action?: string; tool?: string; args: object; mp?: { fn: string; args?: object }; menu?: string } | null;
+type Cmd = { action?: string; tool?: string; args: object; mp?: { fn: string; args?: object }; menu?: string; vc?: { id: string; t?: number } } | null;
+
+/** "*", "!jato*" style patterns (later ones win), as MP-MCP's settings use them. */
+export function globAllows(patterns: string[] | undefined, name: string): boolean | undefined {
+	if (!patterns) return undefined;
+	let ok = false;
+	for (const p of patterns) {
+		const neg = p.startsWith("!");
+		const re = new RegExp("^" + (neg ? p.slice(1) : p).replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$", "i");
+		if (re.test(name)) ok = !neg;
+	}
+	return ok;
+}
 
 export type Link = "offline" | "novehicle" | "loading" | "paused" | "ok" | "limited";
 
@@ -141,6 +156,9 @@ const RESOLVER = readFileSync(path.join(LUA_DIR, "resolver.lua"), "utf8");
 const DECK = readFileSync(path.join(LUA_DIR, "beamdeck.lua"), "utf8").replace("__DECK_VERSION__", DECK_VERSION);
 /** Full vehicle library: resolver + BeamDeck additions; leaves BNGS in the global BNGSD_BNGS. */
 const LIBRARY = `${RESOLVER}\n${DECK}\n`;
+/** Game engine: the vehicle-specific controls of the player vehicle and what it tows (lua/controls.lua, shared with MP-MCP). */
+const CONTROLS = readFileSync(path.join(LUA_DIR, "controls.lua"), "utf8");
+const controlsLua = (tail: string) => `local C = (function()\n${CONTROLS}\nend)()\n${tail}`;
 
 /** Lua long-bracket string literal that can hold any text. */
 export function longStr(s: string): string {
@@ -277,6 +295,10 @@ export class Game {
 	blocked(cmd: Cmd): "blocked" | "unavailable" | undefined {
 		if (!cmd || this.backend !== "addon") return undefined;
 		const info = this.addonInfo, allow = info?.allow, has = (t: string) => this.addonTools.has(t);
+		if (cmd.vc) {
+			if (!has("vehicle_control")) return "unavailable";
+			return globAllows(allow?.controls, cmd.vc.id) === false ? "blocked" : undefined;
+		}
 		if (cmd.action) {
 			if (!has("beamdeck_call")) return "unavailable";
 			if (allow?.vehicle && !allow.vehicle.includes(cmd.action) && !(info?.always ?? []).includes(cmd.action)) return "blocked";
@@ -293,6 +315,52 @@ export class Game {
 			return allow?.actions && !allow.actions.includes(a) ? "blocked" : undefined;
 		}
 		return allow?.game && !allow.game.includes(cmd.tool) ? "blocked" : undefined;
+	}
+
+	/** The player vehicle's auto vehicle-control keys (null: not read yet, or no vehicle). */
+	controls: { vid: number; model: string; keys: VControl[]; raw: RawControl[]; at: number } | null = null;
+	private controlsBusy = false;
+
+	/**
+	 * Read the player vehicle's own controls when it changes (or every 20 s: parts can change them),
+	 * and tell the vehicle which states to report for them.
+	 */
+	async refreshControls(vid: number | undefined): Promise<void> {
+		if (vid === undefined || this.controlsBusy) return;
+		if (this.controls && this.controls.vid === vid && Date.now() - this.controls.at < 20000) return;
+		if (this.backend === "addon" && !this.addonTools.has("beamdeck_controls")) return;
+		this.controlsBusy = true;
+		try {
+			const r = JSON.parse(this.backend === "addon" ? await this.addon.call("beamdeck_controls", {}) : await this.mcp.runLua(controlsLua("return jsonEncode(C.list())")));
+			if (!r.veh || !Array.isArray(r.list)) return;
+			// the player vehicle's keys, then each towed trailer's (an older MP-MCP only sends the player's)
+			const vehicles: { t: number; list: RawControl[] }[] = Array.isArray(r.vehicles) ? r.vehicles : [{ t: 0, list: r.list }];
+			const keys = vehicles.flatMap((v) => classify(Array.isArray(v.list) ? v.list : []).keys.map((k) => (v.t ? { ...k, t: v.t } : k)));
+			const changed = !this.controls || this.controls.vid !== r.vid || JSON.stringify(this.controls.keys) !== JSON.stringify(keys);
+			this.controls = { vid: r.vid, model: String(r.model), keys, raw: r.list, at: Date.now() };
+			if (changed) {
+				streamDeck.logger.info(`vehicle controls for ${r.model}: ${keys.length} keys (${keys.map((k) => k.label).join(", ")})`);
+				const mine = keys.filter((k) => !k.t); // states come from the vehicle you drive
+				const electrics = [...new Set(mine.flatMap((k) => (k.state && "electric" in k.state ? [k.state.electric] : [])))];
+				const couplers = [...new Set(mine.flatMap((k) => (k.state && "coupler" in k.state ? [k.state.coupler] : [])))];
+				await this.fire("vc_watch", { electrics, couplers }).catch(() => undefined);
+			}
+		} catch (e) {
+			streamDeck.logger.warn(`reading vehicle controls failed: ${(e as Error).message}`);
+		} finally {
+			this.controlsBusy = false;
+		}
+	}
+
+	/** Run one of the vehicle's own controls: press (value) or release. t: 0 = player vehicle, 1 = what it tows... */
+	async vehicleControl(id: string, value: number, phase: "down" | "up", t = 0): Promise<void> {
+		if (!/^[\w.\-]+$/.test(id) || !Number.isFinite(value) || !Number.isInteger(t)) throw new Error("bad control");
+		const r =
+			this.backend === "addon"
+				? await this.addon.call("vehicle_control", t ? { id, value, phase, t } : { id, value, phase })
+				: await this.mcp.runLua(controlsLua(`return C.run(${t}, ${JSON.stringify(id)}, ${value}, "${phase}")`));
+		if (r.startsWith("blocked by the game")) throw new Blocked(`not allowed on this server: vehicle control (blocked by the game) ${id}`, "blocked");
+		if (r !== "ok" && !r.startsWith("ok")) throw new Error(r);
 	}
 
 	/** Through MP-MCP: can this key open its game menu page instead (when direct control isn't allowed)? */

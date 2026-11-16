@@ -20,7 +20,7 @@
 
 local M = {}
 
-local VERSION = "0.1.0" -- this mod
+local VERSION = "0.1.1" -- this mod
 local PROTO = 1 -- tool protocol: bump only for changes an older plugin can't cope with
 local HOST, PORT, ROUTE = "127.0.0.1", 29392, "/mcp"
 local ROOT = "/beamdeckng_mp/"
@@ -35,7 +35,7 @@ local PROTOCOL_VERSION = "2025-11-25"
 local SUPPORTED_VERSIONS = { ["2025-03-26"] = true, ["2025-06-18"] = true, ["2025-11-25"] = true }
 
 -- Read-only vehicle actions the plugin needs; always allowed.
-local ALWAYS = { verify = true, read = true, list = true }
+local ALWAYS = { verify = true, read = true, list = true, vc_watch = true }
 
 -- Used when settings.json is missing or leaves a list out.
 local DEFAULTS = {
@@ -50,6 +50,8 @@ local DEFAULTS = {
   },
   game = { "set_camera", "cam_step", "cam_driver", "toggle_ui", "walk" },
   menus = { "environment", "weather", "simulation", "traffic", "vehicle_config", "vehicle_selector", "multiplayer" },
+  -- the vehicle's own controls (tray, hydraulics, fifth wheel...): name patterns, later ones win
+  controls = { "*", "!jato*", "!*nitrous*", "!*n2o*" },
 }
 
 -- Game menu pages a key may open instead of changing something directly (open_menu). Opening one is
@@ -126,13 +128,22 @@ local function loadSettings()
     cfg = {}
     log("W", "beamdeckngMP", "no readable " .. ROOT .. "settings.json; using the default allowlist")
   end
-  for _, k in ipairs({ "vehicle", "actions", "game", "menus" }) do
+  for _, k in ipairs({ "vehicle", "actions", "game", "menus", "controls" }) do
     allowList[k] = stringList(cfg[k]) or DEFAULTS[k]
     allow[k] = toSet(allowList[k])
   end
 end
 
+local CTRL -- lua/controls.lua: list and run the vehicle-specific controls
+
 local function loadLibrary()
+  local cs = readFile(ROOT .. "lua/controls.lua")
+  if cs then
+    local f, err = loadstring(cs, "@beamdeckng_mp/controls.lua")
+    local ok, m = pcall(f or error, err)
+    CTRL = ok and type(m) == "table" and m or nil
+    if not CTRL then log("E", "beamdeckngMP", "controls library failed to load: " .. tostring(err or m)) end
+  end
   local r, d = readFile(ROOT .. "lua/resolver.lua"), readFile(ROOT .. "lua/beamdeck.lua")
   if not r or not d or #r == 0 or #d == 0 then
     log("E", "beamdeckngMP", "vehicle library missing from " .. ROOT .. "lua/")
@@ -336,12 +347,25 @@ S.beamdeck_glyphs = { description = "The game's own UI icons (SVG symbols) by id
 
 ---------------------------------------------------------------- game: same names and behaviour as the game's MCP tools
 
+-- the game's own filter, which BeamMP and game modes use to block keys
+local function gameBlocks(name)
+  return core_input_actionFilter ~= nil and core_input_actionFilter.isActionBlocked ~= nil and core_input_actionFilter.isActionBlocked(name) == true
+end
+
+local function actionTitle(name)
+  local a = core_input_actions and core_input_actions.getActiveActions()[name]
+  local t = a and a.title or name
+  local ok, tr = pcall(translateLanguage, t, t, true)
+  return ok and tr or t
+end
+
 function T.trigger_action(args)
   local name = args and args.action
   if type(name) ~= "string" then return "missing 'action' (input action name)", true end
   if not allow.actions[name] then return notAllowed("game action", name) end
   -- the game's own filter, which BeamMP and game modes use to block keys
-  if core_input_actionFilter and core_input_actionFilter.isActionBlocked and core_input_actionFilter.isActionBlocked(name) then
+  if gameBlocks(name) then
+    message("Stream Deck: " .. actionTitle(name) .. " is blocked by the game right now", 3, "warning")
     return notAllowed("game action (blocked by the game)", name)
   end
   if not core_input_actions then return "core_input_actions unavailable", true end
@@ -426,6 +450,49 @@ end
 S.beamdeck_game = { description = "Run one allowed game function (walk, cam_step, cam_driver, replay_eject).",
   inputSchema = { type = "object", properties = { fn = { type = "string" }, args = { type = "object" } }, required = { "fn" } } }
 
+---------------------------------------------------------------- the vehicle's own controls
+
+-- "*", "!jato*" patterns: the last one that matches decides
+local function allowedControl(id)
+  local ok = false
+  for _, p in ipairs(allowList.controls or {}) do
+    local neg = p:sub(1, 1) == "!"
+    local pat = "^" .. (neg and p:sub(2) or p):lower():gsub("[%^%$%(%)%%%.%[%]%+%-%?]", "%%%0"):gsub("%*", ".*") .. "$"
+    if id:lower():find(pat) then ok = not neg end
+  end
+  return ok
+end
+
+-- The vehicle-specific controls of the player vehicle and what it tows: the plugin's own
+-- lua/controls.lua (packed into this mod), so both read them the same way. Read-only.
+function T.beamdeck_controls()
+  if not CTRL then return "controls library missing", true end
+  return jsonEncode(CTRL.list(allowedControl)), false
+end
+S.beamdeck_controls = { description = "The vehicle-specific controls (input actions) of the player vehicle and what it tows, that this server allows." }
+
+-- Run one, the way a key bound in the game would: its own code, with VALUE filled in.
+function T.vehicle_control(args)
+  args = args or {}
+  local id, value, t = args.id, tonumber(args.value) or 1, tonumber(args.t) or 0
+  if not okName(id, 64) then return "missing or bad 'id'", true end
+  if value ~= value or value < -1 or value > 1 then return "bad 'value'", true end
+  if t ~= math.floor(t) or t < 0 or t > 8 then return "bad 't'", true end
+  if not CTRL then return "controls library missing", true end
+  if not allowedControl(id) then return notAllowed("vehicle control", id) end
+  local r = CTRL.run(t, id, value, args.phase == "up" and "up" or "down", allowedControl)
+  if r == "blocked by the game" then
+    local v = playerVehicle()
+    message("Stream Deck: " .. (t == 0 and v and actionTitle(v:getJBeamFilename() .. "__" .. id) or id) .. " is blocked by the game right now", 3, "warning")
+    return notAllowed("vehicle control (blocked by the game)", id)
+  end
+  if r == "not allowed" then return notAllowed("vehicle control", id) end
+  if r ~= "ok" then return r .. ": " .. id, true end
+  return "ok", false
+end
+S.vehicle_control = { description = "Press (phase down, value 1 or -1) or release (phase up, value 0) one of the vehicle's own controls; t = 0 the player vehicle, 1 what it tows...",
+  inputSchema = { type = "object", properties = { id = { type = "string" }, value = { type = "number" }, phase = { type = "string" }, t = { type = "integer" } }, required = { "id" } } }
+
 ---------------------------------------------------------------- messages and menus
 
 function T.show_message(args)
@@ -463,8 +530,8 @@ function T.beamdeck_info()
   table.sort(menus)
   return jsonEncode({
     name = NAME, version = VERSION, proto = PROTO, deckVersion = deckVersion, source = source(),
-    allow = { vehicle = allowList.vehicle, actions = allowList.actions, game = allowList.game, menus = allowList.menus },
-    always = { "verify", "read", "list" }, functions = fns, menuPages = menus,
+    allow = { vehicle = allowList.vehicle, actions = allowList.actions, game = allowList.game, menus = allowList.menus, controls = allowList.controls },
+    always = { "verify", "read", "list", "vc_watch" }, functions = fns, menuPages = menus,
   }), false
 end
 S.beamdeck_info = { description = "Add-on version, protocol and what this server allows." }

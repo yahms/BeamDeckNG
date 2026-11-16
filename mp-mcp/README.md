@@ -19,8 +19,9 @@ on your server.
 - Keys it doesn't allow directly can open the matching game menu instead (time of day opens the
   Environment page, weather the Weather page, and so on), so players change those things the
   normal way, under whatever BeamMP and your other mods allow.
-- Game keys the game itself has blocked (BeamMP and game modes block some with the game's action
-  filter) stay blocked, even if your allowlist names them.
+- Game keys and vehicle controls the game itself has blocked (BeamMP and game modes block some with
+  the game's action filter) stay blocked, even if your allowlist names them, and the player gets a
+  message in the game saying so.
 - It shows a message in the game when a Stream Deck connects, and BeamDeckNG can show what each
   press did (players turn that off per key).
 
@@ -79,6 +80,13 @@ pausing and slow motion in sessions anyway.
 all of them: `environment` (time of day), `weather`, `simulation` (gravity, simulation speed),
 `traffic`, `vehicle_config`, `vehicle_selector`, `multiplayer`.
 
+**`controls`**: the vehicle's own controls (what the game lists under the vehicle in its Controls
+menu: a rollback's tray, a dump truck's bed, hydraulics, fifth wheel, a spinner's speed...), and
+those of anything it tows, by name pattern: `*` matches anything, `!` blocks, the last match
+decides. Default: `["*", "!jato*", "!*nitrous*", "!*n2o*"]`. They are the same as the keys a
+player can bind for that vehicle in the game. The names are in the BeamDeckNG repo's
+`docs/vehicle_controls.csv` (column "action").
+
 **`game`**: game functions. Defaults: `set_camera` (a named camera), `cam_step` (next / previous
 camera), `cam_driver`, `toggle_ui`, `walk` (get in / out). Also available: `replay_eject`.
 
@@ -105,7 +113,8 @@ uses what's there.
 
 - `mod/lua/ge/extensions/beamdeckngMP.lua`: the listener and its tools (`beamdeck_status`,
   `beamdeck_call` / `beamdeck_result` / `beamdeck_fire`, `beamdeck_glyphs`, `beamdeck_game`,
-  `open_menu`, `beamdeck_info`, plus `trigger_action`, `set_camera`, `toggle_ui` and
+  `open_menu`, `beamdeck_controls` / `vehicle_control` (the vehicle's own controls, through the
+  plugin's `lua/controls.lua`, packed into the mod), `beamdeck_info`, plus `trigger_action`, `set_camera`, `toggle_ui` and
   `show_message` with the same names and behaviour as the game's own MCP tools).
 - Where it came from: the zip its own file was loaded from (`FS:getOriginArchivePathRelative`),
   read once at load. In a session it must be in `/mods/multiplayer/` and in BeamMP's list of the

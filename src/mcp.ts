@@ -18,8 +18,11 @@ export class Blocked extends McpError {
 	) {
 		super(message);
 	}
+	/** The game itself blocked it (its action filter), not the server's allowlist. */
+	get byGame(): boolean {
+		return /blocked by the game/.test(this.message);
+	}
 }
-
 export class Mcp {
 	private id = 0;
 	private ready = false;

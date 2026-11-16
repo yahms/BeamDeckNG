@@ -16,6 +16,7 @@ import { C, colorName, Face, P, render } from "./icons";
 export type Settings = {
 	fn?: string; // game function buttons: which function
 	msg?: boolean; // every key: show an in-game message when pressed (on unless unticked)
+	slot?: number; // Vehicle control keys: which of the vehicle's controls (1 = first)
 	action?: string; // custom game action: the game's input action name
 	label?: string; // custom game action: text on the key
 	index?: string; // powertrain buttons: which button of the game's bar (1-based)
@@ -41,6 +42,8 @@ export type Command = {
 	mp?: { fn: string; args?: object };
 	/** On BeamMP: the game menu page to open instead when MP-MCP doesn't allow this directly. */
 	menu?: string;
+	/** One of the vehicle's own controls (auto Vehicle control keys): press or release. */
+	vc?: { id: string; value: number; phase: "down" | "up"; t?: number };
 } | null;
 
 export type Entry = {
@@ -75,6 +78,8 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 	vehicle = true;
 	/** True for read-only keys (gauges): a press with nothing to do is ignored instead of showing N/A. */
 	passive = false;
+	/** Auto Vehicle control keys: keep the vehicle's control list current while one is on screen. */
+	autoControls = false;
 	/** Face for the current vehicle status (ge = game-engine state, for game-level functions). */
 	abstract face(s: VehicleStatus, settings: Settings, held?: boolean, ge?: GeStatus): Face;
 
@@ -125,15 +130,15 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 		// through BeamDeckNG MP-MCP: if this server doesn't allow it, open its game menu page, or say so
 		const why = game.blocked(cmd);
 		if (why) return blockedPress(e, cmd, why);
-		if (this.release || cmd?.tool) {
-			if (!cmd) return this.passive ? undefined : note(e, { value: "N/A", color: C.none }, 1500);
+		if (this.release || cmd?.tool || cmd?.vc) {
+			if (!cmd) return this.passive || e.impl.autoControls ? undefined : note(e, { value: "N/A", color: C.none }, 1500);
 			e.held = true;
 			redraw(true);
 			let ok = true;
 			await run(cmd).catch((err) => {
 				ok = false;
-				if (err instanceof Blocked) return blockedPress(e, cmd, err.why);
-				streamDeck.logger.warn(`${cmd.tool ?? cmd.action} failed: ${(err as Error).message}`);
+				if (err instanceof Blocked) return blockedPress(e, cmd, err.why, err.byGame);
+				streamDeck.logger.warn(`${cmd.tool ?? cmd.action ?? cmd.vc?.id} failed: ${(err as Error).message}`);
 				tell(e, `${labelOf(e)}: failed`);
 			});
 			if (ok) tell(e);
@@ -174,7 +179,8 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 
 /** Fire-and-forget: a game tool, or a resolver action through the library already in the vehicle. */
 export async function run(cmd: NonNullable<Command>): Promise<void> {
-	if (cmd.tool) await game.tool(cmd.tool, cmd.args, cmd.mp);
+	if (cmd.vc) await game.vehicleControl(cmd.vc.id, cmd.vc.value, cmd.vc.phase, cmd.vc.t ?? 0);
+	else if (cmd.tool) await game.tool(cmd.tool, cmd.args, cmd.mp);
 	else await game.fire(cmd.action!, cmd.args);
 }
 
@@ -199,7 +205,13 @@ const MENU_NAMES: Record<string, string> = {
  * A press BeamDeckNG MP-MCP won't do directly. If the key has a game menu page for it, open that
  * instead (so the player changes it there, under whatever BeamMP and the server allow); else say so.
  */
-export async function blockedPress(e: Entry, cmd: Command, why: "blocked" | "unavailable") {
+export async function blockedPress(e: Entry, cmd: Command, why: "blocked" | "unavailable", byGame = false) {
+	if (byGame) {
+		// the game's own action filter (BeamMP, a game mode): MP-MCP already says so in the game
+		note(e, blockedNote("blocked"), 1500);
+		if (game.backend !== "addon") tell(e, `${labelOf(e)}: the game is blocking this right now`, "warning");
+		return;
+	}
 	if (cmd?.menu && game.canMenu(cmd.menu)) {
 		try {
 			await game.openMenu(cmd.menu);
@@ -327,6 +339,9 @@ export function start(g: Game) {
 				const before = game.mcpLink;
 				await game.poll().catch(() => undefined);
 				if (game.mcpLink !== "offline") await game.fetchGlyphs();
+				// auto Vehicle control keys on screen: keep the vehicle's control list current
+				if (game.snapshot.link === "ok" && [...entries.values()].some((x) => x.impl.autoControls))
+					await game.refreshControls(game.snapshot.vid);
 				if (game.mcpLink !== before) streamDeck.logger.info(`game link: ${before} -> ${game.mcpLink}`);
 				redraw();
 			}
@@ -509,6 +524,9 @@ export class DiffLock extends DeckAction {
 				return { ...f, ...unlocked, value: "AUTO", color: C.off };
 			case "partial":
 				return { ...f, state: "partial", value: "PARTIAL", color: C.acc };
+			case "lsd":
+				// limited-slip (e.g. the Procyon Centauri's centre): not locked, not fully open
+				return { ...f, ...unlocked, value: "LSD", color: C.off };
 		}
 		return { ...unsupported(key, label, [unlocked.state, "open"]), base, overlay };
 	}

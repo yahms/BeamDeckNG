@@ -433,6 +433,23 @@
 					"ShowTitle": false
 				}
 			]
+		},
+		{
+			"Name": "Vehicle control (auto)",
+			"UUID": "com.yahms.beamdeckng.vehcontrol",
+			"Icon": "imgs/actions/vehcontrol-icon",
+			"Tooltip": "Filled in from the vehicle you drive: tray, hydraulics, fifth wheel, spinner... Put several on a page with slots 1, 2, 3.",
+			"PropertyInspectorPath": "ui/vehcontrol.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/vehcontrol",
+					"ShowTitle": false
+				}
+			]
 		}
 	]
 }

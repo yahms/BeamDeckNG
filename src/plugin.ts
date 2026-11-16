@@ -7,6 +7,7 @@ import { Game, VERSION } from "./game";
 import { Gauge } from "./gauges";
 import { OutGauge } from "./outgauge";
 import { Tires } from "./tires";
+import { VehicleControl } from "./vehkeys";
 import { World } from "./world";
 
 streamDeck.logger.setLevel("info");
@@ -16,7 +17,7 @@ for (const Action of [
 	A.Ignition, A.Traction, A.DiffLock, A.Range, A.Drive,
 	A.ParkingBrake, A.Headlights, A.FogLights, A.Hazards, A.Indicator, A.Lightbar, A.Horn,
 	A.Cruise, A.EngineBrake, A.Retarder, A.AirSuspension, A.Doors, A.Nitrous, A.Jato,
-	GameFunction, Powertrain, World, Gauge, Tires,
+	GameFunction, Powertrain, World, Gauge, Tires, VehicleControl,
 ]) {
 	streamDeck.actions.registerAction(new Action());
 }

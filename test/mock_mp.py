@@ -67,6 +67,9 @@ G.jsonDecode = json_decode
 G.jsonReadFile = lambda p: to_lua(json.loads(VFS[p])) if p in VFS else None
 G.readFile = lambda p: VFS.get(p)
 G.__toVeh = lambda s: to_vehicle.append(s)
+trailer = lupa.LuaRuntime(unpack_returned_tuples=True)
+trailer.execute("electrics = { values = {} }")
+G.__toTrailer = lambda s: trailer.execute(s)
 G.__event = lambda *a: events.append([str(x) for x in a])
 G.__log = lambda lvl, tag, msg: print(f"[{lvl}] {tag}: {msg}", flush=True)
 
@@ -152,18 +155,38 @@ core_camera = {
   getDriverCameraNameById = function() return "occupant.FL" end,
 }
 -- the game's action filter (BeamMP and game modes block keys with it): pretend photo mode is blocked
-core_input_actionFilter = { isActionBlocked = function(n) return n == "photomode" end }
+core_input_actionFilter = { isActionBlocked = function(n) return n == "photomode" or n == "pickup__worklights" and WL_BLOCKED == true end }
 core_input_actions = {
   triggerDown = function(n) __event("down", n) end,
   triggerUp = function(n) __event("up", n) end,
   triggerDownUp = function(n) __event("tap", n) end,
+  getActiveActions = function() return VA end,
 }
 core_vehicles = { getVehicleDetails = function() return { model = { Name = "Pickup" } } end }
+-- the player vehicle's own controls (jbeam inputActions + actionsEnabled), and a towed trailer with a ramp
+local PICKUP = {
+  tiltUp = { title = "Tilt up", onChange = "electrics.values.upfit_tilt = VALUE" },
+  tiltDown = { title = "Tilt down", onChange = "electrics.values.upfit_tilt = -VALUE" },
+  door_FL = { title = "Toggle Front Left Door", onDown = "controller.getControllerSafe('door_FL_coupler').toggleGroup()" },
+  worklights = { title = "Work Lights", onDown = "electrics.values.worklights = 1 - (electrics.values.worklights or 0)" },
+  jato = { title = "JATO", onDown = "electrics.values.jato = 1" },
+  notEnabled = { title = "Not on this config", onDown = "electrics.values.nope = 1" },
+}
+local TRAILER = { ramp_down = { title = "Ramp Down", onChange = "electrics.values.ramp = VALUE" } }
+local function enabled(t, skip) local e = {} for k in pairs(t) do if k ~= skip then e[#e + 1] = { name = k } end end return e end
+core_vehicle_manager = { getVehicleData = function(vid)
+  if vid == 777 then return { vdata = { inputActions = TRAILER, actionsEnabled = enabled(TRAILER) } } end
+  return { vdata = { inputActions = PICKUP, actionsEnabled = enabled(PICKUP, "notEnabled") } }
+end }
+local T2 = { getJBeamFilename = function() return "tiltdeck" end, queueLuaCommand = function(_, s) __toTrailer(s) end }
+function getObjectByID(id) if id == 777 then return T2 end if id == 33139 then return be:getPlayerVehicle(0) end end
+core_trailerRespawn = { getTrailerData = function() return TOWING and { [33139] = { trailerId = 777 } } or {} end }
+VA = { pickup__worklights = { vehicle = "pickup", cat = "vehicle_specific", title = "Work Lights" }, menu_item_select = { cat = "menu", title = "Select" } }
 local uiOn = true
 -- BeamMP and the game's mod manager: where this zip came from, and whether we're in a session
 ORIGIN = __ORIGIN
 SESSION = __SESSION
-FS = { getOriginArchivePathRelative = function(_, p) return ORIGIN end }
+FS = { getOriginArchivePathRelative = function(_, p) return ORIGIN end, findFiles = function() return {} end }
 MPCoreNetwork = { isMPSession = function() return SESSION end }
 MPModManager = { isModAllowed = function(n) return n == "multiplayerbeamdeckng-mp-mcp" end }
 function ui_message(text, ttl, cat, icon) __event("message", text, cat, icon) end
@@ -225,11 +248,16 @@ class E(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/leave":
             with lock: ext.onBeamMPServerLeave()
+        if self.path == "/tow":
+            with lock: ge.execute("TOWING = true")
+        if self.path == "/blockwl":
+            with lock: ge.execute("WL_BLOCKED = true")
         if self.path == "/session":
             with lock: ge.execute("SESSION = not SESSION")
         with lock:
             out = {"events": events, "frames": frames[0], "unloaded": bool(G.UNLOADED), "listening": len(servers) > 0,
-                   "veh": {k: veh.eval(f"electrics.values.{k}") for k in ("horn", "hazard_enabled", "lights_state")}}
+                   "veh": {k: veh.eval(f"electrics.values.{k}") for k in ("horn", "hazard_enabled", "lights_state", "upfit_tilt", "worklights", "jato", "nope")},
+                   "trailer": {"ramp": trailer.eval("electrics.values.ramp")}}
         b = json.dumps(out).encode()
         self.send_response(200); self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
 threading.Thread(target=ThreadingHTTPServer(("127.0.0.1", ADDON_PORT + 1), E).serve_forever, daemon=True).start()
