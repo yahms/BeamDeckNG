@@ -53,7 +53,11 @@ export const GLYPHS: Record<string, Record<string, G>> = {
 	hazard: { on: g("radial_hazard_lights", P.red), off: g("radial_hazard_lights", P.white) },
 	indicator_left: { on: g(["radial_left_arrow", "material_arrow_back"], P.green), off: g(["radial_left_arrow", "material_arrow_back"], P.white) },
 	indicator_right: { on: g(["radial_right_arrow", "material_arrow_forward"], P.green), off: g(["radial_right_arrow", "material_arrow_forward"], P.white) },
-	lightbar: { off: g("radial_lightbar", P.white), mode1: g("radial_lightbar", P.yellow), mode2: g("radial_lightbar", P.red) },
+	lightbar: {
+		off: g("radial_lightbar", P.white), mode1: g("radial_lightbar", P.yellow), mode2: g("radial_lightbar", P.red),
+		// flash pattern key: blue while the lightbar is on, white when it's off
+		pattern: g(["radial_wigwags", "radial_lightbar"], P.blue), pattern_off: g(["radial_wigwags", "radial_lightbar"], P.white),
+	},
 	horn: { on: g("material_volume_up", P.yellow), off: g("material_volume_up", P.white) },
 	cruise: { on: g("cruise-control_cruise-enable", P.green), off: g(["cruise-control_cruise-disable", "cruise-control_cruise-enable"], P.white) },
 	cruise_set: { idle: g("cruise-control_cruise-enable", P.white) },

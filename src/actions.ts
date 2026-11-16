@@ -690,13 +690,25 @@ export class Indicator extends DeckAction {
 
 @action({ UUID: "com.yahms.beamdeckng.lightbar" })
 export class Lightbar extends DeckAction {
-	face(s: VehicleStatus): Face {
+	face(s: VehicleStatus, st: Settings): Face {
+		// flash pattern key: shows the pattern, press for the next one
+		if (st.press === "pattern") {
+			if (!s.lbc || !s.lbm) return unsupported("lightbar", "Lightbar pattern", ["off"]);
+			const on = Math.round(s.lightbar ?? 0) > 0;
+			return {
+				key: "lightbar", label: "Lightbar pattern", state: on ? "pattern" : "pattern_off", alt: ["off"],
+				value: (s.lbn ?? `PATTERN ${s.lbm}`).toUpperCase(), head: `PATTERN ${s.lbm}/${s.lbc}`, color: on ? C.warn : C.off,
+			};
+		}
 		if (s.lightbar === undefined) return unsupported("lightbar", "Lightbar", ["off"]);
 		const n = Math.round(s.lightbar);
 		const state = n === 0 ? "off" : `mode${n}`;
-		return { key: "lightbar", label: "Lightbar", state, alt: ["mode1"], value: n === 0 ? "OFF" : `MODE ${n}`, color: n ? C.warn : C.off };
+		// 1 = lights, 2 = lights and siren
+		const value = n === 0 ? "OFF" : n === 1 ? "LIGHTS" : n === 2 ? "LIGHTS+SIREN" : `MODE ${n}`;
+		return { key: "lightbar", label: "Lightbar", state, alt: ["mode1"], value, color: n ? C.warn : C.off };
 	}
-	command(s: VehicleStatus): Command {
+	command(s: VehicleStatus, st: Settings): Command {
+		if (st.press === "pattern") return s.lbc ? { action: "lightbar_mode", args: {} } : null;
 		if (s.lightbar === undefined) return null;
 		return { action: "lightbar", args: { state: (Math.round(s.lightbar) + 1) % 3 } };
 	}

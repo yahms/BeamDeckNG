@@ -17,8 +17,8 @@ import { Blocked, Mcp } from "./mcp";
 import { classify, RawControl, VControl } from "./vehcontrols";
 import { OutGauge } from "./outgauge";
 
-export const VERSION = "0.2.6";
-export const DECK_VERSION = "0.2.4"; // bump when the vehicle Lua changes, so vehicles reload it
+export const VERSION = "0.2.7";
+export const DECK_VERSION = "0.2.5"; // bump when the vehicle Lua changes, so vehicles reload it
 
 export type DiffState = "locked" | "open" | "partial" | "auto" | "lsd" | null | undefined;
 export type ModeInfo = { ctrl: string; key: string | null; name: string | null; color?: string };
@@ -41,7 +41,10 @@ export type VehicleStatus = {
 	hazard?: number;
 	sigL?: number;
 	sigR?: number;
-	lightbar?: number;
+	lightbar?: number; // 0 off, 1 lights, 2 lights + siren
+	lbm?: number; // lightbar flash pattern index (1-based), when the vehicle has more than one
+	lbn?: string; // its name (Chase, Scene...)
+	lbc?: number; // how many patterns
 	horn?: number;
 	cruise?: { on: boolean; speed?: number }; // speed in m/s
 	ebrake?: number; // 0 off, 1..3

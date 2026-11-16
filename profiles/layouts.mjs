@@ -36,10 +36,11 @@ const TIME = [W("clock"), W("daylen"),
 const DRIVE = [GAUGE("gear"), GAUGE("speed"),
 	A("ignition"), A("traction"), A("headlights"), A("range"), A("drive"),
 	A("parkingbrake"), A("difflock", { scope: "cycle" }), A("cruise", { op: "toggle" }), G("trailer"), A("horn")];
-// row 3 left free for the vehicle's own lights (beacons, work lights: Vehicle control keys)
+// lightbar pattern sits under the lightbar; the rest of row 3 is left for the vehicle's own lights
+// (beacons, work lights: Vehicle control keys)
 const LIGHTS = [A("headlights"), A("fog"),
 	A("indicator", { side: "left" }), A("hazards"), A("indicator", { side: "right" }), A("lightbar"), A("horn"),
-	A("headlights", { press: "low" }), A("headlights", { press: "high" }), __, __, __];
+	A("headlights", { press: "low" }), A("headlights", { press: "high" }), __, A("lightbar", { press: "pattern" }), __];
 const DASH = [GAUGE("gear"), GAUGE("speed"),
 	A("ignition"), GAUGE("rpm"), GAUGE("boost"), GAUGE("fuel"), GAUGE("water"),
 	A("parkingbrake"), GAUGE("oil"), GAUGE("damage"), A("traction"), A("headlights")];
@@ -78,7 +79,7 @@ const L32 = {
 		...put(RIGHT, [A("indicator", { side: "left" }), A("hazards"), A("indicator", { side: "right" }),
 			A("headlights", { press: "low" }), A("headlights", { press: "high" }), A("fog"),
 			A("lightbar"), A("cruise", { op: "minus" }), A("cruise", { op: "plus" }),
-			A("doors", { part: "doors" }), A("doors", { part: "trunk" }), A("doors", { part: "hood" })]),
+			A("lightbar", { press: "pattern" }), A("doors", { part: "doors" }), A("doors", { part: "trunk" })]),
 		...put(BOTTOM, [GAUGE("rpm"), GAUGE("fuel"), GAUGE("water"), GAUGE("boost"), GAUGE("damage")])],
 	// cols 5-7 left free for Vehicle control (auto) keys
 	DASH: [...put(LEFT, DASH), ...put(BOTTOM, [A("cruise", { op: "toggle" }), A("nitrous"), A("jato"), A("tires", { group: "all", tdir: "inflate" }), A("tires", { group: "all", tdir: "deflate" })])],

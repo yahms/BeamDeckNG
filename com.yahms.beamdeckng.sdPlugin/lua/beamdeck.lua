@@ -121,6 +121,9 @@ function BNGS.status()
   s.sigR = e.signal_right_input
   s.lightbar = e.lightbar
   s.horn = e.horn
+  -- lightbar flash pattern (Chase, Scene, ...): index, name, how many
+  local lb = BNGS.lightbarPatterns()
+  if lb then s.lbm = lb.index s.lbn = lb.names[lb.index] s.lbc = #lb.names end
 
   -- cruise control (vehicle extension; may not be loaded until first used)
   local cc = BNGS.cruise()
@@ -505,6 +508,47 @@ BNGS.actions.vc_watch = function(args)
   end
   rawset(_G, "BNGSD_VCW", { electrics = names(args.electrics), couplers = names(args.couplers) })
   return { action = "vc_watch", status = "applied", targets = {} }
+end
+
+-- Lightbar flash patterns. A police car can have several lightbar controllers (bar, wigwags,
+-- flashers, floodlights) sharing the same pattern list; the game's "toggle lightbar mode" steps them
+-- all, so we do too, keeping them on the same pattern. Names come from the main bar's jbeam.
+local lbNames = {}
+function BNGS.lightbarPatterns()
+  local cs = controller.getControllersByType and controller.getControllersByType("lightbar") or {}
+  local main
+  for _, c in pairs(cs) do if c.name == "lightbar" or not main then main = c end end
+  if not main or not main.getState then return nil end
+  local names = lbNames[main.name]
+  if not names then
+    names = {}
+    for _, d in ipairs(v and v.data and v.data.controller or {}) do
+      if d.name == main.name and type(d.modes) == "table" then
+        for i = 2, #d.modes do
+          local row = d.modes[i]
+          names[#names + 1] = type(row) == "table" and tostring(row[1]) or tostring(i - 1)
+        end
+      end
+    end
+    lbNames[main.name] = names
+  end
+  if #names < 2 then return nil end
+  local ok, st = pcall(main.getState)
+  local idx = ok and type(st) == "table" and tonumber(st[main.name .. "_modeIndex"]) or 1
+  return { index = idx, names = names, controllers = cs }
+end
+
+-- args: index = pattern to select (1-based); omitted = the next one
+BNGS.actions.lightbar_mode = function(args)
+  local lb = BNGS.lightbarPatterns()
+  if not lb then return { action = "lightbar_mode", status = "unsupported", targets = {} } end
+  local want = tonumber(args.index) or (lb.index % #lb.names) + 1
+  if not lb.names[want] then return { action = "lightbar_mode", status = "failed", detail = "no such pattern" } end
+  for _, c in pairs(lb.controllers) do if c.setModeIndex then pcall(c.setModeIndex, want) end end
+  local now = BNGS.lightbarPatterns()
+  local ok = now and now.index == want
+  return { action = "lightbar_mode", status = ok and "applied" or "failed", detail = lb.names[want],
+    targets = { { role = "lightbar", device = "pattern", from = lb.index, want = want, to = now and now.index, ok = ok } } }
 end
 
 BNGS.actions.lightbar = function(args)

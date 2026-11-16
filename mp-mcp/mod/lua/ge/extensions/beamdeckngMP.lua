@@ -20,7 +20,7 @@
 
 local M = {}
 
-local VERSION = "0.1.2" -- this mod
+local VERSION = "0.1.3" -- this mod
 local PROTO = 1 -- tool protocol: bump only for changes an older plugin can't cope with
 local HOST, PORT, ROUTE = "127.0.0.1", 29392, "/mcp"
 local ROOT = "/beamdeckng_mp/"
@@ -41,7 +41,7 @@ local ALWAYS = { verify = true, read = true, list = true, vc_watch = true }
 local DEFAULTS = {
   vehicle = {
     "engine", "traction", "drive_mode_step", "diff_lock", "diff_combo", "center_diff", "range", "drive",
-    "parking_brake", "lights", "fog", "hazard", "signal", "lightbar", "horn", "cruise", "engine_brake",
+    "parking_brake", "lights", "fog", "hazard", "signal", "lightbar", "lightbar_mode", "horn", "cruise", "engine_brake",
     "retarder", "air_suspension", "body", "pt_click", "tire_pressure",
   },
   actions = {

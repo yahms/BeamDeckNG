@@ -1,6 +1,6 @@
 {
 	"Name": "BeamDeckNG",
-	"Version": "0.2.6.0",
+	"Version": "0.2.7.0",
 	"Author": "yahms",
 	"Description": "Live BeamNG.drive controls with state on every button: ignition, drive modes, diff locks, range, 4WD, the game's own powertrain buttons, lights, indicators, parking brake, horn, cruise, truck brakes, air suspension, doors, nitrous, JATO, plus game and camera functions. Talks to the game's MCP server on 127.0.0.1.",
 	"Category": "BeamDeckNG",
@@ -199,9 +199,9 @@
 		{
 			"Name": "Lightbar",
 			"UUID": "com.yahms.beamdeckng.lightbar",
-			"PropertyInspectorPath": "ui/press.html",
+			"PropertyInspectorPath": "ui/lightbar.html",
 			"Icon": "imgs/actions/lightbar-icon",
-			"Tooltip": "Shows the lightbar mode. Press to cycle off / mode 1 / mode 2.",
+			"Tooltip": "Shows the lightbar: off / lights / lights + siren. Press to cycle. Or set it to show and step the flash pattern (Chase, Scene...).",
 			"Controllers": [
 				"Keypad"
 			],

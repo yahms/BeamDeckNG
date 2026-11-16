@@ -2,7 +2,7 @@
   "_readme": "What players' BeamDeckNG Stream Decks may do on this server. Remove a name to block it, add one to allow it. A list left out uses the built-in defaults. See the BeamDeckNG MP-MCP README for every name. menus: game menu pages a key may open when what it does directly isn't allowed. controls: the vehicle's own controls (tray, hydraulics, fifth wheel...) by name pattern; * matches anything, ! blocks, the last match decides.",
   "vehicle": [
     "engine", "traction", "drive_mode_step", "diff_lock", "diff_combo", "center_diff", "range", "drive",
-    "parking_brake", "lights", "fog", "hazard", "signal", "lightbar", "horn", "cruise", "engine_brake",
+    "parking_brake", "lights", "fog", "hazard", "signal", "lightbar", "lightbar_mode", "horn", "cruise", "engine_brake",
     "retarder", "air_suspension", "body", "pt_click", "tire_pressure"
   ],
   "actions": [
