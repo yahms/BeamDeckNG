@@ -1,0 +1,113 @@
+Button (action),Setting / variant,Now: name,Proposed TOP title,BOTTOM text (current mode; blank = nothing shown)
+Ignition,,Ignition,IGNITION,OFF / ACC / START / RUN / STALL
+Traction,cycle drive modes,Drive mode,DRIVE MODE,mode name (COMFORT / SPORT / ESC & TC OFF...) + small TC ON/OFF
+Traction,toggle TC,Traction,TRACTION,TC ON / TC OFF
+Diff lock,front,Front diff,FRONT DIFF,OPEN / LOCKED / AUTO / LSD / PARTIAL
+Diff lock,rear,Rear diff,REAR DIFF,OPEN / LOCKED / AUTO / LSD / PARTIAL
+Diff lock,centre,Centre diff,CENTRE DIFF,OPEN / LOCKED / AUTO / LSD / PARTIAL
+Diff lock,all,Diff locks,ALL DIFFS,OPEN / F / R / F+R / F+C+R...
+Diff lock,cycle,Diff locks,DIFF CYCLE,current step (OPEN / F+R / LOCK 50%...)
+Range,,Range,RANGE,HIGH / LOW / MIXED
+2WD / 4WD,,Drive,2WD / 4WD,2WD / 4WD / MIXED
+Parking brake,,Park brake,PARK BRAKE,ON / OFF
+Headlights,cycle,Headlights,HEADLIGHTS,OFF / LOW / HIGH
+Headlights,low,Headlights,LOW BEAM,OFF / LOW / HIGH
+Headlights,high,Headlights,HIGH BEAM,OFF / LOW / HIGH
+Fog lights,,Fog lights,FOG LIGHTS,ON / OFF
+Hazards,,Hazards,HAZARDS,ON / OFF
+Indicator,left,Left,LEFT SIGNAL,ON / OFF
+Indicator,right,Right,RIGHT SIGNAL,ON / OFF
+Lightbar,cycle,Lightbar,LIGHTBAR,OFF / LIGHTS / LIGHTS+SIREN
+Lightbar,pattern,Lightbar pattern,PATTERN 2/4,pattern name (CHASE / SCENE / LEFT SIGNAL...)
+Horn,,Horn,HORN,(blank)
+Cruise,toggle,Cruise,CRUISE,OFF / set speed (e.g. 80) + small km/h
+Cruise,set,Cruise set,CRUISE SET,current set speed while on
+Cruise,plus,Cruise +,CRUISE +,current set speed while on
+Cruise,minus,Cruise −,CRUISE −,current set speed while on
+Engine brake,,Engine brake,ENGINE BRAKE,OFF / LVL 1..n
+Retarder,,Retarder,RETARDER,mode name (OFF / AUTO / LVL...)
+Air suspension,raise,Air up,AIR SUSPENSION,RAISE
+Air suspension,lower,Air down,AIR SUSPENSION,LOWER
+Doors,doors,Doors,DOORS,SHUT / OPEN (2 OPEN...)
+Doors,bonnet,Bonnet,BONNET,SHUT / OPEN
+Doors,boot,Boot,BOOT,SHUT / OPEN
+Doors,single door (FL/FR/RL/RR),FL door,DOOR FL,SHUT / OPEN
+Nitrous,,Nitrous,NITROUS,OFF / ARMED / SPRAY
+JATO,,JATO,JATO,READY / FIRE / EMPTY
+Tyres,inflate,Inflate,TYRES +,group + psi (ALL 32)
+Tyres,deflate,Deflate,TYRES −,group + psi (ALL 32)
+Powertrain bar,button 1-4,game's button name,game's button name,the button's state (e.g. 4WD / LOCKED)
+Vehicle control (auto),slot 1-64,control's own name,control's own name,ON / OFF / OPEN / SHUT / LOCKED / HOLD / MOVING / PRESS
+Gauge,gear,Gear,GEAR,(big gear letter)
+Gauge,speed,Speed,SPEED,(big number) km/h
+Gauge,rpm,RPM,RPM,(big number)
+Gauge,fuel,Fuel,FUEL,(big %)
+Gauge,water,Coolant,COOLANT,(big °)
+Gauge,oil,Oil temp,OIL,(big °)
+Gauge,boost,Boost,BOOST,(big number) psi
+Gauge,damage,Damage,DAMAGE,OK / damage amount
+Game function,accept,Accept,ACCEPT,(blank)
+Game function,back,Back,BACK,(blank)
+Game function,pause,Pause,PHYSICS,RUNNING / PAUSED
+Game function,repair,Repair,REPAIR,(blank)
+Game function,recover,Recover,RECOVER,(blank)
+Game function,respawn,Respawn,RESPAWN,(blank)
+Game function,walk,Get in / out,ON FOOT,GET OUT / GET IN
+Game function,map,Map,MAP,(blank)
+Game function,vehicles,Vehicles,VEHICLES,(blank)
+Game function,radial,Radial menu,RADIAL MENU,(blank)
+Game function,slowmo,Slow motion,SLOW MOTION,1X / 0.5X...
+Game function,slower,Slower,SLOWER,current speed (1X / 0.5X...)
+Game function,faster,Faster,FASTER,current speed (1X / 0.5X...)
+Game function,ui,Game UI,GAME UI,UI ON / UI OFF
+Game function,photo,Photo mode,PHOTO MODE,(blank)
+Game function,traffic,Traffic,TRAFFIC,ON / OFF
+Game function,trailer,Trailer,TRAILER,HITCH / UNHITCH
+Game function,nextveh,Next vehicle,NEXT VEHICLE,next vehicle's name
+Game function,up,Up,UP,(blank) / WALK when on foot
+Game function,down,Down,DOWN,(blank) / WALK when on foot
+Game function,left,Left,LEFT,(blank) / WALK when on foot
+Game function,right,Right,RIGHT,(blank) / WALK when on foot
+Game function,turn_left,Turn camera left,TURN CAMERA,LEFT
+Game function,turn_right,Turn camera right,TURN CAMERA,RIGHT
+Game function,cam_up,Camera / seat up,CAMERA HEIGHT,UP
+Game function,cam_down,Camera / seat down,CAMERA HEIGHT,DOWN
+Game function,zoom_in,Zoom in (FOV -),ZOOM,IN
+Game function,zoom_out,Zoom out (FOV +),ZOOM,OUT
+Game function,sprint,Sprint (shift),SPRINT,(blank; greyed in the car)
+Game function,cam_cycle,Next camera,NEXT CAMERA,current camera name
+Game function,cam_prev,Previous camera,PREV CAMERA,current camera name
+Game function,cam_free,Free camera,FREE CAMERA,FREE / CAR
+Game function,cam_center,Centre cam,CENTRE CAMERA,(blank)
+Game function,cam_orbit,Orbit,CAMERA,ORBIT
+Game function,cam_driver,Driver,CAMERA,DRIVER
+Game function,cam_chase,Chase,CAMERA,CHASE
+Game function,cam_external,External,CAMERA,EXTERNAL
+Game function,cam_top,Top,CAMERA,TOP
+Game function,look_back,Look back,LOOK BACK,(blank)
+Game function,replay,Replay,REPLAY REC,(blank) / REC
+Game function,replay_eject,Eject replay,EJECT REPLAY,(blank; greyed with no replay)
+Game function,replay_ctl,Replay (record / stop / eject),REPLAY,RECORD / STOP REC / STOP PLAY / EJECT
+Game function,reload_lua,Reload Lua,RELOAD LUA,(blank)
+World,clock,Time,TIME,(big clock) RUNNING / FROZEN
+World,daylen,Day,DAY LENGTH,(big) 30 MIN ... per day
+World,time_sunrise,Sunrise,SUNRISE,06:00
+World,time_noon,Noon,NOON,12:00
+World,time_sunset,Sunset,SUNSET,18:00
+World,time_midnight,Midnight,MIDNIGHT,00:00
+World,time_p10m / m10m / p1h / m1h / p4h / m4h,Time +10 min...,TIME +10 MIN (etc.),current time
+World,wx_cycle,Weather,WEATHER,CLEAR / CLOUDY / FOG / RAIN / STORM
+World,wx_clear / cloudy / fog / rain / storm,Clear...,WEATHER,CLEAR / CLOUDY / FOG / RAIN / STORM
+World,rain,Rain,RAIN,OFF / LIGHT / HEAVY
+World,fog,Fog,FOG,THIN / MEDIUM / THICK
+World,wind,Wind,WIND,CALM / BREEZY / STORM
+World,cloud_up / cloud_down,Clouds + / Clouds -,CLOUDS + / CLOUDS −,current amount
+World,fog_up / fog_down,Fog + / Fog -,FOG + / FOG −,current amount
+World,fogh_up / fogh_down,Fog height + / -,FOG HEIGHT + / −,current height (m)
+World,rain_up / rain_down,Rain + / Rain -,RAIN + / RAIN −,current amount
+World,wind_up / wind_down,Wind + / Wind -,WIND + / WIND −,current amount
+World,grav_cycle,Gravity,GRAVITY,EARTH / MOON / MARS / ZERO-G / JUPITER
+World,grav_earth / moon / mars / zero / jupiter,Gravity,GRAVITY,EARTH / MOON / MARS / ZERO-G / JUPITER
+(every button),no game / no car / loading,—,(same top title),NO GAME / NO CAR / … (icon greyed)
+(every button),not on this vehicle,—,(same top title),N/A (icon greyed)
+(every button),BeamMP blocked,—,(same top title),BLOCKED / NOT IN MP; or the state + small OPENS MENU

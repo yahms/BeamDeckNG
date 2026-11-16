@@ -77,7 +77,7 @@ return nxt`;
 }
 
 /** Arrows: blue while on foot (they walk you), white in menus. */
-const walkState = (g: GeStatus) => (g.walking ? { state: "walk", value: "WALK" } : { state: "off" });
+const walkState = (g: GeStatus) => (g.walking ? { state: "walk", value: "WALK" } : { state: "off", value: "" });
 /** Arrow keys held down as walking actions: fn id -> the action to release. */
 const walkHeld = new Map<string, string>();
 
@@ -115,7 +115,7 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 	photo: { label: "Photo mode", key: "photo", act: "photomode" },
 	traffic: { label: "Traffic", key: "traffic", act: "toggleTraffic", menu: "traffic" },
 	// says what a press will do: hitch when nothing's coupled, unhitch when towing
-	trailer: { label: "Trailer", key: "trailer", act: "couplersToggle", state: (g) => (g.towing ? { state: "on", head: "UNHITCH", value: "TRAILER" } : { state: "off", head: "HITCH", value: "TRAILER" }) },
+	trailer: { label: "Trailer", key: "trailer", act: "couplersToggle", state: (g) => (g.towing ? { state: "on", value: "UNHITCH" } : { state: "off", value: "HITCH" }) },
 	// shows the car you're in, in its own paint colour
 	nextveh: {
 		label: "Next vehicle",
@@ -129,14 +129,14 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 	left: { label: "Left", key: "left", act: "menu_item_left", walk: "unicycle__walkLeft", state: walkState },
 	right: { label: "Right", key: "right", act: "menu_item_right", walk: "unicycle__walkRight", state: walkState },
 	// on foot: turn the camera (and so where you walk), and run
-	turn_left: { label: "Turn camera left", key: "turn_left", hold: "rotate_camera_left", state: () => ({ state: "off", value: "CAM LEFT" }) },
-	turn_right: { label: "Turn camera right", key: "turn_right", hold: "rotate_camera_right", state: () => ({ state: "off", value: "CAM RIGHT" }) },
+	turn_left: { label: "Turn camera left", key: "turn_left", hold: "rotate_camera_left", state: () => ({ state: "off", value: "LEFT" }) },
+	turn_right: { label: "Turn camera right", key: "turn_right", hold: "rotate_camera_right", state: () => ({ state: "off", value: "RIGHT" }) },
 	// camera (or seat) height and zoom, as Page Up / Down and Shift + Page Up / Down do
-	cam_up: { label: "Camera / seat up", key: "cam_up", hold: "moveup", state: () => ({ state: "off", value: "HEIGHT +" }) },
-	cam_down: { label: "Camera / seat down", key: "cam_down", hold: "movedown", state: () => ({ state: "off", value: "HEIGHT -" }) },
-	zoom_in: { label: "Zoom in (FOV -)", key: "zoom_in", hold: "increase_zoom", state: () => ({ state: "off", value: "ZOOM IN" }) },
-	zoom_out: { label: "Zoom out (FOV +)", key: "zoom_out", hold: "decrease_zoom", state: () => ({ state: "off", value: "ZOOM OUT" }) },
-	sprint: { label: "Sprint (shift)", key: "sprint", hold: "unicycle__sprintHold", state: (g) => ({ state: "off", value: "SPRINT", dim: !g.walking }) },
+	cam_up: { label: "Camera / seat up", key: "cam_up", hold: "moveup", state: () => ({ state: "off", value: "UP" }) },
+	cam_down: { label: "Camera / seat down", key: "cam_down", hold: "movedown", state: () => ({ state: "off", value: "DOWN" }) },
+	zoom_in: { label: "Zoom in (FOV -)", key: "zoom_in", hold: "increase_zoom", state: () => ({ state: "off", value: "IN" }) },
+	zoom_out: { label: "Zoom out (FOV +)", key: "zoom_out", hold: "decrease_zoom", state: () => ({ state: "off", value: "OUT" }) },
+	sprint: { label: "Sprint (shift)", key: "sprint", hold: "unicycle__sprintHold", state: (g) => ({ state: "off", value: "", dim: !g.walking }) },
 	// camera tab
 	cam_cycle: { label: "Next camera", key: "cam_cycle", mp: (st) => ({ fn: "cam_step", args: { dir: 1, gamecams: !!st.gamecams } }), lua: (_g, st) => camStep(1, st), state: (g) => ({ state: "off", value: camName(g.cam) }) },
 	cam_prev: { label: "Previous camera", key: "cam_prev", mp: (st) => ({ fn: "cam_step", args: { dir: -1, gamecams: !!st.gamecams } }), lua: (_g, st) => camStep(-1, st), state: (g) => ({ state: "off", value: camName(g.cam) }) },
@@ -154,7 +154,7 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 		key: "cam_driver",
 		mp: () => ({ fn: "cam_driver" }),
 		lua: "local id = be:getPlayerVehicleID(0) core_camera.setVehicleCameraByNameWithId(id, core_camera.getDriverCameraNameById(id)) return 'ok'",
-		state: (g) => (g.cam && (g.cam.startsWith("occupant") || g.cam === "driver") ? { state: "on", value: "ACTIVE" } : { state: "off", value: "" }),
+		state: (g) => (g.cam && (g.cam.startsWith("occupant") || g.cam === "driver") ? { state: "on", value: "DRIVER" } : { state: "off", value: "DRIVER" }),
 	},
 	cam_chase: { label: "Chase", key: "cam_chase", tool: ["set_camera", { name: "chase" }], state: (g) => camState(g, "chase") },
 	cam_external: { label: "External", key: "cam_external", tool: ["set_camera", { name: "external" }], state: (g) => camState(g, "external") },
@@ -176,7 +176,7 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 		mp: () => ({ fn: "replay_eject" }),
 		lua: "if core_replay.stopAndUnload then core_replay.stopAndUnload() else core_replay.stop() end return 'ok'",
 		// grey with nothing loaded
-		state: (g) => (!g.replay || g.replay === "inactive" ? { state: "off", value: "EJECT REPLAY", dim: true } : { state: "on", value: "EJECT REPLAY" }),
+		state: (g) => (!g.replay || g.replay === "inactive" ? { state: "off", value: "NONE", dim: true } : { state: "on", value: "" }),
 	},
 	// one key for the whole cycle: record, stop recording (the game then loads it, paused), play is
 	// stopped if it's playing, and a stopped replay is ejected
@@ -218,7 +218,7 @@ function paint(c?: string): string | undefined {
 }
 
 function camState(g: GeStatus, name: string) {
-	return g.cam === name ? { state: "on", value: "ACTIVE" } : { state: "off", value: "" };
+	return g.cam === name ? { state: "on", value: name.toUpperCase() } : { state: "off", value: name.toUpperCase() };
 }
 
 /** The "Game function" button: one action type, the function is picked in its settings. */
@@ -245,7 +245,7 @@ export class GameFunction extends DeckAction {
 			label: f.key === "custom" ? "Game action" : f.label,
 			state: held ? "on" : s.state,
 			alt: ["off"],
-			value: s.value ?? f.label.toUpperCase(),
+			value: s.value ?? "", // the title says what it is; the bottom line is only for a mode
 			color: on || held ? C.warn : C.off,
 			overlay: s.overlay,
 			flash: s.flash,

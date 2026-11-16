@@ -1,0 +1,138 @@
+// The top title on every key: what the button does, the same in every mode (live, no game, not on this
+// vehicle, BeamMP). The bottom line is the button's current mode (see each face's value).
+// Keyed by action ("fog") or action + its setting ("difflock:front", "gamefn:pause"); the most specific
+// wins. A face that sets its own head (e.g. "PATTERN 2/4", "TIME +10 MIN") keeps it.
+// Full list with each key's modes: docs/button_titles.csv
+
+import type { Settings } from "./actions";
+
+export const TITLES: Record<string, string> = {
+	ignition: "IGNITION",
+	"traction:cycle": "DRIVE MODE",
+	"traction:toggle": "TRACTION",
+	"difflock:front": "FRONT DIFF",
+	"difflock:rear": "REAR DIFF",
+	"difflock:center": "CENTRE DIFF",
+	"difflock:all": "ALL DIFFS",
+	"difflock:cycle": "DIFF CYCLE",
+	range: "RANGE",
+	drive: "2WD / 4WD",
+	parkingbrake: "PARK BRAKE",
+	"headlights:cycle": "HEADLIGHTS",
+	"headlights:low": "LOW BEAM",
+	"headlights:high": "HIGH BEAM",
+	fog: "FOG LIGHTS",
+	hazards: "HAZARDS",
+	"indicator:left": "LEFT SIGNAL",
+	"indicator:right": "RIGHT SIGNAL",
+	"lightbar:cycle": "LIGHTBAR",
+	"lightbar:pattern": "PATTERN",
+	horn: "HORN",
+	"cruise:toggle": "CRUISE",
+	"cruise:set": "CRUISE SET",
+	"cruise:plus": "CRUISE +",
+	"cruise:minus": "CRUISE −",
+	enginebrake: "ENGINE BRAKE",
+	retarder: "RETARDER",
+	airsuspension: "AIR SUSPENSION",
+	"doors:doors": "DOORS",
+	"doors:hood": "BONNET",
+	"doors:trunk": "BOOT",
+	nitrous: "NITROUS",
+	jato: "JATO",
+	"tires:inflate": "TYRES +",
+	"tires:deflate": "TYRES −",
+	"gauge:gear": "GEAR",
+	"gauge:speed": "SPEED",
+	"gauge:kmh": "SPEED",
+	"gauge:mph": "SPEED",
+	"gauge:rpm": "RPM",
+	"gauge:fuel": "FUEL",
+	"gauge:water": "COOLANT",
+	"gauge:oil": "OIL",
+	"gauge:boost": "BOOST",
+	"gauge:damage": "DAMAGE",
+	// game functions
+	"gamefn:accept": "ACCEPT",
+	"gamefn:back": "BACK",
+	"gamefn:pause": "PHYSICS",
+	"gamefn:repair": "REPAIR",
+	"gamefn:recover": "RECOVER",
+	"gamefn:respawn": "RESPAWN",
+	"gamefn:walk": "ON FOOT",
+	"gamefn:map": "MAP",
+	"gamefn:vehicles": "VEHICLES",
+	"gamefn:radial": "RADIAL MENU",
+	"gamefn:slowmo": "SLOW MOTION",
+	"gamefn:slower": "SLOWER",
+	"gamefn:faster": "FASTER",
+	"gamefn:ui": "GAME UI",
+	"gamefn:photo": "PHOTO MODE",
+	"gamefn:traffic": "TRAFFIC",
+	"gamefn:trailer": "TRAILER",
+	"gamefn:nextveh": "NEXT VEHICLE",
+	"gamefn:up": "UP",
+	"gamefn:down": "DOWN",
+	"gamefn:left": "LEFT",
+	"gamefn:right": "RIGHT",
+	"gamefn:turn_left": "TURN CAMERA",
+	"gamefn:turn_right": "TURN CAMERA",
+	"gamefn:cam_up": "CAMERA HEIGHT",
+	"gamefn:cam_down": "CAMERA HEIGHT",
+	"gamefn:zoom_in": "ZOOM",
+	"gamefn:zoom_out": "ZOOM",
+	"gamefn:sprint": "SPRINT",
+	"gamefn:cam_cycle": "NEXT CAMERA",
+	"gamefn:cam_prev": "PREV CAMERA",
+	"gamefn:cam_free": "FREE CAMERA",
+	"gamefn:cam_center": "CENTRE CAMERA",
+	"gamefn:cam_orbit": "CAMERA",
+	"gamefn:cam_driver": "CAMERA",
+	"gamefn:cam_chase": "CAMERA",
+	"gamefn:cam_external": "CAMERA",
+	"gamefn:cam_top": "CAMERA",
+	"gamefn:look_back": "LOOK BACK",
+	"gamefn:replay": "REPLAY REC",
+	"gamefn:replay_eject": "EJECT REPLAY",
+	"gamefn:replay_ctl": "REPLAY",
+	"gamefn:reload_lua": "RELOAD LUA",
+	// world
+	"world:clock": "TIME",
+	"world:daylen": "DAY LENGTH",
+	"world:time_sunrise": "SUNRISE",
+	"world:time_noon": "NOON",
+	"world:time_sunset": "SUNSET",
+	"world:time_midnight": "MIDNIGHT",
+	"world:time_fwd": "TIME +1 H",
+	"world:time_back": "TIME -1 H",
+	"world:wx_cycle": "WEATHER",
+	"world:wx_clear": "WEATHER",
+	"world:wx_cloudy": "WEATHER",
+	"world:wx_fog": "WEATHER",
+	"world:wx_rain": "WEATHER",
+	"world:wx_storm": "WEATHER",
+	"world:rain": "RAIN",
+	"world:fog": "FOG",
+	"world:wind": "WIND",
+	"world:grav_cycle": "GRAVITY",
+	"world:grav_earth": "GRAVITY",
+	"world:grav_moon": "GRAVITY",
+	"world:grav_mars": "GRAVITY",
+	"world:grav_zero": "GRAVITY",
+	"world:grav_jupiter": "GRAVITY",
+};
+
+/** Default for each action's setting, so "difflock" with no scope set finds "difflock:rear". */
+const DEFAULTS: Record<string, string> = { traction: "cycle", difflock: "rear", headlights: "cycle", lightbar: "cycle", cruise: "toggle", doors: "doors", tires: "inflate", gauge: "speed", gamefn: "", world: "clock" };
+
+/** The title for a key: action UUID (com.yahms.beamdeckng.<name>) + its settings. */
+export function titleFor(uuid: string | undefined, st: Settings): string | undefined {
+	const name = uuid?.split(".").pop();
+	if (!name) return undefined;
+	if (name === "doors" && typeof st.part === "string" && st.part.length === 2) return `DOOR ${st.part.toUpperCase()}`;
+	const variant =
+		name === "traction" ? (st.press === "toggle" ? "toggle" : "cycle")
+		: name === "tires" ? String(st.tdir ?? "inflate")
+		: String(st.fn ?? st.scope ?? st.side ?? st.press ?? st.op ?? st.dir ?? st.part ?? st.gauge ?? DEFAULTS[name] ?? "");
+	return TITLES[`${name}:${variant}`] ?? TITLES[name];
+}

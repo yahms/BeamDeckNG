@@ -17,7 +17,7 @@ import { Blocked, Mcp } from "./mcp";
 import { classify, RawControl, VControl } from "./vehcontrols";
 import { OutGauge } from "./outgauge";
 
-export const VERSION = "0.2.8";
+export const VERSION = "0.2.9";
 export const DECK_VERSION = "0.2.5"; // bump when the vehicle Lua changes, so vehicles reload it
 
 export type DiffState = "locked" | "open" | "partial" | "auto" | "lsd" | null | undefined;

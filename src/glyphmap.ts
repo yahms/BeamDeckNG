@@ -27,7 +27,7 @@ export const GLYPHS: Record<string, Record<string, G>> = {
 		off: g("powertrain_engine", P.red, "OFF"),
 	},
 	// traction: set in the face itself (one icon per drive mode, in the game's colour for that mode)
-	traction: { on: g("systems_tc", P.green), off: g("systems_tc", P.off) },
+	traction: { on: g(["powertrain_esc", "systems_esc"], P.green), off: g(["powertrain_esc", "systems_esc"], P.off) },
 	diff_front: DIFF("powertrain_differential_front_locked", "powertrain_differential_front_default"),
 	diff_rear: DIFF("powertrain_differential_rear_locked", "powertrain_differential_rear_default"),
 	diff_center: DIFF("powertrain_differential_middle_locked", "powertrain_differential_middle_default"),
@@ -63,14 +63,14 @@ export const GLYPHS: Record<string, Record<string, G>> = {
 	cruise_set: { idle: g("cruise-control_cruise-enable", P.white) },
 	cruise_plus: { idle: g("cruise-control_plus-res", P.white) },
 	cruise_minus: { idle: g("cruise-control_minus-set", P.white) },
-	ebrake: { off: g("garage_brakes", P.white, "ENG BRK"), on: g("garage_brakes", P.yellow) },
-	retarder: { off: g("garage_brakes", P.white, "RETARDER"), auto: g("garage_brakes", P.blue), on: g("garage_brakes", P.yellow) },
+	ebrake: { off: g("garage_brakes", P.white), on: g("garage_brakes", P.yellow) },
+	retarder: { off: g("garage_brakes", P.white), auto: g("garage_brakes", P.blue), on: g("garage_brakes", P.yellow) },
 	air_raise: { off: g(["systems_lift", "material_arrow_upward"], P.white), on: g(["systems_lift", "material_arrow_upward"], P.green) },
 	air_lower: { off: g(["systems_suspension", "material_arrow_downward"], P.white), on: g(["systems_suspension", "material_arrow_downward"], P.green) },
 	doors: { closed: g(["radial_vehicle_doors_close", "radial_vehicle_doors"], P.white), open: g(["radial_vehicle_doors_open", "radial_vehicle_doors"], P.yellow) },
 	door: { closed: g(["radial_vehicle_doors_close", "radial_vehicle_doors"], P.white), open: g(["radial_vehicle_doors_open", "radial_vehicle_doors"], P.yellow) },
-	hood: { closed: g(["radial_hinges", "radial_vehicle_doors"], P.white, "BONNET"), open: g(["radial_hinges", "radial_vehicle_doors"], P.yellow, "BONNET") },
-	trunk: { closed: g(["radial_hinges", "radial_vehicle_doors"], P.white, "BOOT"), open: g(["radial_hinges", "radial_vehicle_doors"], P.yellow, "BOOT") },
+	hood: { closed: g(["radial_hinges", "radial_vehicle_doors"], P.white), open: g(["radial_hinges", "radial_vehicle_doors"], P.yellow) },
+	trunk: { closed: g(["radial_hinges", "radial_vehicle_doors"], P.white), open: g(["radial_hinges", "radial_vehicle_doors"], P.yellow) },
 	n2o: { off: g(["powertrain_n2o", "radial_nitrous_oxide"], P.white), armed: g(["powertrain_n2o", "radial_nitrous_oxide"], P.blue), spray: g(["powertrain_n2o", "radial_nitrous_oxide"], P.green) },
 	jato: { off: g("powertrain_jato", P.white), on: g("powertrain_jato", P.yellow), empty: g("powertrain_jato", P.off) },
 	tire_up: { off: g(["tire-pressure_pressure-increase", "tire-pressure_tire-pressure-fill"], P.white), on: g(["tire-pressure_pressure-increase", "tire-pressure_tire-pressure-fill"], P.green) },
@@ -103,11 +103,11 @@ export const GLYPHS: Record<string, Record<string, G>> = {
 	cam_prev: { off: g("material_switch_video", P.white), on: g("material_switch_video", P.green) },
 	cam_free: { off: g("material_directions_car", P.white), on: g("material_videocam", P.green) },
 	cam_center: { off: g("material_center_focus_strong", P.white), on: g("material_center_focus_strong", P.green) },
-	cam_orbit: { off: g("tech_camerafocusonvehicle2", P.white, "ORBIT"), on: g("tech_camerafocusonvehicle2", P.green, "ORBIT") },
-	cam_driver: { off: g("material_airline_seat_recline_normal", P.white, "DRIVER"), on: g("material_airline_seat_recline_normal", P.green, "DRIVER") },
-	cam_chase: { off: g("material_directions_car", P.white, "CHASE"), on: g("material_directions_car", P.green, "CHASE") },
-	cam_external: { off: g("material_videocam", P.white, "EXTERNAL"), on: g("material_videocam", P.green, "EXTERNAL") },
-	cam_top: { off: g("tech_camerafocustopdown", P.white, "TOP"), on: g("tech_camerafocustopdown", P.green, "TOP") },
+	cam_orbit: { off: g("tech_camerafocusonvehicle2", P.white), on: g("tech_camerafocusonvehicle2", P.green) },
+	cam_driver: { off: g("material_airline_seat_recline_normal", P.white), on: g("material_airline_seat_recline_normal", P.green) },
+	cam_chase: { off: g("material_directions_car", P.white), on: g("material_directions_car", P.green) },
+	cam_external: { off: g("material_videocam", P.white), on: g("material_videocam", P.green) },
+	cam_top: { off: g("tech_camerafocustopdown", P.white), on: g("tech_camerafocustopdown", P.green) },
 	look_back: { off: g("material_flip_to_back", P.white), on: g("material_flip_to_back", P.green) },
 	replay: { off: g(["tech_moviecamera", "material_videocam"], P.white), on: g(["tech_moviecamera", "material_videocam"], P.red) },
 	replay_eject: { off: g(["material_eject", "own_eject"], P.off), on: g(["material_eject", "own_eject"], P.white) },
@@ -127,6 +127,8 @@ export const GLYPHS: Record<string, Record<string, G>> = {
 	zoom_in: { off: g("own_zoom_in", P.white), on: g("own_zoom_in", P.green) },
 	zoom_out: { off: g("own_zoom_out", P.white), on: g("own_zoom_out", P.green) },
 	reload_lua: { off: g(["material_autorenew", "tech_reload"], P.white), on: g(["material_autorenew", "tech_reload"], P.green) },
+	pt: { off: g(["systems_awd"], P.white) },
+	vehcontrol: { off: g("own_vehcontrol", P.white), on: g("own_vehcontrol", P.green) },
 	nextveh_named: { off: g("material_directions_car", P.white), on: g("material_directions_car", P.green) },
 };
 
@@ -139,7 +141,8 @@ export function withGlyph(f: Face): Face {
 	const states = f.state === "unsupported" ? (f.alt ?? []) : [f.state, ...(f.alt ?? [])];
 	for (const st of states) {
 		const e = row[st];
-		if (e) return { ...f, glyph: e.g, tint: e.t, overlay: f.overlay ?? e.text, dim: f.dim || f.state === "unsupported" };
+		// not on this vehicle: the icon only, no state text from the table ("2WD" under N/A)
+		if (e) return { ...f, glyph: e.g, tint: e.t, overlay: f.state === "unsupported" ? f.overlay : f.overlay ?? e.text, dim: f.dim || f.state === "unsupported" };
 	}
 	return f;
 }

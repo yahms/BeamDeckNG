@@ -63,6 +63,17 @@ They come as a Stream Deck icon pack: double-click `com.yahms.beamdeckng.streamD
 (select a key > the arrow under its icon > Open Stream Deck Icon Library). They're also in the plugin
 folder (`%appdata%\Elgato\StreamDeck\Plugins\com.yahms.beamdeckng.sdPlugin\icons\`) for **Set from File**.
 
+## How keys read
+
+Every key has the same layout: **what it does on top** (FRONT DIFF, HORN, CAMERA HEIGHT), its icon, and
+**its current mode underneath** (OPEN, LOCKED, 4WD...), left out when there's nothing to add (Horn).
+The titles are in `src/titles.ts`; the full list with each key's modes is `docs/button_titles.csv`.
+With no game, no car, or a control this vehicle doesn't have, the key keeps its title and icon, greyed,
+with NO GAME / NO CAR / N/A underneath.
+
+Icons come from the game once it has been running (kept in `%APPDATA%\BeamDeckNG\glyphs.json`, so a
+plugin update doesn't lose them); before that, BeamDeckNG's own stand-ins are used.
+
 ## Example profiles (tabs)
 
 `profiles/` holds a suggested layout for the 15-key Stream Deck and the 32-key XL. The top-left

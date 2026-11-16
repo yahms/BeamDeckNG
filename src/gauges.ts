@@ -78,6 +78,9 @@ export const GAUGES: Record<string, { label: string; read: (g: G, st: Settings) 
 	},
 };
 
+/** Icon for each gauge, shown when there's no reading (no game, not on this vehicle). */
+const GAUGE_GLYPH: Record<string, string> = { gear: "own_g_gear", speed: "own_g_speed", kmh: "own_g_speed", mph: "own_g_speed", rpm: "own_g_speed", fuel: "own_g_fuel", water: "own_g_temp", oil: "own_g_oil", boost: "own_g_boost", damage: "own_g_damage" };
+
 @action({ UUID: "com.yahms.beamdeckng.gauge" })
 export class Gauge extends DeckAction {
 	override passive = true;
@@ -87,9 +90,9 @@ export class Gauge extends DeckAction {
 	face(s: VehicleStatus, st: Settings): Face {
 		const id = this.id(st), def = GAUGES[id];
 		const r = s.g ? def.read(s.g, st) : undefined;
-		const base = { key: "gauge", state: id, label: def.label, color: C.off };
-		// not on this vehicle (no turbo, electric car without oil temperature...)
-		if (!r) return { ...base, value: "N/A", panel: { big: "N/A", top: def.label }, dim: true };
+		const base = { key: "gauge", state: id, label: def.label, color: C.off, glyph: [GAUGE_GLYPH[id] ?? "own_g_speed"] };
+		// not on this vehicle (no turbo, electric car without oil temperature...): its icon, greyed
+		if (!r) return { ...base, value: "N/A", dim: true };
 		return { ...base, value: r.panel.big, panel: r.panel, flash: r.flash };
 	}
 	/** Only the damage gauge does something: repair in place. */

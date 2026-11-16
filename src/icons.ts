@@ -9,9 +9,10 @@
 // With no glyph available, a text placeholder is drawn.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { OWN_GLYPHS } from "./ownglyphs";
+import { FALLBACK_GLYPHS, OWN_GLYPHS } from "./ownglyphs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const STATES_DIR = path.join(here, "..", "imgs", "states");
@@ -50,10 +51,10 @@ export type Face = {
 	tint?: string; // glyph colour (a P colour); flash frames use P.dimmed
 	/** Drawn gauge / readout instead of an icon: clock, speed, fuel... */
 	panel?: { big: string; top?: string; unit?: string; bg?: string; fg?: string; bar?: { value: number; color: string } };
-	label: string; // top line on the placeholder
-	value: string; // big middle text
-	sub?: string; // small bottom line (mode name, "PAUSED"...)
-	head?: string; // small line above the glyph, for two-line labels ("GRAVITY" / "EARTH", "UNHITCH" / "TRAILER")
+	label: string; // what the key is (also the in-game message); the top title unless head is set
+	value: string; // its current mode: the bottom line (left out when it only repeats the title)
+	sub?: string; // small extra line under the mode ("TC ON", "PAUSED", "OPENS MENU"...)
+	head?: string; // top title, when it differs from label (e.g. "PATTERN 2/4", "TIME +10 MIN")
 	color: string;
 	flash?: boolean;
 	dim?: boolean;
@@ -72,19 +73,43 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 const svgUrl = (svg: string) => `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 
+/** Top title / bottom mode for a key: every key reads the same way, whatever it's showing. */
+export function titleOf(f: Face): { top: string; bottom: string; sub?: string } {
+	const top = (f.head ?? f.label ?? "").toUpperCase();
+	let bottom = (f.overlay ?? f.value ?? "").toUpperCase();
+	if (bottom === top || bottom === "") bottom = "";
+	return { top, bottom, sub: f.sub?.toUpperCase() };
+}
+const FONT = 'font-family="Arial, Helvetica, sans-serif" font-weight="bold" text-anchor="middle"';
+function topText(top: string, fill: string): string {
+	if (!top) return "";
+	const size = top.length <= 10 ? 18 : top.length <= 13 ? 15 : 13;
+	return `<text x="72" y="24" ${FONT} font-size="${size}" fill="${fill}" fill-opacity="0.85">${esc(clip(top, 17))}</text>`;
+}
+function bottomText(bottom: string, sub: string | undefined, fill: string): string {
+	let out = "";
+	if (bottom) {
+		const size = bottom.length <= 8 ? 21 : bottom.length <= 11 ? 18 : 15;
+		out += `<text x="72" y="${sub ? 114 : 131}" ${FONT} font-size="${sub ? Math.min(size, 18) : size}" fill="${fill}">${esc(clip(bottom, 14))}</text>`;
+	}
+	if (sub) out += `<text x="72" y="${bottom ? 135 : 131}" ${FONT} font-size="13" fill="${fill}" fill-opacity="0.8">${esc(clip(sub, 18))}</text>`;
+	return out;
+}
+
+/** No icon at all: title on top, the mode big in the middle. */
 function placeholder(f: Face, dark: boolean): string {
-	const v = f.value.toUpperCase();
-	const vs = v.length <= 3 ? 44 : v.length <= 4 ? 40 : v.length <= 5 ? 34 : v.length <= 6 ? 28 : v.length <= 7 ? 24 : 20;
-	const bg = dark ? "#000" : f.color;
-	const fg = dark ? "#777" : "#fff";
+	const { top, bottom, sub } = titleOf(f);
+	const v = bottom || (f.value ?? "").toUpperCase();
+	const vs = v.length <= 3 ? 40 : v.length <= 5 ? 32 : v.length <= 7 ? 24 : v.length <= 10 ? 18 : 15;
+	const fg = dark || f.dim ? P.off : "#fff";
+	const frame = f.color && f.color !== C.none && f.color !== C.off && !f.dim ? f.color : "rgba(255,255,255,0.18)";
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
-<rect x="0" y="0" width="144" height="144" fill="${bg}"/>
-<rect x="5" y="5" width="134" height="134" rx="14" fill="none" stroke="${dark ? f.color : "rgba(255,255,255,0.25)"}" stroke-width="${dark ? 6 : 3}"/>
-${f.dim && !dark ? `<rect x="0" y="0" width="144" height="144" fill="#000" fill-opacity="0.55"/>` : ""}
-<text x="72" y="34" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="bold" fill="${fg}" fill-opacity="0.8" text-anchor="middle">${esc(clip(f.label.toUpperCase(), 13))}</text>
-<text x="72" y="${86 + vs / 3}" font-family="Arial, Helvetica, sans-serif" font-size="${vs}" font-weight="bold" fill="${fg}" text-anchor="middle">${esc(clip(v, 10))}</text>
+<rect x="0" y="0" width="144" height="144" fill="#000"/>
+<rect x="5" y="5" width="134" height="134" rx="14" fill="none" stroke="${frame}" stroke-width="4"/>
+${topText(top, fg)}
+${v ? `<text x="72" y="${80 + vs / 3}" ${FONT} font-size="${vs}" fill="${fg}">${esc(clip(v, 12))}</text>` : ""}
+${sub ? `<text x="72" y="128" ${FONT} font-size="13" fill="${fg}" fill-opacity="0.8">${esc(clip(sub, 18))}</text>` : ""}
 ${f.frame ? `<rect x="4" y="4" width="136" height="136" rx="18" fill="none" stroke="${f.frame}" stroke-width="8"/>` : ""}
-${f.sub ? `<text x="72" y="126" font-family="Arial, Helvetica, sans-serif" font-size="16" fill="${fg}" fill-opacity="0.85" text-anchor="middle">${esc(clip(f.sub, 15))}</text>` : ""}
 </svg>`;
 }
 
@@ -138,13 +163,18 @@ const BUILTIN: Record<string, Glyph> = {
 	...OWN_GLYPHS,
 }; // id -> when the game last said it has no such icon
 
-// Icons already read from the game are kept on this PC (cache/glyphs.json in the plugin folder), so keys
-// keep their icons while the game isn't running. The cache is the player's own copy; it is never shipped.
-const CACHE = path.join(here, "..", "cache", "glyphs.json");
-try {
-	if (existsSync(CACHE)) for (const [id, g] of Object.entries(JSON.parse(readFileSync(CACHE, "utf8")) as Record<string, Glyph>)) glyphs.set(id, g);
-} catch {
-	/* unreadable cache: icons are fetched again */
+// Icons already read from the game are kept on this PC, so keys keep the game's icons while it isn't
+// running. The cache lives outside the plugin folder (%APPDATA%\BeamDeckNG) so installing a new plugin
+// version doesn't throw it away. It is the player's own copy; it is never shipped. Until the game has
+// been seen, keys use BeamDeckNG's own stand-in icons (FALLBACK_GLYPHS).
+const CACHE = path.join(process.env.APPDATA || path.join(os.homedir(), ".config"), "BeamDeckNG", "glyphs.json");
+const OLD_CACHE = path.join(here, "..", "cache", "glyphs.json");
+for (const f of [OLD_CACHE, CACHE]) {
+	try {
+		if (existsSync(f)) for (const [id, g] of Object.entries(JSON.parse(readFileSync(f, "utf8")) as Record<string, Glyph>)) if (g) glyphs.set(id, g);
+	} catch {
+		/* unreadable cache: icons are fetched again */
+	}
 }
 for (const [id, g] of Object.entries(BUILTIN)) glyphs.set(id, g);
 
@@ -197,6 +227,11 @@ function pickGlyph(ids: string[] | undefined): Glyph | undefined {
 		// not fetched yet, or the game had no such icon: ask (again, now and then), and try the next one
 		if (g === undefined || Date.now() - (misses.get(id) ?? 0) > 60_000) wanted.add(id);
 	}
+	// none of the game's icons to hand: our own stand-in for the first one that has one
+	for (const id of ids) {
+		const fb = FALLBACK_GLYPHS[id] ?? (id.startsWith("powertrain_esc") ? FALLBACK_GLYPHS.powertrain_esc : undefined);
+		if (fb) return fb;
+	}
 	return undefined;
 }
 
@@ -204,32 +239,31 @@ function pickGlyph(ids: string[] | undefined): Glyph | undefined {
  *  with a plain transform and every colour is written out as a literal. */
 function glyphSvg(f: Face, g: Glyph, dark: boolean): string {
 	const tint = dark ? P.dimmed : f.dim ? P.dimmed : f.tint ?? P.white;
-	// every button says what it is / what state it's in, so a key is never blank
-	let text = (f.overlay ?? f.value ?? "").toUpperCase();
-	let head = f.head?.toUpperCase();
-	// a status line (OPENS MENU) takes the bottom; what the key shows moves up top
-	if (f.sub) {
-		head = head ? `${head} ${text}`.trim() : text;
-		text = f.sub.toUpperCase();
-	}
-	const size = head ? 64 : text ? 84 : 100;
+	const fg = f.dim ? P.off : "#fff";
+	// every key: what it is on top, its current mode underneath (when that adds anything)
+	const { top, bottom, sub } = titleOf(f);
+	const y0 = top ? 32 : 8;
+	const y1 = sub && bottom ? 96 : bottom || sub ? 108 : 136;
+	const size = Math.min(y1 - y0, 78);
 	const [vx, vy, vw, vh] = (g.viewBox.trim().split(/[\s,]+/).map(Number) ?? []).map((n) => (Number.isFinite(n) ? n : 0));
 	const k = size / Math.max(vw || 24, vh || 24);
 	const tx = (144 - (vw || 24) * k) / 2 - vx * k;
-	const ty = (head ? 34 : text ? 10 : (144 - size) / 2) + (size - (vh || 24) * k) / 2 - vy * k;
-	const inner = g.inner.replace(/currentColor/g, tint);
+	const ty = y0 + (y1 - y0 - (vh || 24) * k) / 2 - vy * k;
+	let inner = g.inner.replace(/currentColor/g, tint);
+	// greyed: the whole icon goes grey, including its fixed-colour parts (the sunrise sun)
+	if (f.dim || dark) inner = inner.replace(/(fill|stroke)="#[0-9a-f]{3,6}"/gi, `$1="${tint}"`);
 	const n = (x: number) => Number(x.toFixed(3));
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
 <rect x="0" y="0" width="144" height="144" fill="#000"/>
 <g transform="translate(${n(tx)} ${n(ty)}) scale(${n(k)})" fill="${tint}">${inner}</g>
 ${decorations({ ...f, overlay: undefined })}
-${head ? `<text x="72" y="26" font-family="Arial, Helvetica, sans-serif" font-size="${head.length > 9 ? 16 : 19}" font-weight="bold" fill="${f.dim ? P.off : "#fff"}" fill-opacity="0.8" text-anchor="middle">${esc(clip(head, 13))}</text>` : ""}
-${text ? `<text x="72" y="130" font-family="Arial, Helvetica, sans-serif" font-size="${text.length > 9 ? 17 : 21}" font-weight="bold" fill="${f.dim ? P.off : "#fff"}" text-anchor="middle">${esc(clip(text, 13))}</text>` : ""}
+${topText(top, fg)}
+${bottomText(bottom, sub, fg)}
 </svg>`;
 }
 
 function panelSvg(f: Face, dark: boolean): string {
-	const p = f.panel!;
+	const p = { ...f.panel!, top: f.head ?? f.panel!.top ?? f.label };
 	const fg = f.dim ? P.dimmed : p.fg ?? "#fff";
 	const n = p.big.length;
 	const size = n <= 2 ? 72 : n <= 3 ? 62 : n <= 4 ? 50 : n <= 5 ? 42 : n <= 6 ? 34 : n <= 8 ? 27 : 21;
@@ -237,7 +271,7 @@ function panelSvg(f: Face, dark: boolean): string {
 	const cy = p.top ? (bar !== undefined && p.unit ? 66 : p.unit || bar !== undefined ? 72 : 78) : 70;
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
 <rect width="144" height="144" fill="${dark || f.dim ? "#000" : p.bg ?? "#000"}"/>
-${p.top ? `<text x="72" y="30" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="bold" fill="${fg}" fill-opacity="0.75" text-anchor="middle">${esc(clip(p.top.toUpperCase(), 12))}</text>` : ""}
+${topText((p.top ?? "").toUpperCase(), f.dim ? P.off : "#fff")}
 <text x="72" y="${cy + size * 0.35}" font-family="Arial, Helvetica, sans-serif" font-size="${size}" font-weight="bold" fill="${fg}" text-anchor="middle">${esc(p.big)}</text>
 ${p.unit ? `<text x="72" y="${bar === undefined ? 126 : 114}" font-family="Arial, Helvetica, sans-serif" font-size="${bar === undefined ? 17 : 15}" font-weight="bold" fill="${fg}" fill-opacity="0.75" text-anchor="middle">${esc(clip(p.unit, 14))}</text>` : ""}
 ${bar === undefined ? "" : `<rect x="14" y="122" width="116" height="12" rx="6" fill="#fff" fill-opacity="0.18"/><rect x="14" y="122" width="${(116 * bar).toFixed(1)}" height="12" rx="6" fill="${p.bar!.color}"/>`}
@@ -268,7 +302,7 @@ export function render(f: Face, phase: number): string {
 	// no override PNG: the game's own icon, coloured for the state
 	const g = pickGlyph(f.glyph);
 	if (g) return svgUrl(glyphSvg(f, g, !!altFrame));
-	return svgUrl(placeholder(f.state === "unsupported" ? { ...f, dim: false } : f, !!altFrame));
+	return svgUrl(placeholder(f, !!altFrame));
 }
 
 /**

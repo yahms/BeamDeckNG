@@ -144,7 +144,7 @@ export const WORLD_FUNCS: Record<string, WorldFn> = {
 		label: "Time of day",
 		face: (g) => {
 			const h = hourOf(g.tod!.time);
-			return { key: "world", state: "clock", label: "Time", value: clock(h), color: C.off, panel: { big: clock(h), bg: sky(h), top: "Time", unit: g.tod!.play ? "RUNNING" : "FROZEN" } };
+			return { key: "world", state: "clock", label: "Time", value: clock(h), color: C.off, glyph: ["own_schedule"], panel: { big: clock(h), bg: sky(h), top: "Time", unit: g.tod!.play ? "RUNNING" : "FROZEN" } };
 		},
 		press: (g) => run(`core_environment.setTimeOfDay({ play = ${g.tod?.play ? "false" : "true"} }) return 'ok'`),
 	},
@@ -164,7 +164,7 @@ export const WORLD_FUNCS: Record<string, WorldFn> = {
 	},
 	daylen: {
 		label: "Day length",
-		face: (g) => ({ key: "world", state: "daylen", label: "Day length", value: dayName(g.tod!.dayLength), color: C.off, panel: { big: dayName(g.tod!.dayLength), top: "Day", unit: g.tod!.play ? "per day" : "frozen" } }),
+		face: (g) => ({ key: "world", state: "daylen", label: "Day length", value: dayName(g.tod!.dayLength), color: C.off, glyph: ["own_hourglass"], panel: { big: dayName(g.tod!.dayLength), top: "Day", unit: g.tod!.play ? "per day" : "frozen" } }),
 		press: (g) => run(`core_environment.setTimeOfDay({ dayLength = ${nextOf(DAYLEN, g.tod?.dayLength ?? 1800)}, play = true }) return 'ok'`),
 	},
 	wx_cycle: {
@@ -238,6 +238,9 @@ function worldMenu(id: string): string {
 	return "environment"; // time of day, day length
 }
 
+/** Stand-in world state for drawing a key's icon when no map is loaded. */
+const NO_MAP_GE: GeStatus = { tod: { time: 0.25, play: true, dayLength: 1800 }, cloud: 0, fog: 0, fogH: 0, wind: 0, rain: 0, grav: -9.81 };
+
 @action({ UUID: "com.yahms.beamdeckng.world" })
 export class World extends DeckAction {
 	override vehicle = false;
@@ -247,7 +250,11 @@ export class World extends DeckAction {
 	face(_s: VehicleStatus, st: Settings, held?: boolean, ge: GeStatus = {}): Face {
 		const f = this.fn(st);
 		// no map loaded: nothing to show or change
-		if (!ge.tod) return { key: "world", state: "nomap", label: f.label, value: "NO MAP", color: C.none, panel: { big: "NO MAP", top: f.label }, dim: true };
+		// no map loaded: nothing to show or change, but the key still shows its icon (greyed)
+		if (!ge.tod) {
+			const face = f.face(NO_MAP_GE);
+			return { ...face, value: "NO MAP", overlay: "NO MAP", sub: undefined, color: C.none, dim: true, flash: false, panel: face.glyph ? undefined : face.panel && { ...face.panel, big: "NO MAP", unit: undefined, bar: undefined, bg: undefined, fg: undefined } };
+		}
 		const face = f.face(ge);
 		return held ? { ...face, tint: P.green } : face;
 	}

@@ -28,7 +28,8 @@ export class VehicleControl extends DeckAction {
 		if (!k) {
 			// before the game is read: say what the key is; a vehicle with fewer controls: blank
 			const known = !!game?.controls;
-			return { key: "vehcontrol", state: "unsupported", label: known ? "" : "Vehicle control", value: known ? "" : `#${n}`, color: C.none, dim: true };
+			if (known) return { key: "common", state: "blank", label: "", value: "", color: C.none };
+			return { key: "vehcontrol", state: "unsupported", alt: ["off"], label: "Vehicle control", value: `#${n}`, color: C.none, dim: true };
 		}
 		// a towed trailer's control says so
 		const base = { key: "vehcontrol", label: k.label, sub: k.t ? (k.t > 1 ? `TRAILER ${k.t}` : "TRAILER") : undefined };

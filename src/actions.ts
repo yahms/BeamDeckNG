@@ -8,6 +8,7 @@ import streamDeck, {
 	WillAppearEvent,
 	WillDisappearEvent,
 } from "@elgato/streamdeck";
+import { titleFor } from "./titles";
 import { DiffState, Game, GeStatus, ResolverResult, Snapshot, VehicleStatus } from "./game";
 import { withGlyph } from "./glyphmap";
 import { Blocked } from "./mcp";
@@ -280,7 +281,7 @@ export function tell(e: Entry, text?: string, icon = "info") {
 		const f = faceFor(e, game.snapshot);
 		const what = f.panel
 			? `${f.panel.top ?? f.label}: ${f.panel.big}${f.panel.unit ? " " + f.panel.unit : ""}`
-			: `${f.label}: ${f.value}${f.sub ? ` (${f.sub})` : ""}`;
+			: `${f.label}${f.value ? `: ${f.value}` : ""}${f.sub ? ` (${f.sub})` : ""}`;
 		game.message(`Stream Deck: ${what}`, f.state === "error" ? "warning" : "info");
 	}, 700);
 }
@@ -294,7 +295,7 @@ export function note(e: Entry, face: Partial<Face>, ms: number) {
 
 let phase = 0;
 
-function faceFor(e: Entry, snap: Snapshot): Face {
+export function faceFor(e: Entry, snap: Snapshot): Face {
 	// No game / no car / loading: the button still shows what it is (its idle icon, dimmed, or its name),
 	// so a layout can be built without the game running.
 	const idle = (state: string, text: string): Face => {
@@ -304,7 +305,7 @@ function faceFor(e: Entry, snap: Snapshot): Face {
 		} catch {
 			b = { key: "common", state, label: "BeamDeckNG", value: text, color: C.none };
 		}
-		return { ...b, alt: [...(b.state === "unsupported" ? [] : [b.state]), ...(b.alt ?? [])], state: "unsupported", dim: true, flash: false, color: C.none, value: text, overlay: text, sub: undefined, ring: undefined, panel: b.panel && { big: text, top: b.panel.top ?? b.label } };
+		return { ...b, alt: [...(b.state === "unsupported" ? [] : [b.state]), ...(b.alt ?? [])], state: "unsupported", dim: true, flash: false, color: C.none, value: text, overlay: text, sub: undefined, ring: undefined, panel: b.glyph ? undefined : b.panel && { big: text, top: b.panel.top ?? b.label } };
 	};
 	let f: Face;
 	if (snap.link === "offline") f = idle("offline", "NO GAME");
@@ -333,11 +334,16 @@ function faceFor(e: Entry, snap: Snapshot): Face {
 		if (why && cmd?.menu && game.canMenu(cmd.menu)) f = { ...f, sub: "OPENS MENU" };
 		else if (why) f = idle(why, why === "blocked" ? "BLOCKED" : "NOT IN MP");
 	}
+	// the top title: the same in every mode (unless the face sets its own, e.g. "PATTERN 2/4")
+	if (!f.head) {
+		const t = titleFor(e.impl.manifestId, e.settings);
+		if (t) f = { ...f, head: t };
+	}
 	if (e.busy) f = { ...f, flash: true };
 	if (e.note) {
 		if (Date.now() < e.note.until) {
 			// short result notes (N/A, ERROR) are text keys
-			f = { ...f, ...e.note.face, state: e.note.face.color === C.alert ? "error" : f.state, glyph: undefined };
+			f = { ...f, ...e.note.face, state: e.note.face.color === C.alert ? "error" : f.state, glyph: undefined, overlay: undefined };
 			return f;
 		}
 		e.note = undefined;
@@ -507,7 +513,6 @@ function stepIndex(s: VehicleStatus, steps: DiffStep[]): number {
 	const ck = s.centerModes?.length ? s.centerMode?.key ?? undefined : s.diff?.center === "locked" ? "locked" : s.diff?.center ? "open" : undefined;
 	return steps.findIndex((st) => st.rear === rL && st.front === fL && (st.center === undefined || st.center === ck));
 }
-const DIFF_TAG = { front: "FRONT", rear: "REAR", center: "CENTRE" };
 
 function allDiffs(s: VehicleStatus): DiffState {
 	const v = [s.diff?.front, s.diff?.rear, s.diff?.center].filter((x) => x);
@@ -537,9 +542,10 @@ export class DiffLock extends DeckAction {
 		const label = DIFF_LABEL[scope];
 		const multi = scope === "all" || scope === "cycle";
 		const cur = multi ? allDiffs(s) : s.diff?.[scope];
-		let overlay = multi ? lockedList(s) : DIFF_TAG[scope];
+		// one diff: the title says which, the bottom says how it's set; all / cycle: which are locked
+		let overlay = multi ? lockedList(s) : undefined;
 		if (scope === "cycle") {
-			if (diffCycle(s).length < 2) return { ...unsupported(key, label, ["open"]), base, overlay };
+			if (diffCycle(s).length < 2) return { ...unsupported(key, label, ["open"]), base };
 			// centre-mode steps: show the centre mode (e.g. "LOCK 50%") instead of OPEN
 			const steps = diffCycle(s);
 			const i = stepIndex(s, steps);
@@ -561,7 +567,7 @@ export class DiffLock extends DeckAction {
 				// limited-slip (e.g. the Procyon Centauri's centre): not locked, not fully open
 				return { ...f, ...unlocked, value: "LSD", color: C.off };
 		}
-		return { ...unsupported(key, label, [unlocked.state, "open"]), base, overlay };
+		return { ...unsupported(key, label, [unlocked.state, "open"]), base };
 	}
 	command(s: VehicleStatus, st: Settings): Command {
 		const scope = st.scope ?? "rear";
@@ -717,7 +723,7 @@ export class Lightbar extends DeckAction {
 @action({ UUID: "com.yahms.beamdeckng.horn" })
 export class Horn extends DeckAction {
 	face(_s: VehicleStatus, _st: Settings, held?: boolean): Face {
-		return binary("horn", "Horn", !!held);
+		return { ...binary("horn", "Horn", !!held), value: "" }; // the title says it all
 	}
 	command(): Command {
 		return { action: "horn", args: { state: 1 } };
@@ -792,7 +798,7 @@ export class AirSuspension extends DeckAction {
 		const key = `air_${dir}`;
 		const label = dir === "raise" ? "Air up" : "Air down";
 		if (!s.air) return unsupported(key, label, ["off"]);
-		return { ...binary(key, label, !!held), value: dir === "raise" ? "RAISE" : "LOWER", overlay: "AIR" };
+		return { ...binary(key, label, !!held), value: dir === "raise" ? "RAISE" : "LOWER" };
 	}
 	command(s: VehicleStatus, st: Settings): Command {
 		if (!s.air) return null;
