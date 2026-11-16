@@ -1,4 +1,4 @@
-# BeamDeckNG 0.2.10 (pre-release)
+# BeamDeckNG 0.2.11
 
 **Every key reads the same way.** What the button does is on top (FRONT DIFF, CAMERA HEIGHT, LIGHTBAR PATTERN),
 the icon in the middle, and its current mode underneath (OPEN, LOCKED, 4WD...), left out when there's nothing to
@@ -30,6 +30,15 @@ Without it, OutGauge (UDP 4444) keeps the gauges and a few lights working.
 - `com.yahms.beamdeckng.streamDeckIconPack`: folder, page and tab icons for the Stream Deck Icon Library
   (double-click to install). `BeamDeckNG-icons.zip` has the same icons as plain PNGs.
 
+**Plugin keys or keyboard hotkeys?** Some things suit a plain Stream Deck Hotkey better, or you may prefer
+one: anything bound to a key in BeamNG.drive (Options > Controls), custom bindings and mod actions included,
+works as a hotkey. Hotkeys need the game window focused and can't show the game's state, but don't need MCP.
+The icon pack is provided for exactly this, so hotkey, folder and page keys match the plugin's look. (The icons
+are BeamDeckNG's own, drawn from Material Symbols; any similarity to the earlier "Beam Deck" icons is accidental.)
+
+**Since 0.2.10:** Game UI shows green when the UI is on and red when it's off. Next / previous camera set to
+"only the ones enabled in the game" get their own icon (a camera with a cog) and say GAME LIST.
+
 **Fixes**
 - Single diff keys showed FRONT / REAR instead of OPEN / LOCKED; N/A keys could show a state (2WD, OPEN).
 - Traction no longer uses an icon that looked like tyre pressure.
@@ -39,4 +48,4 @@ Without it, OutGauge (UDP 4444) keeps the gauges and a few lights working.
 8.x), then drag buttons from the **BeamDeckNG** category, or double-click the example profile. Enable MCP in
 BeamNG.drive; Stream Deck must be on the same computer as the game.
 
-This is a pre-release: feedback and bug reports are welcome on the Issues page.
+Feedback and bug reports are welcome on the Issues page.

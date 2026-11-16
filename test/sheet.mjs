@@ -21,6 +21,7 @@ const KEYS = [
 	...["accept", "back", "pause", "repair", "recover", "respawn", "walk", "map", "vehicles", "radial", "slowmo", "slower", "ui", "photo", "traffic", "trailer",
 		"nextveh", "up", "turn_left", "cam_up", "zoom_in", "sprint", "cam_cycle", "cam_free", "cam_center", "cam_orbit", "cam_driver", "look_back",
 		"replay_eject", "replay_ctl"].map((fn) => [GameFunction, { fn }]),
+	[GameFunction, { fn: "cam_cycle", gamecams: true }], [GameFunction, { fn: "cam_prev" }], [GameFunction, { fn: "cam_prev", gamecams: true }],
 	...["clock", "daylen", "time_sunrise", "time_sunset", "time_p1h", "wx_cycle", "wx_rain", "cloud_up", "fog_down", "fogh_up", "wind_up", "grav_cycle", "grav_moon"].map((fn) => [World, { fn }]),
 ];
 const status = {
@@ -28,7 +29,7 @@ const status = {
 	range: "high", drive: "4wd", pbrake: false, lights: 1, fog: 0, hazard: false, sigL: 0, sigR: 0, lightbar: 1, lbm: 1, lbn: "Chase", lbc: 4,
 	cruise: { on: true, speed: 22.2 }, ebrake: 0, n2o: { armed: false }, doors: { FL: false }, g: { spd: 22, gear: "4", gi: 4, rpm: 2500, maxrpm: 7000, fuel: 0.6, dmg: 0 },
 };
-const ge = { paused: false, walking: false, cam: "orbit", replay: "inactive", towing: false, tod: { time: 0.3, play: true, dayLength: 1800 }, cloud: 1.2, fog: 0.08, fogH: 235, wind: 0.4, rain: 0, grav: -9.81, timeScale: 1, ui: true };
+const ge = { paused: false, ui: false, walking: false, cam: "orbit", replay: "inactive", towing: false, tod: { time: 0.3, play: true, dayLength: 1800 }, cloud: 1.2, fog: 0.08, fogH: 235, wind: 0.4, rain: 0, grav: -9.81, timeScale: 1 };
 const fake = { snapshot: {}, backend: "mcp", blocked: () => null, canMenu: () => false, poll: async () => {}, fetchGlyphs: async () => {}, mcpLink: "offline", message: () => {} };
 A.start(fake);
 const modes = {

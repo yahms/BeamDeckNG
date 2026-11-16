@@ -237,11 +237,14 @@ export class GameFunction extends DeckAction {
 	}
 
 	face(_s: VehicleStatus, st: Settings, held?: boolean, ge: GeStatus = {}): Face {
-		const [, f] = GameFunction.fn(st);
+		const [id, f] = GameFunction.fn(st);
 		const s = f.state?.(ge) ?? { state: "off" };
 		const on = s.state === "on";
+		// next / previous camera through the game's own camera list: its own icon, and says so
+		const gameList = (id === "cam_cycle" || id === "cam_prev") && !!st.gamecams;
 		return {
-			key: f.key,
+			key: gameList ? `${f.key}_game` : f.key,
+			sub: gameList ? "GAME LIST" : undefined,
 			label: f.key === "custom" ? "Game action" : f.label,
 			state: held ? "on" : s.state,
 			alt: ["off"],
