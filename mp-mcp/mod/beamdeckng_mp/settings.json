@@ -10,7 +10,7 @@
     "toggleBigMap", "toggleRadialMenuMulti", "photomode", "couplersToggle", "center_camera", "look_back",
     "rotate_camera_left", "rotate_camera_right", "unicycle__walkUp", "unicycle__walkDown", "unicycle__walkLeft",
     "unicycle__walkRight", "unicycle__sprintHold",
-    "moveup", "movedown", "increase_zoom", "decrease_zoom"
+    "moveup", "movedown", "increase_zoom", "decrease_zoom", "moveforward", "movebackward", "moveleft", "moveright", "toggleMenues"
   ],
   "game": ["set_camera", "cam_step", "cam_driver", "toggle_ui", "walk"],
   "menus": ["environment", "weather", "simulation", "traffic", "vehicle_config", "vehicle_selector", "multiplayer"],

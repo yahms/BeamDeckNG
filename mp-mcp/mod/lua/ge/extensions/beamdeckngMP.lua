@@ -20,7 +20,7 @@
 
 local M = {}
 
-local VERSION = "0.1.4" -- this mod
+local VERSION = "0.1.5" -- this mod
 local PROTO = 1 -- tool protocol: bump only for changes an older plugin can't cope with
 local HOST, PORT, ROUTE = "127.0.0.1", 29392, "/mcp"
 local ROOT = "/beamdeckng_mp/"
@@ -50,7 +50,7 @@ local DEFAULTS = {
     -- on foot
     "rotate_camera_left", "rotate_camera_right", "unicycle__walkUp", "unicycle__walkDown", "unicycle__walkLeft",
     "unicycle__walkRight", "unicycle__sprintHold",
-    "moveup", "movedown", "increase_zoom", "decrease_zoom",
+    "moveup", "movedown", "increase_zoom", "decrease_zoom", "moveforward", "movebackward", "moveleft", "moveright", "toggleMenues",
   },
   game = { "set_camera", "cam_step", "cam_driver", "toggle_ui", "walk" },
   menus = { "environment", "weather", "simulation", "traffic", "vehicle_config", "vehicle_selector", "multiplayer" },

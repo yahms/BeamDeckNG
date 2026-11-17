@@ -50,9 +50,11 @@ export const GLYPHS: Record<string, Record<string, G>> = {
 		high: g("own_headlight_high", P.blue),
 	},
 	fog: { on: g("radial_fog_lights", P.green), off: g("radial_fog_lights", P.white) },
-	hazard: { on: g("radial_hazard_lights", P.red), off: g("radial_hazard_lights", P.white) },
-	indicator_left: { on: g(["radial_left_arrow", "material_arrow_back"], P.green), off: g(["radial_left_arrow", "material_arrow_back"], P.white) },
-	indicator_right: { on: g(["radial_right_arrow", "material_arrow_forward"], P.green), off: g(["radial_right_arrow", "material_arrow_forward"], P.white) },
+	// red either way; flashes while on
+	hazard: { on: g("radial_hazard_lights", P.red), off: g("radial_hazard_lights", P.red) },
+	// green outline when off, solid green (flashing) when on
+	indicator_left: { on: g("own_sig_left_on", P.green), off: g("own_sig_left_off", P.green) },
+	indicator_right: { on: g("own_sig_right_on", P.green), off: g("own_sig_right_off", P.green) },
 	lightbar: {
 		off: g("radial_lightbar", P.white), mode1: g("radial_lightbar", P.yellow), mode2: g("radial_lightbar", P.red),
 		// flash pattern key: blue while the lightbar is on, white when it's off
@@ -80,10 +82,11 @@ export const GLYPHS: Record<string, Record<string, G>> = {
 	back: { off: g("material_close", P.red), on: g("material_close", P.red) },
 	pause: { off: g("tech_pause", P.white), on: g(["tech_play", "tech_playround"], P.yellow, "PAUSED") },
 	repair: { off: g("material_build", P.white), on: g("material_build", P.green) },
-	recover: { off: g("material_autorenew", P.white), on: g("material_autorenew", P.green) },
+	recover: { off: g("own_recover_road", P.white), on: g("own_recover_road", P.green) },
 	home: { off: g(["radial_home", "material_home"], P.white), on: g(["radial_home", "material_home"], P.green) },
 	// in the car: car lit, arrow out to the person; on foot: person lit, arrow back to the car
-	walk: { off: g("own_walk_car", P.white), on: g("own_walk_foot", P.green) },
+	// whichever you are (car or person) is green, the other white
+	walk: { off: g("own_walk_car", P.white), on: g("own_walk_foot", P.white) },
 	map: { off: g("material_map", P.white), on: g("material_map", P.green) },
 	vehicles: { off: g("garage_my_cars", P.white), on: g("garage_my_cars", P.green) },
 	radial: { off: g("own_radial", P.white), on: g("own_radial", P.green) },
@@ -94,7 +97,7 @@ export const GLYPHS: Record<string, Record<string, G>> = {
 	photo: { off: g("material_camera", P.white), on: g("material_camera", P.green) },
 	traffic: { off: g("material_traffic", P.white), on: g("material_traffic", P.green) },
 	trailer: { off: g(["radial_couplers", "own_hitch"], P.white), on: g(["radial_couplers", "own_hitch"], P.green) },
-	nextveh: { off: g("material_directions_car", P.white), on: g("material_directions_car", P.green) },
+	nextveh: { off: g("own_nextveh", P.white), on: g("own_nextveh", P.green) },
 	up: { off: g("material_keyboard_arrow_up", P.white), on: g("material_keyboard_arrow_up", P.green), walk: g("material_keyboard_arrow_up", P.blue) },
 	down: { off: g("material_keyboard_arrow_down", P.white), on: g("material_keyboard_arrow_down", P.green), walk: g("material_keyboard_arrow_down", P.blue) },
 	left: { off: g("material_keyboard_arrow_left", P.white), on: g("material_keyboard_arrow_left", P.green), walk: g("material_keyboard_arrow_left", P.blue) },
@@ -132,7 +135,7 @@ export const GLYPHS: Record<string, Record<string, G>> = {
 	reload_lua: { off: g(["material_autorenew", "tech_reload"], P.white), on: g(["material_autorenew", "tech_reload"], P.green) },
 	pt: { off: g(["systems_awd"], P.white) },
 	vehcontrol: { off: g("own_vehcontrol", P.white), on: g("own_vehcontrol", P.green) },
-	nextveh_named: { off: g("material_directions_car", P.white), on: g("material_directions_car", P.green) },
+	nextveh_named: { off: g("own_nextveh", P.white), on: g("own_nextveh", P.green) },
 };
 
 /** Fill in glyph / tint / text for a face from the table (faces that set their own glyph keep it). */

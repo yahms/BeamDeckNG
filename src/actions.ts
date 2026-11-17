@@ -23,6 +23,7 @@ export type Settings = {
 	index?: string; // powertrain buttons: which button of the game's bar (1-based)
 	scope?: "front" | "rear" | "center" | "all" | "cycle";
 	press?: string; // traction: toggle | cycle; lights: cycle | low | high; n2o: combined | arm | spray; jato: hold | toggle
+	show?: string; // ignition: "engine" = gear and RPM over the engine icon, with a shift light
 	side?: "left" | "right";
 	part?: "doors" | "FL" | "FR" | "RL" | "RR" | "hood" | "trunk";
 	op?: "toggle" | "set" | "plus" | "minus";
@@ -410,7 +411,26 @@ export function start(g: Game) {
 
 @action({ UUID: "com.yahms.beamdeckng.ignition" })
 export class Ignition extends DeckAction {
-	face(s: VehicleStatus): Face {
+	face(s: VehicleStatus, st: Settings = {}): Face {
+		const f = this.ignFace(s);
+		if (st.show !== "engine" || f.state === "unsupported") return f;
+		// engine key: gear big, RPM under it, over the engine icon (green running, red stalled / off).
+		// Shift light: yellow ring near the limit, red flashing at it (or when the game says shift).
+		const g = s.g ?? {};
+		const gear = s.running ? (g.gear ?? (g.gi === undefined ? "" : g.gi < 0 ? "R" : g.gi === 0 ? "N" : String(g.gi))) : "";
+		const k = g.rpm !== undefined && g.maxrpm ? g.rpm / g.maxrpm : undefined;
+		const shift = !s.running ? undefined : k === undefined ? (g.shift ? P.red : undefined) : k >= 0.96 || g.shift ? P.red : k >= 0.88 ? P.yellow : undefined;
+		const rpm = s.running && g.rpm !== undefined ? String(Math.round(g.rpm / 50) * 50) : undefined;
+		return {
+			...f,
+			label: "Engine",
+			value: s.running ? (rpm ? `${rpm} RPM` : "RUN") : f.value,
+			engine: s.running ? { gear, rpm, shift } : undefined,
+			flash: f.flash || shift === P.red,
+			frame: shift,
+		};
+	}
+	private ignFace(s: VehicleStatus): Face {
 		const base = { key: "ignition", label: "Ignition" };
 		if (s.running) return { ...base, state: "running", value: "RUN", color: C.on };
 		switch (s.ign) {
