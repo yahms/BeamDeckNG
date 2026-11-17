@@ -20,7 +20,7 @@
 
 local M = {}
 
-local VERSION = "0.1.5" -- this mod
+local VERSION = "0.1.6" -- this mod
 local PROTO = 1 -- tool protocol: bump only for changes an older plugin can't cope with
 local HOST, PORT, ROUTE = "127.0.0.1", 29392, "/mcp"
 local ROOT = "/beamdeckng_mp/"
@@ -213,6 +213,7 @@ local function geState()
   pcall(function() g.cam = core_camera.getActiveCamName() end)
   pcall(function() g.replay = core_replay.getState() g.replayPaused = core_replay.isPaused() end)
   pcall(function() g.ui = extensions.ui_visibility.getCef() end)
+  pcall(function() local s = extensions.ui_router.getState() g.route = s.currentRoute.resolved.name end)
   pcall(function() local d = core_trailerRespawn.getTrailerData() g.towing = d[be:getPlayerVehicleID(0)] ~= nil end)
   pcall(function()
     local t = core_environment.getTimeOfDay()

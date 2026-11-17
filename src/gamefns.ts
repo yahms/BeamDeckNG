@@ -16,8 +16,8 @@ type GameFn = {
 	walk?: string;
 	/** In the free camera: held as this input action instead (the arrows fly the camera). */
 	fly?: string;
-	/** Tap: trigger_action name. */
-	act?: string;
+	/** Tap: trigger_action name (or picked from the game state, e.g. the menu page that's open). */
+	act?: string | ((ge: GeStatus) => string);
 	/** Hold: trigger_action with down/up. */
 	hold?: string;
 	/** Anything else: an MCP tool call. */
@@ -86,7 +86,8 @@ const walkHeld = new Map<string, string>();
 export const GAME_FUNCS: Record<string, GameFn> = {
 	// fixed buttons
 	accept: { label: "Accept", key: "accept", act: "menu_item_select" },
-	back: { label: "Back", key: "back", act: "menu_item_back" },
+	// in the game (no menu open) Back opens the pause menu, like Escape; in a menu it goes back
+	back: { label: "Back", key: "back", act: (g) => (g.route === "play" ? "toggleMenues" : "menu_item_back") },
 	pause: { label: "Pause", key: "pause", act: "pause", state: (g) => (g.paused ? { state: "on", value: "PAUSED" } : { state: "off", value: "RUNNING" }) },
 	repair: { label: "Repair", key: "repair", act: "recover_vehicle_alt" },
 	recover: { label: "Recover", key: "recover", tool: ["recover_vehicle", {}] },
@@ -95,7 +96,13 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 	// gameplay_walk isn't always loaded (e.g. after a level load through MCP), so load it first
 	walk: { label: "Get in / out", key: "walk", mp: () => ({ fn: "walk" }), lua: "if not gameplay_walk then extensions.load('gameplay_walk') end gameplay_walk.toggleWalkingMode() return 'ok'", state: (g) => (g.walking ? { state: "on", value: "GET IN" } : { state: "off", value: "GET OUT" }) },
 	map: { label: "Map", key: "map", act: "toggleBigMap" },
-	vehicles: { label: "Vehicles", key: "vehicles", act: "vehicle_selector", menu: "vehicle_selector" },
+	// a second press (vehicle list open) closes it and returns to the game
+	vehicles: {
+		label: "Vehicles",
+		key: "vehicles",
+		act: (g) => (g.route?.startsWith("pause.vehicleSelector") ? "toggleMenues" : "vehicle_selector"),
+		menu: "vehicle_selector",
+	},
 	radial: { label: "Radial menu", key: "radial", act: "toggleRadialMenuMulti" },
 	slowmo: {
 		label: "Slow motion",
@@ -270,7 +277,7 @@ export class GameFunction extends DeckAction {
 		}
 		if (f.lua) return { tool: "run_lua", args: { code: typeof f.lua === "function" ? f.lua(ge, st) : f.lua }, mp: f.mp?.(st), menu };
 		if (f.hold) return { tool: "trigger_action", args: { action: f.hold, state: "down" }, menu };
-		if (f.act) return { tool: "trigger_action", args: { action: f.act }, menu };
+		if (f.act) return { tool: "trigger_action", args: { action: typeof f.act === "function" ? f.act(ge) : f.act }, menu };
 		if (f.tool) return { tool: f.tool[0], args: f.tool[1], menu };
 		return null;
 	}

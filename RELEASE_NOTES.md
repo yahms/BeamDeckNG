@@ -1,4 +1,32 @@
-# BeamDeckNG 0.2.11
+# BeamDeckNG 0.2.13
+
+## What's new since 0.2.11
+
+**Keys that know where you are**
+- Back (red X) in the game opens the pause menu, like Escape; in a menu it goes back a page.
+- Vehicles: a second press closes the vehicle list and returns to the game.
+- The arrows fly the free camera (as well as walking on foot and moving through menus).
+
+**Engine key.** The Ignition key has a new "Engine" display: gear and RPM over a green engine icon, and a red engine icon when it
+stalls. Pressing it starts / stops the engine, and it doubles as a shift light (yellow, then
+flashing red at the limiter).
+
+**Clearer icons**
+- Weather: one small cloud for less cloud, several for more; fog as a striped cloud (more stripes = thicker);
+  fog height as a smaller fog cloud with an up / down arrow; rain as a cloud with more or fewer blue drops; wind
+  with longer or shorter lines. All white.
+- Recover to road: a car on the road with a glint. Next vehicle: a boxed car with an arrow.
+- On foot is now IN CAR, in white and green rather than grey.
+- Hazards: red when off, flashing red when on. Indicators: green outline when off, solid flashing green when on.
+- Game UI: green when the UI is on, red when it's off.
+
+**Other changes**
+- Day length cycles through 15 min, 20 min, 30 min, 1 h, 2 h and 24 h.
+- Lightbar: fixed an ERROR on vehicles whose lightbar has no siren (work lights, tow and utility bars); on those
+  the key just switches OFF / LIGHTS.
+- BeamDeckNG MP-MCP 0.1.6: reports which game menu is open (for Back and Vehicles above).
+
+## Overview (0.2.11)
 
 **Every key reads the same way.** What the button does is on top (FRONT DIFF, CAMERA HEIGHT, LIGHTBAR PATTERN),
 the icon in the middle, and its current mode underneath (OPEN, LOCKED, 4WD...), left out when there's nothing to

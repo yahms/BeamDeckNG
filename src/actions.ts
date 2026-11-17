@@ -736,7 +736,7 @@ export class Lightbar extends DeckAction {
 	command(s: VehicleStatus, st: Settings): Command {
 		if (st.press === "pattern") return s.lbc ? { action: "lightbar_mode", args: {} } : null;
 		if (s.lightbar === undefined) return null;
-		return { action: "lightbar", args: { state: (Math.round(s.lightbar) + 1) % 3 } };
+		return { action: "lightbar", args: { state: (Math.round(s.lightbar) + 1) % (s.lbs === false ? 2 : 3) } };
 	}
 }
 
