@@ -59,7 +59,7 @@ export const TITLES: Record<string, string> = {
 	"gamefn:repair": "REPAIR IN PLACE",
 	"gamefn:recover": "RECOVER TO ROAD",
 	"gamefn:respawn": "RESPAWN",
-	"gamefn:walk": "ON FOOT",
+	"gamefn:walk": "IN CAR",
 	"gamefn:map": "MAP",
 	"gamefn:vehicles": "VEHICLES",
 	"gamefn:radial": "RADIAL MENU",
@@ -130,6 +130,7 @@ export function titleFor(uuid: string | undefined, st: Settings): string | undef
 	const name = uuid?.split(".").pop();
 	if (!name) return undefined;
 	if (name === "doors" && typeof st.part === "string" && st.part.length === 2) return `DOOR ${st.part.toUpperCase()}`;
+	if (name === "ignition" && st.show === "engine") return "ENGINE";
 	const variant =
 		name === "traction" ? (st.press === "toggle" ? "toggle" : "cycle")
 		: name === "tires" ? String(st.tdir ?? "inflate")

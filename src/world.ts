@@ -69,7 +69,7 @@ const GRAV: Record<string, { name: string; g: number }> = {
 const GRAV_ORDER = ["earth", "moon", "mars", "zero", "jupiter"];
 const gravNow = (g: GeStatus) => GRAV_ORDER.find((k) => Math.abs((g.grav ?? -9.81) - GRAV[k].g) < 0.15);
 
-const DAYLEN = [900, 1800, 7200, 86400]; // the game's own day-cycle presets
+const DAYLEN = [900, 1200, 1800, 3600, 7200, 86400]; // the game's own day-cycle presets, plus 20 min and 1 h
 const dayName = (s?: number) => (!s ? "?" : s >= 86400 ? "REAL" : s >= 3600 ? `${+(s / 3600).toFixed(1)} H` : `${Math.round(s / 60)} MIN`);
 const FOG = [0, 3, 12]; // added to the map's own fog: off / light / heavy
 const WIND = [0.2, 3, 10];
@@ -96,19 +96,20 @@ export function stepOf(list: number[], cur: number, dir: 1 | -1): number {
 	return [...list].reverse().find((v) => v < cur - eps) ?? list[0];
 }
 const num = (v: number) => (v >= 100 ? String(Math.round(v)) : v >= 10 ? v.toFixed(0) : v >= 1 ? +v.toFixed(1) + "" : +v.toFixed(2) + "");
-type Amount = { name: string; glyph: string[]; steps: number[]; get: (g: GeStatus) => number; set: (v: number) => string; unit?: string };
+// glyph: [more, less]: the picture shows which way a press goes (more clouds, thinner fog...)
+type Amount = { name: string; glyph: [string, string]; steps: number[]; get: (g: GeStatus) => number; set: (v: number) => string; unit?: string };
 const AMOUNTS: Record<string, Amount> = {
-	cloud: { name: "Clouds", glyph: ["material_wb_cloudy", "own_cloud"], steps: CLOUD_STEPS, get: (g) => g.cloud ?? 0, set: (v) => `core_environment.setState({ cloudCover = ${v} })` },
-	fog: { name: "Fog", glyph: ["own_fog", "radial_fog_lights"], steps: FOG_STEPS, get: (g) => g.fog ?? 0, set: (v) => `core_environment.setState({ fogDensity = ${v} })` },
-	fogh: { name: "Fog height", glyph: ["own_fog_height"], steps: FOGH_STEPS, get: (g) => g.fogH ?? 0, set: (v) => `core_environment.setState({ fogAtmosphereHeight = ${v} })`, unit: " m" },
-	rain: { name: "Rain", glyph: ["own_rain", "material_grain"], steps: RAIN_STEPS, get: (g) => g.rain ?? 0, set: (v) => rainLua(v) },
-	wind: { name: "Wind", glyph: ["own_wind"], steps: WIND_STEPS, get: (g) => g.wind ?? 0, set: (v) => `core_environment.setWindSpeed(${v})` },
+	cloud: { name: "Clouds", glyph: ["own_cloud_more", "own_cloud_less"], steps: CLOUD_STEPS, get: (g) => g.cloud ?? 0, set: (v) => `core_environment.setState({ cloudCover = ${v} })` },
+	fog: { name: "Fog", glyph: ["own_fog_more", "own_fog_less"], steps: FOG_STEPS, get: (g) => g.fog ?? 0, set: (v) => `core_environment.setState({ fogDensity = ${v} })` },
+	fogh: { name: "Fog height", glyph: ["own_fogh_up", "own_fogh_down"], steps: FOGH_STEPS, get: (g) => g.fogH ?? 0, set: (v) => `core_environment.setState({ fogAtmosphereHeight = ${v} })`, unit: " m" },
+	rain: { name: "Rain", glyph: ["own_rain_more", "own_rain_less"], steps: RAIN_STEPS, get: (g) => g.rain ?? 0, set: (v) => rainLua(v) },
+	wind: { name: "Wind", glyph: ["own_wind_more", "own_wind_less"], steps: WIND_STEPS, get: (g) => g.wind ?? 0, set: (v) => `core_environment.setWindSpeed(${v})` },
 };
 const amountKey = (id: string, dir: 1 | -1): WorldFn => {
 	const a = AMOUNTS[id];
 	return {
 		label: `${a.name} ${dir > 0 ? "+" : "-"}`,
-		face: (g) => icon(`${id}_${dir > 0 ? "up" : "down"}`, a.name, a.glyph, false, num(a.get(g)) + (a.unit ?? ""), a.get(g) > 0 ? P.blue : P.white, `${a.name} ${dir > 0 ? "+" : "-"}`),
+		face: (g) => icon(`${id}_${dir > 0 ? "up" : "down"}`, a.name, a.glyph[dir > 0 ? 0 : 1], false, num(a.get(g)) + (a.unit ?? ""), P.white, `${a.name} ${dir > 0 ? "+" : "-"}`),
 		press: (g) => run(`${a.set(stepOf(a.steps, a.get(g), dir))}\nreturn 'ok'`),
 	};
 };

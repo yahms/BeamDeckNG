@@ -14,8 +14,10 @@ type GameFn = {
 	state?: (ge: GeStatus) => { state: string; value?: string; overlay?: string; flash?: boolean; glyph?: string[]; tint?: string; head?: string; dim?: boolean };
 	/** On foot (walking mode): held as this input action instead (the arrows walk you about). */
 	walk?: string;
-	/** Tap: trigger_action name. */
-	act?: string;
+	/** In the free camera: held as this input action instead (the arrows fly the camera). */
+	fly?: string;
+	/** Tap: trigger_action name (or picked from the game state, e.g. the menu page that's open). */
+	act?: string | ((ge: GeStatus) => string);
 	/** Hold: trigger_action with down/up. */
 	hold?: string;
 	/** Anything else: an MCP tool call. */
@@ -77,14 +79,15 @@ return nxt`;
 }
 
 /** Arrows: blue while on foot (they walk you), white in menus. */
-const walkState = (g: GeStatus) => (g.walking ? { state: "walk", value: "WALK" } : { state: "off", value: "" });
+const walkState = (g: GeStatus) => (g.cam === "free" ? { state: "walk", value: "FLY" } : g.walking ? { state: "walk", value: "WALK" } : { state: "off", value: "" });
 /** Arrow keys held down as walking actions: fn id -> the action to release. */
 const walkHeld = new Map<string, string>();
 
 export const GAME_FUNCS: Record<string, GameFn> = {
 	// fixed buttons
 	accept: { label: "Accept", key: "accept", act: "menu_item_select" },
-	back: { label: "Back", key: "back", act: "menu_item_back" },
+	// in the game (no menu open) Back opens the pause menu, like Escape; in a menu it goes back
+	back: { label: "Back", key: "back", act: (g) => (g.route === "play" ? "toggleMenues" : "menu_item_back") },
 	pause: { label: "Pause", key: "pause", act: "pause", state: (g) => (g.paused ? { state: "on", value: "PAUSED" } : { state: "off", value: "RUNNING" }) },
 	repair: { label: "Repair", key: "repair", act: "recover_vehicle_alt" },
 	recover: { label: "Recover", key: "recover", tool: ["recover_vehicle", {}] },
@@ -93,7 +96,13 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 	// gameplay_walk isn't always loaded (e.g. after a level load through MCP), so load it first
 	walk: { label: "Get in / out", key: "walk", mp: () => ({ fn: "walk" }), lua: "if not gameplay_walk then extensions.load('gameplay_walk') end gameplay_walk.toggleWalkingMode() return 'ok'", state: (g) => (g.walking ? { state: "on", value: "GET IN" } : { state: "off", value: "GET OUT" }) },
 	map: { label: "Map", key: "map", act: "toggleBigMap" },
-	vehicles: { label: "Vehicles", key: "vehicles", act: "vehicle_selector", menu: "vehicle_selector" },
+	// a second press (vehicle list open) closes it and returns to the game
+	vehicles: {
+		label: "Vehicles",
+		key: "vehicles",
+		act: (g) => (g.route?.startsWith("pause.vehicleSelector") ? "toggleMenues" : "vehicle_selector"),
+		menu: "vehicle_selector",
+	},
 	radial: { label: "Radial menu", key: "radial", act: "toggleRadialMenuMulti" },
 	slowmo: {
 		label: "Slow motion",
@@ -121,13 +130,13 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 		label: "Next vehicle",
 		key: "nextveh",
 		act: "switch_next_vehicle",
-		state: (g) => ({ state: "off", value: g.veh?.name ?? "NEXT CAR", glyph: ["material_directions_car"], tint: paint(g.veh?.color) }),
+		state: (g) => ({ state: "off", value: g.veh?.name ?? "NEXT CAR", glyph: ["own_nextveh"], tint: paint(g.veh?.color) }),
 	},
 	// menu arrows; on foot they walk (held), like the keyboard's arrow keys
-	up: { label: "Up", key: "up", act: "menu_item_up", walk: "unicycle__walkUp", state: walkState },
-	down: { label: "Down", key: "down", act: "menu_item_down", walk: "unicycle__walkDown", state: walkState },
-	left: { label: "Left", key: "left", act: "menu_item_left", walk: "unicycle__walkLeft", state: walkState },
-	right: { label: "Right", key: "right", act: "menu_item_right", walk: "unicycle__walkRight", state: walkState },
+	up: { label: "Up", key: "up", act: "menu_item_up", walk: "unicycle__walkUp", fly: "moveforward", state: walkState },
+	down: { label: "Down", key: "down", act: "menu_item_down", walk: "unicycle__walkDown", fly: "movebackward", state: walkState },
+	left: { label: "Left", key: "left", act: "menu_item_left", walk: "unicycle__walkLeft", fly: "moveleft", state: walkState },
+	right: { label: "Right", key: "right", act: "menu_item_right", walk: "unicycle__walkRight", fly: "moveright", state: walkState },
 	// on foot: turn the camera (and so where you walk), and run
 	turn_left: { label: "Turn camera left", key: "turn_left", hold: "rotate_camera_left", state: () => ({ state: "off", value: "LEFT" }) },
 	turn_right: { label: "Turn camera right", key: "turn_right", hold: "rotate_camera_right", state: () => ({ state: "off", value: "RIGHT" }) },
@@ -260,13 +269,15 @@ export class GameFunction extends DeckAction {
 	command(_s: VehicleStatus, st: Settings, ge: GeStatus = {}): Command {
 		const [id, f] = GameFunction.fn(st);
 		const menu = f.menu;
-		if (f.walk && ge.walking) {
-			walkHeld.set(id, f.walk);
-			return { tool: "trigger_action", args: { action: f.walk, state: "down" } };
+		// arrows: fly the free camera, walk on foot, otherwise menu navigation
+		const held = f.fly && ge.cam === "free" ? f.fly : f.walk && ge.walking ? f.walk : undefined;
+		if (held) {
+			walkHeld.set(id, held);
+			return { tool: "trigger_action", args: { action: held, state: "down" } };
 		}
 		if (f.lua) return { tool: "run_lua", args: { code: typeof f.lua === "function" ? f.lua(ge, st) : f.lua }, mp: f.mp?.(st), menu };
 		if (f.hold) return { tool: "trigger_action", args: { action: f.hold, state: "down" }, menu };
-		if (f.act) return { tool: "trigger_action", args: { action: f.act }, menu };
+		if (f.act) return { tool: "trigger_action", args: { action: typeof f.act === "function" ? f.act(ge) : f.act }, menu };
 		if (f.tool) return { tool: f.tool[0], args: f.tool[1], menu };
 		return null;
 	}

@@ -11,6 +11,8 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const MS = path.join(root, "node_modules/@material-symbols/svg-400/rounded");
 const d = (name) => readFileSync(path.join(MS, `${name}.svg`), "utf8").match(/ d="([^"]+)"/)[1];
 const GREY = "#5c5c5c";
+const GREEN = "#8CD419";
+const BLUE = "#238BE6";
 
 /** A Material symbol (0 -960 960 960) placed at x,y with size s, optionally rotated about its centre. */
 const sym = (name, x, y, s, fill = "currentColor", rot = 0) => {
@@ -19,6 +21,31 @@ const sym = (name, x, y, s, fill = "currentColor", rot = 0) => {
 	return `<path transform="translate(${x} ${y + s}) scale(${+k.toFixed(5)})${r}" fill="${fill}" d="${d(name)}"/>`;
 };
 
+/** A cloud made of horizontal stripes: n stripes, each h thick (more and thicker = denser fog). */
+function fogStripes(n, h) {
+	const rows = n === 3 ? [[34, 64], [18, 84], [26, 76]] : n === 4 ? [[34, 64], [20, 86], [12, 90], [24, 78]] : [[38, 62], [24, 80], [12, 92], [8, 90], [20, 80]];
+	const top = 22, span = 64, gap = (span - n * h) / Math.max(1, n - 1);
+	return rows.map(([x0, x1], i) => `<rect x="${x0}" y="${(top + i * (h + gap)).toFixed(1)}" width="${x1 - x0}" height="${h}" rx="${h / 2}" fill="currentColor"/>`).join("");
+}
+/** A solid up / down arrow centred on x, between y and y + len. */
+function arrowAt(dir, x, y, len) {
+	const w = len * 0.42, sh = len * 0.16;
+	return dir === "up"
+		? `<path fill="currentColor" d="M${x} ${y} L${x + w} ${y + w} L${x + sh} ${y + w} L${x + sh} ${y + len} L${x - sh} ${y + len} L${x - sh} ${y + w} L${x - w} ${y + w} Z"/>`
+		: `<path fill="currentColor" d="M${x} ${y + len} L${x + w} ${y + len - w} L${x + sh} ${y + len - w} L${x + sh} ${y} L${x - sh} ${y} L${x - sh} ${y + len - w} L${x - w} ${y + len - w} Z"/>`;
+}
+/** Blue rain under a cloud: one slanted line per x, `rows` deep. */
+function rainLines(xs, rows) {
+	let out = "";
+	for (let r = 0; r < rows; r++) for (const x of xs) out += `<path d="M${x + r * 4} ${84 + r * 18} l-6 12" stroke="${BLUE}" stroke-width="6" stroke-linecap="round"/>`;
+	return out;
+}
+/** Three wind lines with curled ends; k scales how long they are. */
+function windLines(k) {
+	const L = (len) => Math.round(len * k);
+	const ln = (y, len, curl) => `<path fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" d="M${10} ${y} H${10 + L(len)}${curl ? ` a12 12 0 1 0 -12 -12` : ""}"/>`;
+	return ln(36, 78, true) + ln(60, 98, false) + `<path fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" d="M10 84 H${10 + L(64)} a12 12 0 1 1 -12 12"/>`;
+}
 const SUN = "#FFC300";
 function sunAt(dir) {
 	// horizon at y=70; half sun r=22 sitting on it; arrow between y=6 and y=40
@@ -30,9 +57,9 @@ function sunAt(dir) {
 
 const OWN = {
 	// in the car: car lit, arrow points out to the (grey) person -> pressing gets you out
-	own_walk_car: { viewBox: "0 0 120 120", inner: sym("directions_car-fill", -2, -4, 76) + sym("arrow_forward", 66, 2, 54, "currentColor", 45) + sym("directions_walk-fill", 54, 50, 72, GREY) },
+	own_walk_car: { viewBox: "0 0 120 120", inner: sym("directions_car-fill", -2, -4, 76, GREEN) + sym("arrow_forward", 66, 2, 54, "currentColor", 45) + sym("directions_walk-fill", 54, 50, 72) },
 	// on foot: person lit, arrow points back to the (grey) car -> pressing gets you in
-	own_walk_foot: { viewBox: "0 0 120 120", inner: sym("directions_car-fill", -2, -4, 76, GREY) + sym("arrow_forward", 0, 66, 54, "currentColor", 225) + sym("directions_walk-fill", 54, 50, 72) },
+	own_walk_foot: { viewBox: "0 0 120 120", inner: sym("directions_car-fill", -2, -4, 76) + sym("arrow_forward", 0, 66, 54, "currentColor", 225) + sym("directions_walk-fill", 54, 50, 72, GREEN) },
 	// radial menu: a ring of segments round a centre dot
 	own_radial: {
 		viewBox: "0 0 96 96",
@@ -50,6 +77,35 @@ const OWN = {
 	own_fog_height: { viewBox: "0 -960 960 960", inner: `<path fill="currentColor" d="${d("height")}"/>` },
 	own_rain: { viewBox: "0 -960 960 960", inner: `<path fill="currentColor" d="${d("rainy-fill")}"/>` },
 	own_wind: { viewBox: "0 -960 960 960", inner: `<path fill="currentColor" d="${d("air")}"/>` },
+	// weather more / less: the picture says which way a press goes
+	own_cloud_less: { viewBox: "0 0 120 120", inner: sym("cloud-fill", 30, 26, 60) },
+	own_cloud_more: { viewBox: "0 0 120 120", inner: sym("cloud-fill", 34, 0, 70) + sym("cloud-fill", 0, 22, 74) + sym("cloud-fill", 44, 36, 76) },
+	own_fog_less: { viewBox: "0 0 120 120", inner: `<g transform="translate(-6 -4) scale(1.12)">${fogStripes(3, 7)}</g>` + arrowAt("down", 106, 8, 40) },
+	own_fog_more: { viewBox: "0 0 120 120", inner: `<g transform="translate(-6 -4) scale(1.12)">${fogStripes(5, 11)}</g>` + arrowAt("up", 106, 8, 40) },
+	own_fogh_down: { viewBox: "0 0 120 120", inner: `<g transform="translate(0 46) scale(0.72)">${fogStripes(4, 10)}</g>` + arrowAt("down", 92, 6, 60) },
+	own_fogh_up: { viewBox: "0 0 120 120", inner: `<g transform="translate(0 46) scale(0.72)">${fogStripes(4, 10)}</g>` + arrowAt("up", 92, 6, 60) },
+	own_rain_less: { viewBox: "0 0 120 120", inner: sym("cloud-fill", 14, -6, 92) + rainLines([48, 72], 1) },
+	own_rain_more: { viewBox: "0 0 120 120", inner: sym("cloud-fill", 14, -6, 92) + rainLines([30, 46, 62, 78, 94], 2) },
+	own_wind_less: { viewBox: "0 0 120 120", inner: windLines(0.55) },
+	own_wind_more: { viewBox: "0 0 120 120", inner: windLines(1) },
+	// recover to road: car sitting on a road, with a glint
+	own_recover_road: {
+		viewBox: "0 0 120 120",
+		inner: sym("directions_car-fill", 14, 0, 92) +
+			`<path fill="currentColor" d="M2 120 L28 88 L92 88 L118 120 Z" fill-opacity="0.35"/><path d="M60 93v8M60 107v11" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>` +
+			`<path fill="currentColor" d="M98 6 l4 10 l10 4 l-10 4 l-4 10 l-4 -10 l-10 -4 l10 -4z"/><path fill="currentColor" d="M18 22 l2.5 6 l6 2.5 l-6 2.5 l-2.5 6 l-2.5 -6 l-6 -2.5 l6 -2.5z"/>`,
+	},
+	// next vehicle: the car in a box, arrow out to the right
+	own_nextveh: {
+		viewBox: "0 0 120 120",
+		inner: `<rect x="4" y="24" width="76" height="72" rx="12" fill="none" stroke="#FFFFFF" stroke-width="6"/>` + sym("directions_car-fill", 12, 30, 60) +
+			`<path fill="#FFFFFF" d="M86 48 L86 72 L100 72 L100 84 L118 60 L100 36 L100 48 Z"/>`,
+	},
+	// indicators: outline when off, solid when on
+	own_sig_left_off: { viewBox: "0 0 96 96", inner: `<path fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round" d="M8 48 44 18v18h40v24H44v18z"/>` },
+	own_sig_left_on: { viewBox: "0 0 96 96", inner: `<path fill="currentColor" d="M8 48 44 18v18h40v24H44v18z"/>` },
+	own_sig_right_off: { viewBox: "0 0 96 96", inner: `<path fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round" d="M88 48 52 18v18H12v24h40v18z"/>` },
+	own_sig_right_on: { viewBox: "0 0 96 96", inner: `<path fill="currentColor" d="M88 48 52 18v18H12v24h40v18z"/>` },
 	own_gravity: { viewBox: "0 -960 960 960", inner: `<path fill="currentColor" d="${d("public-fill")}"/>` },
 	own_schedule: { viewBox: "0 -960 960 960", inner: `<path fill="currentColor" d="${d("schedule-fill")}"/>` },
 	// sunrise / sunset: horizon line, yellow half sun, arrow above it (up for sunrise, down for sunset).

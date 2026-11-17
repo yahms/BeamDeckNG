@@ -120,6 +120,7 @@ function BNGS.status()
   s.sigL = e.signal_left_input
   s.sigR = e.signal_right_input
   s.lightbar = e.lightbar
+  if e.lightbar ~= nil then s.lbs = v and v.data and type(v.data.soundscape) == "table" and v.data.soundscape.siren ~= nil end
   s.horn = e.horn
   -- lightbar flash pattern (Chase, Scene, ...): index, name, how many
   local lb = BNGS.lightbarPatterns()
@@ -553,7 +554,9 @@ end
 
 BNGS.actions.lightbar = function(args)
   if electrics.values.lightbar == nil then return { action = "lightbar", status = "unsupported", targets = {} } end
-  local n = tonumber(args.state) or 0
+  -- cars without a siren sound only have off / lights: the game wraps 2 round to 0, so expect that
+  local siren = v and v.data and type(v.data.soundscape) == "table" and v.data.soundscape.siren ~= nil
+  local n = (tonumber(args.state) or 0) % (siren and 3 or 2)
   return eTarget("lightbar", "lightbar", electrics.values.lightbar, n, function() electrics.set_lightbar_signal(n) end)
 end
 

@@ -55,6 +55,7 @@ export type Face = {
 	value: string; // its current mode: the bottom line (left out when it only repeats the title)
 	sub?: string; // small extra line under the mode ("TC ON", "PAUSED", "OPENS MENU"...)
 	head?: string; // top title, when it differs from label (e.g. "PATTERN 2/4", "TIME +10 MIN")
+	engine?: { gear: string; rpm?: string; shift?: string }; // engine key: gear and RPM drawn over the icon
 	color: string;
 	flash?: boolean;
 	dim?: boolean;
@@ -262,6 +263,28 @@ ${bottomText(bottom, sub, fg)}
 </svg>`;
 }
 
+/** Engine key: the engine icon, faint and large, with the gear big over it and the RPM underneath. */
+function engineSvg(f: Face, g: Glyph, dark: boolean): string {
+	const e = f.engine!;
+	const tint = dark ? P.dimmed : f.tint ?? P.green;
+	const [vx, vy, vw, vh] = (g.viewBox.trim().split(/[\s,]+/).map(Number) ?? []).map((n) => (Number.isFinite(n) ? n : 0));
+	const size = 104;
+	const k = size / Math.max(vw || 24, vh || 24);
+	const tx = (144 - (vw || 24) * k) / 2 - vx * k;
+	const ty = 30 + (100 - (vh || 24) * k) / 2 - vy * k;
+	const n = (x: number) => Number(x.toFixed(3));
+	const gs = e.gear.length <= 1 ? 60 : e.gear.length <= 2 ? 50 : 34;
+	const fg = e.shift && !dark ? e.shift : "#fff";
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
+<rect x="0" y="0" width="144" height="144" fill="#000"/>
+<g transform="translate(${n(tx)} ${n(ty)}) scale(${n(k)})" fill="${tint}" opacity="0.38">${g.inner.replace(/currentColor/g, tint)}</g>
+${topText((f.head ?? f.label).toUpperCase(), "#fff")}
+<text x="72" y="${e.rpm ? 96 : 104}" ${FONT} font-size="${gs}" fill="${fg}">${esc(e.gear || "-")}</text>
+${e.rpm ? `<text x="72" y="130" ${FONT} font-size="20" fill="#fff">${esc(e.rpm)}</text>` : ""}
+${f.frame ? `<rect x="4" y="4" width="136" height="136" rx="18" fill="none" stroke="${f.frame}" stroke-width="8"/>` : ""}
+</svg>`;
+}
+
 function panelSvg(f: Face, dark: boolean): string {
 	const p = { ...f.panel!, top: f.head ?? f.panel!.top ?? f.label };
 	const fg = f.dim ? P.dimmed : p.fg ?? "#fff";
@@ -299,6 +322,10 @@ export function render(f: Face, phase: number): string {
 		}
 	}
 	if (f.panel) return svgUrl(panelSvg(f, !!altFrame));
+	if (f.engine) {
+		const eg = pickGlyph(f.glyph);
+		if (eg) return svgUrl(engineSvg(f, eg, !!altFrame));
+	}
 	// no override PNG: the game's own icon, coloured for the state
 	const g = pickGlyph(f.glyph);
 	if (g) return svgUrl(glyphSvg(f, g, !!altFrame));

@@ -17,8 +17,8 @@ import { Blocked, Mcp } from "./mcp";
 import { classify, RawControl, VControl } from "./vehcontrols";
 import { OutGauge } from "./outgauge";
 
-export const VERSION = "0.2.11";
-export const DECK_VERSION = "0.2.5"; // bump when the vehicle Lua changes, so vehicles reload it
+export const VERSION = "0.2.13";
+export const DECK_VERSION = "0.2.6"; // bump when the vehicle Lua changes, so vehicles reload it
 
 export type DiffState = "locked" | "open" | "partial" | "auto" | "lsd" | null | undefined;
 export type ModeInfo = { ctrl: string; key: string | null; name: string | null; color?: string };
@@ -45,6 +45,7 @@ export type VehicleStatus = {
 	lbm?: number; // lightbar flash pattern index (1-based), when the vehicle has more than one
 	lbn?: string; // its name (Chase, Scene...)
 	lbc?: number; // how many patterns
+	lbs?: boolean; // the lightbar has a siren (false: just off / lights)
 	horn?: number;
 	cruise?: { on: boolean; speed?: number }; // speed in m/s
 	ebrake?: number; // 0 off, 1..3
@@ -77,6 +78,7 @@ export type GeStatus = {
 	replayPaused?: boolean; // playback is paused (a stopped recording is loaded paused)
 	towing?: boolean; // the player vehicle has a trailer coupled
 	ui?: boolean; // game UI visible
+	route?: string; // the game UI's current page: "play" in the game, "pause", "pause.vehicleSelector"...
 	walking?: boolean; // player is on foot
 	/** Time of day: time 0..1 (0 = noon, 0.5 = midnight), play = clock running, dayLength in seconds. */
 	tod?: { time: number; play?: boolean; dayLength?: number };
@@ -426,6 +428,7 @@ pcall(function() g.timeScale = simTimeAuthority.get() end)
 pcall(function() g.cam = core_camera.getActiveCamName() end)
 pcall(function() g.replay = core_replay.getState() g.replayPaused = core_replay.isPaused() end)
 pcall(function() g.ui = extensions.ui_visibility.getCef() end)
+pcall(function() local s = extensions.ui_router.getState() g.route = s.currentRoute.resolved.name end)
 pcall(function() local d = core_trailerRespawn.getTrailerData() g.towing = d[be:getPlayerVehicleID(0)] ~= nil end)
 pcall(function()
   local t = core_environment.getTimeOfDay()
