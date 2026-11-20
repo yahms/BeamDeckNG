@@ -104,6 +104,12 @@ hazards, drive modes in the game's colours, weather +/-, cameras, arrows...), wi
 or Multi Action can look just like the plugin's own key. These are BeamDeckNG's own drawings; icons the
 plugin reads from your copy of the game are never put in the pack.
 
+For your own tabbed profiles there are **tab icons** too: GAME (blue), CAR (green), CAMERA (purple) and
+WORLD (teal, for environment, weather, time, gravity, traffic...), each for 1 to 4 pages (CAR up to 5). Each
+set has a lit icon per page (a filled dot for the page you're on, empty dots for the rest) and an unlit one
+(all dots empty) for when you're in another group. Pick them in the Icon Library by searching "tab", or from
+`profiles/tabs/sets/` (see `preview.png` there).
+
 **Plugin keys or keyboard hotkeys?** Not everything has to be a BeamDeckNG key. Some controls suit a
 plain Stream Deck **Hotkey** better, or you may simply prefer one: anything you've bound to a key in
 BeamNG.drive (Options > Controls) works as a hotkey, including your own custom bindings and mod actions.
