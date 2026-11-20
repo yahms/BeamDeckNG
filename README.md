@@ -153,6 +153,9 @@ The XL DASH page leaves columns 5-7 free, and the 15-key LIGHTS page its bottom 
 
 ## Install
 
+Download the latest from the [Releases page](https://github.com/yahms/BeamDeckNG/releases/latest): the plugin,
+the icon pack, an example 15-key profile, and (for BeamMP server owners) the MP-MCP add-on.
+
 Requires Stream Deck 7.1 or later (7.4 and 8.x tested against the same SDK v3 / Node 24 manifest),
 on the same computer as the game, and the MCP server enabled in
 BeamNG.drive. Double-click `com.yahms.beamdeckng.streamDeckPlugin`, then drag

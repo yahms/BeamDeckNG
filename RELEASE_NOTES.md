@@ -1,51 +1,76 @@
 # BeamDeckNG 0.2.14
 
-## What's new since 0.2.13
+Everything since 0.2.11 (0.2.12, 0.2.13 and 0.2.14 together).
 
-**Real keys for timing.** Up / Down / Left / Right and Repair now press the real arrow keys and Insert,
-held for as long as you hold the button: time a rewind (Insert) or a nudge exactly. They do what those keys
-do in the game (menus, walking, the free camera, driving) and work without MCP, but need the game window
-focused. Untick "Keyboard" in a key's settings to go back to the game's actions.
+## Real keys for timing
 
-**Gauges that do something** (new "When pressed" setting; the key shows what it does)
-- Damage: repair, recover to road or respawn; the damage reading sits over that action's icon.
-- RPM and Gear: start / stop the engine. STOP ENGINE / START ENGINE on top, RPM and gear over the engine
-  icon (green running, red stalled or off), and the shift light.
-- Speed: traction control / drive mode, shown like the Traction key (ESC badge in the mode's colour, mode
+Up / Down / Left / Right and Repair now press the real arrow keys and Insert, held for as long as you hold the
+button, so you can time a rewind (Insert) or a nudge exactly. They do what those keys do in the game (menus,
+walking, the free camera, and in the car, driving) and work without MCP, but need the game window focused.
+Untick **Keyboard** in a key's settings to go back to the game's actions. Windows only.
+
+## Gauges that do something
+
+A new **When pressed** setting, and the key shows what it does (the title says it, the reading sits over its icon):
+- **Damage:** repair (the default), recover to road, respawn, or nothing.
+- **RPM, Gear:** start / stop the engine. STOP ENGINE / START ENGINE on top, RPM and gear over the engine icon
+  (green running, red stalled or off), with the shift light.
+- **Speed:** traction control / drive mode, shown like the Traction key (ESC badge in the mode's colour, mode
   underneath) with the speed over it. Cars without traction control just show the speed.
-- New gauge: Speed + gear (same options as Speed).
+- New gauge: **Speed + gear** (same options as Speed).
 
-**Icon pack: every key icon.** The icon pack now has all the key icons the plugin uses, in each colour,
-without text, so Hotkeys and Multi Actions can match the plugin's keys (183 key icons, plus the folder,
-page and gravity icons).
+The **Ignition** key also has a new "Engine" display: gear and RPM over a green engine icon, red when it stalls;
+pressing starts / stops the engine, and it doubles as a shift light (yellow, then flashing red at the limiter).
 
-## Since 0.2.11 (0.2.12, 0.2.13)
+## Keys that know where you are
 
-**Keys that know where you are**
 - Back (red X) in the game opens the pause menu, like Escape; in a menu it goes back a page.
 - Vehicles: a second press closes the vehicle list and returns to the game.
-- The arrows fly the free camera (as well as walking on foot and moving through menus).
 
-**Engine key.** The Ignition key has a new "Engine" display: gear and RPM over a green engine icon, and a red engine icon when it
-stalls. Pressing it starts / stops the engine, and it doubles as a shift light (yellow, then
-flashing red at the limiter).
+## Clearer icons
 
-**Clearer icons**
 - Weather: one small cloud for less cloud, several for more; fog as a striped cloud (more stripes = thicker);
-  fog height as a smaller fog cloud with an up / down arrow; rain as a cloud with more or fewer blue drops; wind
-  with longer or shorter lines. All white.
+  fog height as a smaller fog cloud with an up / down arrow; rain as a cloud with more or fewer blue drops;
+  wind with longer or shorter lines. All white.
 - Recover to road: a car on the road with a glint. Next vehicle: a boxed car with an arrow.
 - On foot is now IN CAR, in white and green rather than grey.
 - Hazards: red when off, flashing red when on. Indicators: green outline when off, solid flashing green when on.
 - Game UI: green when the UI is on, red when it's off.
 
-**Other changes**
-- Day length cycles through 15 min, 20 min, 30 min, 1 h, 2 h and 24 h.
-- Lightbar: fixed an ERROR on vehicles whose lightbar has no siren (work lights, tow and utility bars); on those
-  the key just switches OFF / LIGHTS.
-- BeamDeckNG MP-MCP 0.1.6: reports which game menu is open (for Back and Vehicles above).
+## Icon pack: every key icon
 
-## Overview (0.2.11)
+The icon pack now has all the key icons the plugin uses (183), in each colour and without text, so Hotkeys and
+Multi Actions can match the plugin's keys, plus the folder, page and gravity icons. All BeamDeckNG's own drawings.
+
+## Other changes and fixes
+
+- Day length cycles through 15 min, 20 min, 30 min, 1 h, 2 h and 24 h.
+- Lightbar: fixed ERROR on vehicles whose lightbar has no siren (work lights, tow and utility bars); on those the
+  key switches OFF / LIGHTS.
+- BeamDeckNG MP-MCP 0.1.6: reports which game menu is open (for Back and Vehicles). Server owners: replace the
+  add-on zip in your client mods.
+
+## Upgrading from 0.2.11
+
+- Damage gauges now say REPAIR on top (repair is the default press); pick Nothing in "When pressed" for a plain gauge.
+- The arrow keys now act as the real arrow keys, so in the car they drive (with the default bindings).
+
+## Downloads
+
+| File | What it is |
+| --- | --- |
+| `com.yahms.beamdeckng.streamDeckPlugin` | the plugin: double-click to install (Stream Deck 7.1 or later) |
+| `com.yahms.beamdeckng.streamDeckIconPack` | icon pack for the Stream Deck Icon Library: double-click to install |
+| `BeamDeckNG-icons.zip` | the same icons as plain PNGs, for Set from File |
+| `BeamDeckNGv0.2.10-15keyExample.streamDeckProfile` | example 15-key profile: double-click to import |
+| `BeamDeckNG-MP-MCP.zip` | for BeamMP server owners: the server-side add-on (goes in the server's client mods) |
+
+**Install:** double-click the plugin, then drag buttons from the **BeamDeckNG** category, or import the example
+profile. Enable MCP in BeamNG.drive; Stream Deck must be on the same computer as the game.
+
+Feedback and bug reports are welcome on the Issues page.
+
+## From 0.2.11: overview
 
 **Every key reads the same way.** What the button does is on top (FRONT DIFF, CAMERA HEIGHT, LIGHTBAR PATTERN),
 the icon in the middle, and its current mode underneath (OPEN, LOCKED, 4WD...), left out when there's nothing to
@@ -90,9 +115,3 @@ are BeamDeckNG's own, drawn from Material Symbols; any similarity to the earlier
 - Single diff keys showed FRONT / REAR instead of OPEN / LOCKED; N/A keys could show a state (2WD, OPEN).
 - Traction no longer uses an icon that looked like tyre pressure.
 - On BeamMP, keys showing a game icon didn't show OPENS MENU.
-
-**Install:** double-click `com.yahms.beamdeckng.streamDeckPlugin` (Stream Deck 7.1 or later, including 7.4 and
-8.x), then drag buttons from the **BeamDeckNG** category, or double-click the example profile. Enable MCP in
-BeamNG.drive; Stream Deck must be on the same computer as the game.
-
-Feedback and bug reports are welcome on the Issues page.
