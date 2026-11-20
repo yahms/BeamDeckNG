@@ -50,7 +50,7 @@ export type Face = {
 	glyph?: string[]; // game icon names (sprite symbol ids), first one available is used
 	tint?: string; // glyph colour (a P colour); flash frames use P.dimmed
 	/** Drawn gauge / readout instead of an icon: clock, speed, fuel... */
-	panel?: { big: string; top?: string; unit?: string; bg?: string; fg?: string; bar?: { value: number; color: string } };
+	panel?: { big: string; top?: string; unit?: string; bg?: string; fg?: string; bar?: { value: number; color: string }; arc?: { value?: number } };
 	label: string; // what the key is (also the in-game message); the top title unless head is set
 	value: string; // its current mode: the bottom line (left out when it only repeats the title)
 	sub?: string; // small extra line under the mode ("TC ON", "PAUSED", "OPENS MENU"...)
@@ -348,7 +348,50 @@ ${decorations({ frame: f.frame })}
 </svg>`;
 }
 
+/** Rev arc zones (share of the rev limit): white, then orange near the redline, red at it and beyond.
+ *  The arc runs past the limit (to REV_ARC) so an over-rev (a missed downshift) shows in the red. */
+export const REV_ORANGE = 0.85;
+export const REV_RED = 0.97;
+export const REV_ARC = 1.15;
+export const ORANGE = "#FF8A00";
+export const revZone = (k?: number) => (k === undefined || k < REV_ORANGE ? "#fff" : k < REV_RED ? ORANGE : P.red);
+
+/** Tacho arc round the key, from bottom left over the top to bottom right: faint zones, lit up to the revs. */
+function revArc(value: number | undefined, dim: boolean): string {
+	const cx = 72, cy = 76, r = 61, sw = 10;
+	const pt = (t: number) => {
+		const a = ((225 - 270 * t) * Math.PI) / 180;
+		return `${(cx + r * Math.cos(a)).toFixed(2)} ${(cy - r * Math.sin(a)).toFixed(2)}`;
+	};
+	const seg = (t0: number, t1: number, color: string, op: number) =>
+		t1 - t0 < 0.002 ? "" : `<path d="M ${pt(t0)} A ${r} ${r} 0 ${(t1 - t0) * 270 > 180 ? 1 : 0} 1 ${pt(t1)}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-opacity="${op}"/>`;
+	const zones: [number, number, string][] = [[0, REV_ORANGE / REV_ARC, "#fff"], [REV_ORANGE / REV_ARC, REV_RED / REV_ARC, ORANGE], [REV_RED / REV_ARC, 1, P.red]];
+	// unlit: faint, the orange / red zones a little stronger so the redline always shows
+	let out = zones.map(([a, b, c]) => seg(a, b, dim ? P.off : c, dim ? 0.35 : c === "#fff" ? 0.22 : 0.4)).join("");
+	if (value !== undefined && !dim) {
+		const v = Math.max(0, Math.min(1, value / REV_ARC));
+		out += zones.map(([a, b, c]) => (v > a ? seg(a, Math.min(v, b), c, 1) : "")).join("");
+	}
+	return out;
+}
+
+/** Gauge with a rev arc: title small inside the arc, the reading big in the middle, its unit at the bottom. */
+function arcPanelSvg(f: Face, dark: boolean): string {
+	const p = { ...f.panel!, top: f.head ?? f.panel!.top ?? f.label };
+	const fg = f.dim || dark ? P.off : p.fg ?? "#fff";
+	const n = p.big.length;
+	const size = n <= 1 ? 62 : n <= 2 ? 54 : n <= 3 ? 46 : n <= 4 ? 38 : 30;
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
+<rect width="144" height="144" fill="#000"/>
+${revArc(p.arc!.value, !!f.dim || dark)}
+<text x="72" y="44" ${FONT} font-size="${(p.top ?? "").length > 6 ? 12 : 14}" fill="${f.dim ? P.off : "#fff"}" fill-opacity="0.85">${esc(clip((p.top ?? "").toUpperCase(), 10))}</text>
+<text x="72" y="${78 + size * 0.36}" ${FONT} font-size="${size}" fill="${fg}">${esc(p.big)}</text>
+${p.unit ? `<text x="72" y="136" ${FONT} font-size="15" fill="${f.dim ? P.off : "#fff"}" fill-opacity="0.8">${esc(clip(p.unit.toUpperCase(), 10))}</text>` : ""}
+</svg>`;
+}
+
 function panelSvg(f: Face, dark: boolean): string {
+	if (f.panel?.arc) return arcPanelSvg(f, dark);
 	const p = { ...f.panel!, top: f.head ?? f.panel!.top ?? f.label };
 	const fg = f.dim ? P.dimmed : p.fg ?? "#fff";
 	const n = p.big.length;

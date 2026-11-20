@@ -1,3 +1,28 @@
+# BeamDeckNG 0.2.16
+
+## What's new since 0.2.15
+
+**Tacho arc on the RPM and Gear + shift light gauges.** A rev bar now runs round the key, from bottom left over
+the top to bottom right, like a rev counter: white through the rev range, orange near the redline, and red from
+the redline on. The arc carries on past the redline, so an over-rev (a missed downshift) shows in the red. The
+orange and red zones always show faintly, so you can see where the limit is, and the number turns orange and
+then red (flashing) to match. The Gear gauge shows the RPM underneath, the RPM gauge shows the gear.
+
+## Downloads
+
+| File | What it is |
+| --- | --- |
+| `com.yahms.beamdeckng.streamDeckPlugin` | the plugin: double-click to install (Stream Deck 7.1 or later) |
+| `com.yahms.beamdeckng.streamDeckIconPack` | icon pack for the Stream Deck Icon Library: double-click to install |
+| `BeamDeckNG-icons.zip` | the same icons as plain PNGs, for Set from File |
+| `BeamDeckNGv0.2.15-15keyExample.streamDeckProfile` | example 15-key profile (arrows, Repair, Sprint and camera up / down set to the keyboard kind): double-click to import |
+| `BeamDeckNG-MP-MCP.zip` | for BeamMP server owners: the server-side add-on (goes in the server's client mods) |
+
+**Install:** double-click the plugin, then drag buttons from the **BeamDeckNG** category, or import the example
+profile. Enable MCP in BeamNG.drive; Stream Deck must be on the same computer as the game.
+
+Feedback and bug reports are welcome on the Issues page.
+
 # BeamDeckNG 0.2.15
 
 ## What's new since 0.2.14
@@ -18,21 +43,6 @@ The Damage gauge's "When pressed" also has "Repair (via MCP)" and "Repair (via k
 
 **Upgrading from 0.2.14:** the plain Up / Down / Left / Right, Repair and Damage-gauge repair are now the via MCP
 kind. Keys you'd set to "Real keyboard key" stay keyboard keys; for the rest, pick the "via keyboard" function.
-
-## Downloads
-
-| File | What it is |
-| --- | --- |
-| `com.yahms.beamdeckng.streamDeckPlugin` | the plugin: double-click to install (Stream Deck 7.1 or later) |
-| `com.yahms.beamdeckng.streamDeckIconPack` | icon pack for the Stream Deck Icon Library: double-click to install |
-| `BeamDeckNG-icons.zip` | the same icons as plain PNGs, for Set from File |
-| `BeamDeckNGv0.2.15-15keyExample.streamDeckProfile` | example 15-key profile (arrows, Repair, Sprint and camera up / down set to the keyboard kind): double-click to import |
-| `BeamDeckNG-MP-MCP.zip` | for BeamMP server owners: the server-side add-on (goes in the server's client mods) |
-
-**Install:** double-click the plugin, then drag buttons from the **BeamDeckNG** category, or import the example
-profile. Enable MCP in BeamNG.drive; Stream Deck must be on the same computer as the game.
-
-Feedback and bug reports are welcome on the Issues page.
 
 # BeamDeckNG 0.2.14
 
