@@ -62,7 +62,7 @@ Multi Actions can match the plugin's keys, plus the folder, page and gravity ico
 | `com.yahms.beamdeckng.streamDeckPlugin` | the plugin: double-click to install (Stream Deck 7.1 or later) |
 | `com.yahms.beamdeckng.streamDeckIconPack` | icon pack for the Stream Deck Icon Library: double-click to install |
 | `BeamDeckNG-icons.zip` | the same icons as plain PNGs, for Set from File |
-| `BeamDeckNGv0.2.10-15keyExample.streamDeckProfile` | example 15-key profile: double-click to import |
+| `BeamDeckNGv0.2.11-15keyExample.streamDeckProfile` | example 15-key profile: double-click to import |
 | `BeamDeckNG-MP-MCP.zip` | for BeamMP server owners: the server-side add-on (goes in the server's client mods) |
 
 **Install:** double-click the plugin, then drag buttons from the **BeamDeckNG** category, or import the example
