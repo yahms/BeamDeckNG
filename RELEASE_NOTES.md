@@ -7,7 +7,9 @@ Everything since 0.2.11 (0.2.12, 0.2.13 and 0.2.14 together).
 Up / Down / Left / Right and Repair now press the real arrow keys and Insert, held for as long as you hold the
 button, so you can time a rewind (Insert) or a nudge exactly. They do what those keys do in the game (menus,
 walking, the free camera, and in the car, driving) and work without MCP, but need the game window focused.
-Untick **Keyboard** in a key's settings to go back to the game's actions. Windows only.
+Back and Accept can send Esc and Enter the same way. Each of these keys has an **Input** setting: the default
+(arrows and Repair send the real key, Back and Accept use the game's action), "Real keyboard key" or
+"The game's action". Windows only.
 
 ## Gauges that do something
 
@@ -24,7 +26,8 @@ pressing starts / stops the engine, and it doubles as a shift light (yellow, the
 
 ## Keys that know where you are
 
-- Back (red X) in the game opens the pause menu, like Escape; in a menu it goes back a page.
+- Back (red X) works like Esc: in the game it opens the pause menu, in a menu it steps back a page, and from
+  the pause menu it returns to the game.
 - Vehicles: a second press closes the vehicle list and returns to the game.
 
 ## Clearer icons

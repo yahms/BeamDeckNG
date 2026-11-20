@@ -35,7 +35,8 @@ export type Settings = {
 	group?: string; // tyre pressure: "all" or the axle number
 	tdir?: "inflate" | "deflate"; // tyre pressure: which way
 	gamecams?: boolean; // camera buttons: cycle only the cameras enabled in the game's own settings
-	kbd?: boolean; // arrows / repair: send the real keyboard key (on unless unticked)
+	kbd?: boolean; // damage gauge repair: send the real Insert key (on unless unticked)
+	input?: "" | "key" | "game"; // arrows, Repair, Back, Accept: real keyboard key or the game's action ("" = default)
 	gpress?: string; // gauges: what a press does (repair / recover / respawn, ignition, tcs; none)
 };
 /** A vehicle resolver action ({action, args}) or one of the game's MCP tools ({tool, args}). */

@@ -75,9 +75,14 @@ shows what it does: the title says it, and the reading sits over that control's 
 **Real keys for timing.** The Up / Down / Left / Right arrows and Repair (and the Damage gauge set to repair)
 press the real arrow keys and Insert, held for as long as you hold the button, so you can time a rewind or
 a nudge exactly. They do whatever those keys do in the game (menus, walking, the free camera, driving;
-Insert rewinds while held). The game window must be the focused window, as with any hotkey, but they keep
-working without MCP (e.g. on a BeamMP server without the add-on). Untick **Keyboard** in the key's
-settings to use the game's actions instead. (Windows only; elsewhere they use the game's actions.)
+Insert rewinds while held). Back and Accept can do the same with Esc and Enter: set their **Input** to
+"Real keyboard key". The game window must be the focused window, as with any hotkey, but real keys keep
+working without MCP (e.g. on a BeamMP server without the add-on). Set **Input** to "The game's action" to
+use the game's actions instead, which don't need focus. (Windows only; elsewhere they use the game's actions.)
+
+**Back** (the game's action) works like Esc: in the game it opens the pause menu, in a menu it steps back a
+page, and from the pause menu it returns to the game. (In the vehicle list the first press only leaves the
+search / selection, as in the game; a second press goes back.)
 
 Every key has an **In-game message** setting (on by default): after a press, the game's message
 app shows what happened, e.g. "Stream Deck: Rear diff: LOCKED", or why nothing did. Each new

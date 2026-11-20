@@ -16,8 +16,10 @@ type GameFn = {
 	walk?: string;
 	/** In the free camera: held as this input action instead (the arrows fly the camera). */
 	fly?: string;
-	/** Sent as this real keyboard key instead (keys.ts), unless the key's "kbd" setting is off. */
+	/** Can be sent as this real keyboard key instead (keys.ts); see the key's "input" setting. */
 	kbd?: string;
+	/** False: uses the game's action unless the key is set to send the real key (Back, Accept). */
+	kbdDefault?: boolean;
 	/** Tap: trigger_action name (or picked from the game state, e.g. the menu page that's open). */
 	act?: string | ((ge: GeStatus) => string);
 	/** Hold: trigger_action with down/up. */
@@ -87,9 +89,9 @@ const walkHeld = new Map<string, string>();
 
 export const GAME_FUNCS: Record<string, GameFn> = {
 	// fixed buttons
-	accept: { label: "Accept", key: "accept", act: "menu_item_select" },
+	accept: { label: "Accept", key: "accept", act: "menu_item_select", kbd: "enter", kbdDefault: false },
 	// in the game (no menu open) Back opens the pause menu, like Escape; in a menu it goes back
-	back: { label: "Back", key: "back", act: (g) => (g.route === "play" ? "toggleMenues" : "menu_item_back") },
+	back: { label: "Back", key: "back", act: (g) => (g.route === "play" ? "toggleMenues" : "menu_item_back"), kbd: "escape", kbdDefault: false },
 	pause: { label: "Pause", key: "pause", act: "pause", state: (g) => (g.paused ? { state: "on", value: "PAUSED" } : { state: "off", value: "RUNNING" }) },
 	// Insert, held: the game's recover (rewinds while held, so it can be timed)
 	repair: { label: "Repair", key: "repair", act: "recover_vehicle_alt", kbd: "insert" },
@@ -249,7 +251,13 @@ export class GameFunction extends DeckAction {
 	}
 
 	override keyboard(st: Settings): string | undefined {
-		return st.kbd === false ? undefined : GameFunction.fn(st)[1].kbd;
+		const f = GameFunction.fn(st)[1];
+		if (!f.kbd) return undefined;
+		// "key" / "game", or the default: arrows and Repair send the real key, Back and Accept use the game
+		const mode = st.input || (st.kbd === false ? "game" : "");
+		if (mode === "key") return f.kbd;
+		if (mode === "game") return undefined;
+		return f.kbdDefault === false ? undefined : f.kbd;
 	}
 
 	face(_s: VehicleStatus, st: Settings, held?: boolean, ge: GeStatus = {}): Face {
