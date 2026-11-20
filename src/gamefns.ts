@@ -16,6 +16,8 @@ type GameFn = {
 	walk?: string;
 	/** In the free camera: held as this input action instead (the arrows fly the camera). */
 	fly?: string;
+	/** Sent as this real keyboard key instead (keys.ts), unless the key's "kbd" setting is off. */
+	kbd?: string;
 	/** Tap: trigger_action name (or picked from the game state, e.g. the menu page that's open). */
 	act?: string | ((ge: GeStatus) => string);
 	/** Hold: trigger_action with down/up. */
@@ -89,7 +91,8 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 	// in the game (no menu open) Back opens the pause menu, like Escape; in a menu it goes back
 	back: { label: "Back", key: "back", act: (g) => (g.route === "play" ? "toggleMenues" : "menu_item_back") },
 	pause: { label: "Pause", key: "pause", act: "pause", state: (g) => (g.paused ? { state: "on", value: "PAUSED" } : { state: "off", value: "RUNNING" }) },
-	repair: { label: "Repair", key: "repair", act: "recover_vehicle_alt" },
+	// Insert, held: the game's recover (rewinds while held, so it can be timed)
+	repair: { label: "Repair", key: "repair", act: "recover_vehicle_alt", kbd: "insert" },
 	recover: { label: "Recover", key: "recover", tool: ["recover_vehicle", {}] },
 	respawn: { label: "Respawn", key: "home", act: "loadHome" },
 	// game tab
@@ -133,10 +136,10 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 		state: (g) => ({ state: "off", value: g.veh?.name ?? "NEXT CAR", glyph: ["own_nextveh"], tint: paint(g.veh?.color) }),
 	},
 	// menu arrows; on foot they walk (held), like the keyboard's arrow keys
-	up: { label: "Up", key: "up", act: "menu_item_up", walk: "unicycle__walkUp", fly: "moveforward", state: walkState },
-	down: { label: "Down", key: "down", act: "menu_item_down", walk: "unicycle__walkDown", fly: "movebackward", state: walkState },
-	left: { label: "Left", key: "left", act: "menu_item_left", walk: "unicycle__walkLeft", fly: "moveleft", state: walkState },
-	right: { label: "Right", key: "right", act: "menu_item_right", walk: "unicycle__walkRight", fly: "moveright", state: walkState },
+	up: { label: "Up", key: "up", kbd: "up", act: "menu_item_up", walk: "unicycle__walkUp", fly: "moveforward", state: walkState },
+	down: { label: "Down", key: "down", kbd: "down", act: "menu_item_down", walk: "unicycle__walkDown", fly: "movebackward", state: walkState },
+	left: { label: "Left", key: "left", kbd: "left", act: "menu_item_left", walk: "unicycle__walkLeft", fly: "moveleft", state: walkState },
+	right: { label: "Right", key: "right", kbd: "right", act: "menu_item_right", walk: "unicycle__walkRight", fly: "moveright", state: walkState },
 	// on foot: turn the camera (and so where you walk), and run
 	turn_left: { label: "Turn camera left", key: "turn_left", hold: "rotate_camera_left", state: () => ({ state: "off", value: "LEFT" }) },
 	turn_right: { label: "Turn camera right", key: "turn_right", hold: "rotate_camera_right", state: () => ({ state: "off", value: "RIGHT" }) },
@@ -243,6 +246,10 @@ export class GameFunction extends DeckAction {
 		}
 		const id = st.fn && GAME_FUNCS[st.fn] ? st.fn : "pause";
 		return [id, GAME_FUNCS[id]];
+	}
+
+	override keyboard(st: Settings): string | undefined {
+		return st.kbd === false ? undefined : GameFunction.fn(st)[1].kbd;
 	}
 
 	face(_s: VehicleStatus, st: Settings, held?: boolean, ge: GeStatus = {}): Face {

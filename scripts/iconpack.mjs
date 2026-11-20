@@ -1,11 +1,13 @@
 // Builds the BeamDeckNG icon pack for the Stream Deck Icon Library:
 //   dist/com.yahms.beamdeckng.streamDeckIconPack  (double-click to install)
-// Contents: the folder / page icons (white and green, plus yes / no) from com.yahms.beamdeckng.sdPlugin/icons
-// and the gravity preset icons from profiles/tabs. Run after scripts/icons.mjs and scripts/tabicons.mjs.
+// Contents: the folder / page icons (white and green, plus yes / no) from com.yahms.beamdeckng.sdPlugin/icons,
+// the gravity preset icons from profiles/tabs, and every key icon the plugin uses, in each of its colours
+// (BeamDeckNG's own drawings only: the game's icons are never shipped). Run after scripts/icons.mjs and
+// scripts/tabicons.mjs; it compiles the plugin's modules (test/compile.mjs) to read the key icons.
 // Run: node scripts/iconpack.mjs
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { execFileSync } from "node:child_process";
 import { Resvg } from "@resvg/resvg-js";
 
@@ -36,6 +38,74 @@ for (const f of existsSync(tabs) ? readdirSync(tabs).filter((f) => /^grav-|^grav
 	copyFileSync(path.join(tabs, f), path.join(PACK, "icons", f));
 	list.push({ path: f, name: title(f.replace(/\.png$/, "").replace(/-/g, " ")), tags: ["beamng", "beamdeckng", "gravity"] });
 }
+
+// ---- key icons: what the plugin's keys show, without the text (for Hotkeys, folders, Multi Actions...)
+execFileSync(process.execPath, ["test/compile.mjs"], { cwd: root, stdio: "ignore" });
+const bin = (m) => import(pathToFileURL(path.join(root, "test/build/bin", `${m}.js`)).href);
+const [{ GLYPHS }, I, A, { GameFunction, GAME_FUNCS }, { World, WORLD_FUNCS }, { Gauge, GAUGES }] = await Promise.all(
+	["glyphmap", "icons", "actions", "gamefns", "world", "gauges"].map(bin),
+);
+const COLOUR = Object.fromEntries(Object.entries(I.P).map(([k, v]) => [String(v).toLowerCase(), k]));
+const seen = new Map(); // svg -> entry
+const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+let keyIcons = 0;
+function addKey(ids, tint, name, tags) {
+	const svg = I.iconOnlySvg(ids, tint);
+	if (!svg) return;
+	const prev = seen.get(svg);
+	if (prev) {
+		for (const t of tags) if (!prev.tags.includes(t)) prev.tags.push(t);
+		return;
+	}
+	const colour = COLOUR[String(tint).toLowerCase()] ?? "colour";
+	let file = `key-${slug(name)}.png`;
+	for (let i = 2; list.some((e) => e.path === file); i++) file = `key-${slug(name)}-${i}.png`;
+	writeFileSync(path.join(PACK, "icons", file), new Resvg(svg).render().asPng());
+	const e = { path: file, name, tags: ["beamng", "beamdeckng", "key", colour, ...tags] };
+	seen.set(svg, e);
+	list.push(e);
+	keyIcons++;
+}
+const nice = (s) => s.replace(/[_.]/g, " ").replace(/\s+/g, " ").trim().replace(/\b\w/g, (c) => c.toUpperCase());
+// the faces the keys draw, for a spread of game states (titles name them: "Hazards - On")
+A.start({ snapshot: {}, backend: "mcp", blocked: () => null, canMenu: () => false, poll: async () => {}, fetchGlyphs: async () => {}, mcpLink: "offline", message: () => {} });
+const faceIcon = (impl, st, s, ge, extra = [], naming) => {
+	let f;
+	try {
+		f = A.faceFor({ action: { id: "x" }, impl, settings: st, busy: false }, { link: "ok", status: s, ge, vid: 1 });
+	} catch {
+		return;
+	}
+	if (!f.glyph || f.dim) return;
+	const t = I.titleOf(f);
+	const name = naming ? naming(t) : [t.top, t.bottom].filter(Boolean).join(" - ");
+	addKey(f.glyph, f.tint ?? I.P.white, nice(name.toLowerCase()), [t.top.toLowerCase(), ...extra]);
+};
+const car = {
+	running: true, ign: 2, hasTC: true, tc: true, diff: { front: "open", rear: "locked", center: "open" }, range: "high", drive: "4wd",
+	pbrake: false, lights: 1, fog: 0, hazard: false, sigL: 0, sigR: 0, lightbar: 1, lbm: 1, lbn: "Chase", lbc: 4, g: { spd: 22, gear: "4", gi: 4, rpm: 3000, maxrpm: 7000, fuel: 0.6, dmg: 0 },
+};
+const world = { tod: { time: 0.3, play: true, dayLength: 1800 }, cloud: 1.2, fog: 0.08, fogH: 235, wind: 0.4, rain: 0, grav: -9.81, timeScale: 1 };
+const geStates = [
+	{ ...world, cam: "orbit", replay: "inactive" },
+	{ ...world, paused: true, ui: false, walking: true, cam: "free", replay: "recording", towing: true, timeScale: 0.25 },
+	{ ...world, replay: "playback" },
+	{ ...world, replay: "playback", replayPaused: true },
+];
+for (const fn of Object.keys(GAME_FUNCS)) for (const ge of geStates) for (const held of [false, true]) faceIcon(new GameFunction(), { fn }, {}, ge, held ? ["pressed"] : []);
+for (const fn of Object.keys(WORLD_FUNCS)) for (const ge of geStates) faceIcon(new World(), { fn }, {}, ge, [], (t) => `${t.top} - ${fn.replace(/_/g, " ")}`);
+for (const gauge of Object.keys(GAUGES)) {
+	const f = new Gauge().face({}, { gauge });
+	if (f.glyph) addKey(f.glyph, I.P.white, nice(`${GAUGES[gauge].label} gauge`), ["gauge"]);
+}
+// drive modes in the game's colours, and TC on / off
+for (const [key, name, color] of [["comfort", "Comfort", "#1f8fff"], ["sport", "Sport", "#ffc300"], ["drift", "Drift", "#8fd400"], ["off", "ESC & TC Off", "#8a8a8a"]])
+	faceIcon(new A.Traction(), {}, { ...car, tcMode: { key, name, color } }, {}, ["traction", "esc"]);
+// every icon the glyph table knows, by key and state
+for (const [key, row] of Object.entries(GLYPHS))
+	for (const [state, e] of Object.entries(row)) addKey(e.g, e.t, nice(`${key} - ${state}`), [key.replace(/_/g, " "), state]);
+console.log(`key icons: ${keyIcons}`);
+
 writeFileSync(path.join(PACK, "icons.json"), JSON.stringify(list, null, "\t"));
 
 // pack icon (56px): the plugin's own mark, green on black
@@ -50,7 +120,7 @@ writeFileSync(
 		{
 			Name: "BeamDeckNG",
 			Version: pkg.version,
-			Description: "Folder, page and tab icons for BeamNG.drive Stream Deck profiles (BeamDeckNG): white, and green for the active one.",
+			Description: "BeamNG.drive icons for Stream Deck (BeamDeckNG): every key icon the plugin uses, in each colour, plus folder, page and tab icons. For Hotkeys, folders and Multi Actions that should match the plugin's keys.",
 			Author: "yahms",
 			URL: "https://github.com/yahms/BeamDeckNG",
 			Icon: "icon.png",
@@ -69,4 +139,9 @@ writeFileSync(
 const file = path.join(OUT, `${ID}.streamDeckIconPack`);
 rmSync(file, { force: true });
 execFileSync("zip", ["-qr", file, `${ID}.sdIconPack`], { cwd: OUT });
-console.log(`${file}: ${list.length} icons`);
+// the same icons as plain PNGs, for Set from File
+const zip = path.join(OUT, "BeamDeckNG-icons.zip");
+rmSync(zip, { force: true });
+execFileSync("zip", ["-qr", zip, "icons"], { cwd: PACK });
+console.log(`${file}: ${list.length} icons (also ${path.basename(zip)})`);
+process.exit(0);

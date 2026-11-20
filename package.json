@@ -1,6 +1,6 @@
 {
   "name": "beamdeckng",
-  "version": "0.2.13",
+  "version": "0.2.14",
   "scripts": {
     "build": "rollup -c",
     "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.yahms.beamdeckng\"",

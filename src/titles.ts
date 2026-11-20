@@ -44,6 +44,7 @@ export const TITLES: Record<string, string> = {
 	"tires:deflate": "DEFLATE TYRES",
 	"gauge:gear": "GEAR",
 	"gauge:speed": "SPEED",
+	"gauge:speedgear": "SPEED",
 	"gauge:kmh": "SPEED",
 	"gauge:mph": "SPEED",
 	"gauge:rpm": "RPM",

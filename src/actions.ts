@@ -9,6 +9,7 @@ import streamDeck, {
 	WillDisappearEvent,
 } from "@elgato/streamdeck";
 import { titleFor } from "./titles";
+import { keysAvailable, sendKey, warmKeys } from "./keys";
 import { DiffState, Game, GeStatus, ResolverResult, Snapshot, VehicleStatus } from "./game";
 import { withGlyph } from "./glyphmap";
 import { Blocked } from "./mcp";
@@ -34,6 +35,8 @@ export type Settings = {
 	group?: string; // tyre pressure: "all" or the axle number
 	tdir?: "inflate" | "deflate"; // tyre pressure: which way
 	gamecams?: boolean; // camera buttons: cycle only the cameras enabled in the game's own settings
+	kbd?: boolean; // arrows / repair: send the real keyboard key (on unless unticked)
+	gpress?: string; // gauges: what a press does (repair / recover / respawn, ignition, tcs; none)
 };
 /** A vehicle resolver action ({action, args}) or one of the game's MCP tools ({tool, args}). */
 export type Command = {
@@ -54,6 +57,7 @@ export type Entry = {
 	settings: Settings;
 	busy: boolean;
 	held?: boolean; // hold-type buttons: key is down
+	kbd?: string; // real keyboard key being held for this button (see keyboard())
 	note?: { face: Partial<Face>; until: number }; // short-lived result overlay (N/A, ERROR)
 	lastImg?: string;
 };
@@ -96,11 +100,14 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 	abstract command(s: VehicleStatus, settings: Settings, ge?: GeStatus): Command;
 	/** Hold-type buttons (horn, air suspension): command sent on key up. Presses are fire-and-forget. */
 	release?(s: VehicleStatus, settings: Settings): Command;
+	/** Keys that send a real keyboard key instead (held while the button is): the key's name (keys.ts). */
+	keyboard?(settings: Settings): string | undefined;
 
 	override onWillAppear(ev: WillAppearEvent<Settings>): void {
 		// inside a Multi Action: no face of its own to draw, presses are handled by multiPress
 		if (!ev.action.isKey() || inMulti(ev.action)) return;
 		entries.set(ev.action.id, { action: ev.action, impl: this, settings: ev.payload.settings ?? {}, busy: false });
+		if (this.keyboard?.(ev.payload.settings ?? {})) warmKeys();
 		ev.action.setTitle("");
 		requestPoll();
 		redraw(true);
@@ -108,7 +115,7 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 
 	override onWillDisappear(ev: WillDisappearEvent<Settings>): void {
 		const e = entries.get(ev.action.id);
-		if (e?.held) keyUp(e);
+		if (e?.held || e?.kbd) keyUp(e);
 		entries.delete(ev.action.id);
 	}
 
@@ -123,6 +130,7 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 		if (e) {
 			e.settings = ev.payload.settings ?? {};
 			e.lastImg = undefined;
+			if (this.keyboard?.(e.settings)) warmKeys();
 			redraw(true);
 		}
 	}
@@ -133,6 +141,16 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 	 * without a key down does the press first.
 	 */
 	private async multiPress(id: string, st: Settings, phase: "down" | "up"): Promise<void> {
+		// real keyboard key in a Multi Action: a tap (on key down, or on key up if that's all that came)
+		const kb = this.keyboard?.(st);
+		if (kb) {
+			if (phase === "up" && multiDown.delete(id)) return;
+			if (sendKey(kb, true)) {
+				if (phase === "down") multiDown.add(id);
+				setTimeout(() => sendKey(kb, false), 60);
+				return;
+			}
+		}
 		const snap = game.snapshot;
 		const ready = this.vehicle ? snap.link === "ok" && !!snap.status : snap.link !== "offline" && snap.link !== "limited";
 		if (phase === "down" || !multiDown.has(id)) {
@@ -154,6 +172,14 @@ export abstract class DeckAction extends SingletonAction<Settings> {
 		if (inMulti(ev.action)) return this.multiPress(ev.action.id, ev.payload?.settings ?? {}, "down");
 		const e = entries.get(ev.action.id);
 		if (!e || e.busy) return;
+		// real keyboard key (arrows, Insert): pressed now, released with the button; no game link needed
+		const kb = this.keyboard?.(e.settings);
+		if (kb && sendKey(kb, true)) {
+			e.kbd = kb;
+			e.held = true;
+			redraw(true);
+			return;
+		}
 		const snap = game.snapshot;
 		// OutGauge alone (limited) is read-only: presses need MCP
 		const ready = this.vehicle ? snap.link === "ok" && !!snap.status : snap.link !== "offline" && snap.link !== "limited";
@@ -220,6 +246,14 @@ export async function run(cmd: NonNullable<Command>): Promise<void> {
 }
 
 export async function keyUp(e: Entry) {
+	if (e.kbd) {
+		sendKey(e.kbd, false);
+		e.kbd = undefined;
+		e.held = false;
+		requestPoll();
+		redraw(true);
+		return;
+	}
 	if (!e.held || !e.impl.release) return;
 	e.held = false;
 	redraw(true);
@@ -309,7 +343,10 @@ export function faceFor(e: Entry, snap: Snapshot): Face {
 		return { ...b, alt: [...(b.state === "unsupported" ? [] : [b.state]), ...(b.alt ?? [])], state: "unsupported", dim: true, flash: false, color: C.none, value: text, overlay: text, sub: undefined, ring: undefined, panel: b.glyph ? undefined : b.panel && { big: text, top: b.panel.top ?? b.label } };
 	};
 	let f: Face;
-	if (snap.link === "offline") f = idle("offline", "NO GAME");
+	// keys that send a real keyboard key work without the game link (BeamMP with no MCP, too)
+	const kbd = !!e.impl.keyboard?.(e.settings) && keysAvailable();
+	if (kbd && !e.impl.vehicle && (snap.link === "offline" || snap.link === "limited")) f = e.impl.face({}, e.settings, e.held, {});
+	else if (snap.link === "offline") f = idle("offline", "NO GAME");
 	else if (snap.link === "limited") {
 		// MCP isn't answering (BeamMP server) but OutGauge is: keys it covers keep showing their state,
 		// the rest say so instead of showing N/A, which would read as "not on this vehicle"
@@ -323,7 +360,7 @@ export function faceFor(e: Entry, snap: Snapshot): Face {
 		if (snap.link === "paused") f = { ...f, dim: true, sub: "PAUSED" };
 	}
 	// Through BeamDeckNG MP-MCP, keys this server doesn't allow say so (read-only keys like gauges still show).
-	if (game.backend === "addon" && !e.impl.passive && snap.link !== "offline" && snap.link !== "limited" && f.state !== "unsupported") {
+	if (game.backend === "addon" && !kbd && !e.impl.passive && snap.link !== "offline" && snap.link !== "limited" && f.state !== "unsupported") {
 		let cmd: Command = null;
 		try {
 			cmd = e.impl.command(snap.status ?? {}, e.settings, snap.ge ?? {});

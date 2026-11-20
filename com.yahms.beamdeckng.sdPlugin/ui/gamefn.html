@@ -12,7 +12,7 @@
 					<option value="accept">Accept</option>
 					<option value="back">Back</option>
 					<option value="pause">Pause</option>
-					<option value="repair">Repair</option>
+					<option value="repair">Repair (Insert, hold to rewind)</option>
 					<option value="recover">Recover</option>
 					<option value="respawn">Respawn</option>
 				</optgroup>
@@ -31,10 +31,10 @@
 					<option value="nextveh">Next vehicle</option>
 				</optgroup>
 				<optgroup label="Menu navigation / walking">
-					<option value="up">Up (walks forward on foot)</option>
-					<option value="down">Down (walks back on foot)</option>
-					<option value="left">Left (steps left on foot)</option>
-					<option value="right">Right (steps right on foot)</option>
+					<option value="up">Up arrow</option>
+					<option value="down">Down arrow</option>
+					<option value="left">Left arrow</option>
+					<option value="right">Right arrow</option>
 					<option value="turn_left">Turn camera left (hold)</option>
 					<option value="turn_right">Turn camera right (hold)</option>
 					<option value="sprint">Sprint / shift (hold, on foot)</option>
@@ -64,6 +64,9 @@
 				</optgroup>
 			</sdpi-select>
 		</sdpi-item>
+		<sdpi-item label="Keyboard">
+			<sdpi-checkbox setting="kbd" default="true" label="arrows and Repair send the real key"></sdpi-checkbox>
+		</sdpi-item>
 		<sdpi-item label="Cameras">
 			<sdpi-checkbox setting="gamecams" label="only the ones enabled in the game"></sdpi-checkbox>
 		</sdpi-item>
@@ -73,6 +76,7 @@
 		<sdpi-item label="Key text">
 			<sdpi-textfield setting="label" placeholder="shown on the key"></sdpi-textfield>
 		</sdpi-item>
+		<p style="color:#aaa;font-size:12px;margin:8px">The arrows and Repair press the real arrow / Insert key, held for as long as you hold the button, so the game does whatever that key does (menus, walking, the free camera, driving; Insert rewinds while held). The game window must be the focused window. Untick to use the game's actions instead (menu navigation, a quick repair), which work without focus.</p>
 		<p style="color:#aaa;font-size:12px;margin:8px">Next / previous camera step through every camera the vehicle has (driver, hood, chase, orbit, external, top...). Tick the box to follow the game's own camera list instead, which only includes the cameras enabled in its camera settings.</p>
 		<p style="color:#aaa;font-size:12px;margin:8px">Action name and key text are only used with "Custom game action": any action from the game's Controls menu, fired directly (no key binding needed).</p>
 		<sdpi-item label="In-game message">

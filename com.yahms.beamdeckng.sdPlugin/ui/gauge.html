@@ -9,15 +9,37 @@
 		<sdpi-item label="Gauge">
 			<sdpi-select setting="gauge" default="speed">
 				<option value="speed">Speed</option>
+				<option value="speedgear">Speed + gear</option>
 				<option value="gear">Gear + shift light</option>
 				<option value="rpm">RPM</option>
 				<option value="fuel">Fuel</option>
 				<option value="water">Coolant temperature</option>
 				<option value="oil">Oil temperature</option>
 				<option value="boost">Boost</option>
-				<option value="damage">Damage (press: repair)</option>
+				<option value="damage">Damage</option>
 			</sdpi-select>
 		</sdpi-item>
+		<sdpi-item label="When pressed">
+			<sdpi-select setting="gpress" default="">
+				<option value="">Default (Damage: repair, others: nothing)</option>
+				<option value="none">Nothing</option>
+				<optgroup label="Damage">
+					<option value="repair">Repair</option>
+					<option value="recover">Recover to road</option>
+					<option value="respawn">Respawn</option>
+				</optgroup>
+				<optgroup label="RPM, Gear">
+					<option value="ignition">Start / stop the engine</option>
+				</optgroup>
+				<optgroup label="Speed, Speed + gear">
+					<option value="tcs">Traction control / drive mode</option>
+				</optgroup>
+			</sdpi-select>
+		</sdpi-item>
+		<sdpi-item label="Keyboard">
+			<sdpi-checkbox setting="kbd" default="true" label="Repair sends the real Insert key"></sdpi-checkbox>
+		</sdpi-item>
+		<p style="color:#aaa;font-size:12px;margin:8px">With a press set, the key shows what it does: the title says it (REPAIR, STOP ENGINE, DRIVE MODE) and the reading sits over its icon (the engine in green / red, the ESC badge in the drive mode's colour). A car without traction control just shows its speed. Repair holds the Insert key while you hold the button (the game window must be focused); untick to repair through the game instead.</p>
 		<sdpi-item label="Speed units">
 			<sdpi-select setting="units" default="kmh">
 				<option value="kmh">km/h</option>

@@ -56,6 +56,8 @@ export type Face = {
 	sub?: string; // small extra line under the mode ("TC ON", "PAUSED", "OPENS MENU"...)
 	head?: string; // top title, when it differs from label (e.g. "PATTERN 2/4", "TIME +10 MIN")
 	engine?: { gear: string; rpm?: string; shift?: string }; // engine key: gear and RPM drawn over the icon
+	/** A reading drawn over the key's icon (faint, behind): gauges that also do something when pressed. */
+	readout?: { big: string; small?: string; fg?: string };
 	color: string;
 	flash?: boolean;
 	dim?: boolean;
@@ -236,6 +238,22 @@ function pickGlyph(ids: string[] | undefined): Glyph | undefined {
 	return undefined;
 }
 
+/** Icon pack: just the icon, big, on black, from BeamDeckNG's own drawings only (never the game's). */
+export function iconOnlySvg(ids: string[] | undefined, tint: string): string | undefined {
+	const g = ids?.map((id) => BUILTIN[id] ?? FALLBACK_GLYPHS[id] ?? (id.startsWith("powertrain_esc") ? FALLBACK_GLYPHS.powertrain_esc : undefined)).find(Boolean);
+	if (!g) return undefined;
+	const [vx, vy, vw, vh] = (g.viewBox.trim().split(/[\s,]+/).map(Number) ?? []).map((n) => (Number.isFinite(n) ? n : 0));
+	const size = 104;
+	const k = size / Math.max(vw || 24, vh || 24);
+	const n = (x: number) => Number(x.toFixed(3));
+	const tx = (144 - (vw || 24) * k) / 2 - vx * k;
+	const ty = (144 - (vh || 24) * k) / 2 - vy * k;
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
+<rect x="0" y="0" width="144" height="144" fill="#000"/>
+<g transform="translate(${n(tx)} ${n(ty)}) scale(${n(k)})" fill="${tint}">${g.inner.replace(/currentColor/g, tint)}</g>
+</svg>`;
+}
+
 /** Stream Deck's SVG renderer is strict: no nested <svg>, no currentColor, no CSS. The glyph is placed
  *  with a plain transform and every colour is written out as a literal. */
 function glyphSvg(f: Face, g: Glyph, dark: boolean): string {
@@ -285,6 +303,41 @@ ${f.frame ? `<rect x="4" y="4" width="136" height="136" rx="18" fill="none" stro
 </svg>`;
 }
 
+/** A reading over a faint icon: title on top, the number big, a small line under it, then the mode. */
+function readoutSvg(f: Face, g: Glyph | undefined, dark: boolean): string {
+	const r = f.readout!;
+	const { top, bottom, sub } = titleOf(f);
+	const tint = dark ? P.dimmed : f.dim ? P.dimmed : f.tint ?? P.white;
+	const fg = dark || f.dim ? P.off : r.fg ?? "#fff";
+	const tight = !!(bottom && sub);
+	let icon = "";
+	if (g) {
+		const [vx, vy, vw, vh] = (g.viewBox.trim().split(/[\s,]+/).map(Number) ?? []).map((n) => (Number.isFinite(n) ? n : 0));
+		const size = 96;
+		const k = size / Math.max(vw || 24, vh || 24);
+		const tx = (144 - (vw || 24) * k) / 2 - vx * k;
+		const ty = 30 + (92 - (vh || 24) * k) / 2 - vy * k;
+		const n = (x: number) => Number(x.toFixed(3));
+		let inner = g.inner.replace(/currentColor/g, tint);
+		if (dark || f.dim) inner = inner.replace(/(fill|stroke)="#[0-9a-f]{3,6}"/gi, `$1="${tint}"`);
+		icon = `<g transform="translate(${n(tx)} ${n(ty)}) scale(${n(k)})" fill="${tint}" opacity="0.4">${inner}</g>`;
+	}
+	const len = r.big.length;
+	const size = Math.min(len <= 2 ? 56 : len <= 3 ? 48 : len <= 4 ? 40 : len <= 5 ? 33 : 26, r.small ? 46 : 56);
+	const by = tight ? 72 : r.small ? 78 : bottom || sub ? 86 : 92;
+	const sy = tight ? 93 : 100;
+	const ui = { ...f, overlay: undefined, value: bottom, sub };
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
+<rect x="0" y="0" width="144" height="144" fill="#000"/>
+${icon}
+${topText(top, dark || f.dim ? P.off : "#fff")}
+<text x="72" y="${by}" ${FONT} font-size="${size}" fill="${fg}" stroke="#000" stroke-width="4" paint-order="stroke" stroke-linejoin="round">${esc(clip(r.big, 8))}</text>
+${r.small ? `<text x="72" y="${sy}" ${FONT} font-size="15" fill="${dark || f.dim ? P.off : "#fff"}" stroke="#000" stroke-width="3" paint-order="stroke">${esc(clip(r.small.toUpperCase(), 16))}</text>` : ""}
+${bottomText(ui.value, ui.sub, dark || f.dim ? P.off : "#fff")}
+${decorations({ frame: f.frame })}
+</svg>`;
+}
+
 function panelSvg(f: Face, dark: boolean): string {
 	const p = { ...f.panel!, top: f.head ?? f.panel!.top ?? f.label };
 	const fg = f.dim ? P.dimmed : p.fg ?? "#fff";
@@ -321,6 +374,7 @@ export function render(f: Face, phase: number): string {
 			return compose(p, f.dim ? (f.state === "unsupported" ? 0.68 : 0.55) : 0, f);
 		}
 	}
+	if (f.readout) return svgUrl(readoutSvg(f, pickGlyph(f.glyph), !!altFrame));
 	if (f.panel) return svgUrl(panelSvg(f, !!altFrame));
 	if (f.engine) {
 		const eg = pickGlyph(f.glyph);
