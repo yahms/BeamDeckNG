@@ -9,8 +9,8 @@
 		<sdpi-item label="Function">
 			<sdpi-select setting="fn" default="pause">
 				<optgroup label="Fixed buttons">
-					<option value="accept">Accept</option>
-					<option value="back">Back</option>
+					<option value="accept">Accept (Enter)</option>
+					<option value="back">Back (Esc)</option>
 					<option value="pause">Pause</option>
 					<option value="repair">Repair (Insert, hold to rewind)</option>
 					<option value="recover">Recover</option>
@@ -64,8 +64,12 @@
 				</optgroup>
 			</sdpi-select>
 		</sdpi-item>
-		<sdpi-item label="Keyboard">
-			<sdpi-checkbox setting="kbd" default="true" label="arrows and Repair send the real key"></sdpi-checkbox>
+		<sdpi-item label="Input">
+			<sdpi-select setting="input" default="">
+				<option value="">Default (arrows, Repair: real key; Back, Accept: game)</option>
+				<option value="key">Real keyboard key (arrows, Insert, Esc, Enter)</option>
+				<option value="game">The game's action</option>
+			</sdpi-select>
 		</sdpi-item>
 		<sdpi-item label="Cameras">
 			<sdpi-checkbox setting="gamecams" label="only the ones enabled in the game"></sdpi-checkbox>
@@ -76,7 +80,7 @@
 		<sdpi-item label="Key text">
 			<sdpi-textfield setting="label" placeholder="shown on the key"></sdpi-textfield>
 		</sdpi-item>
-		<p style="color:#aaa;font-size:12px;margin:8px">The arrows and Repair press the real arrow / Insert key, held for as long as you hold the button, so the game does whatever that key does (menus, walking, the free camera, driving; Insert rewinds while held). The game window must be the focused window. Untick to use the game's actions instead (menu navigation, a quick repair), which work without focus.</p>
+		<p style="color:#aaa;font-size:12px;margin:8px">Input (arrows, Repair, Back, Accept): "Real keyboard key" presses the arrow / Insert / Esc / Enter key, held for as long as you hold the button, so the game does exactly what that key does (menus, walking, the free camera, driving; Insert rewinds while held). The game window must be the focused window. "The game's action" works without focus: Back opens the pause menu in the game and steps back through menus, Accept selects. By default the arrows and Repair send the real key and Back / Accept use the game's action.</p>
 		<p style="color:#aaa;font-size:12px;margin:8px">Next / previous camera step through every camera the vehicle has (driver, hood, chase, orbit, external, top...). Tick the box to follow the game's own camera list instead, which only includes the cameras enabled in its camera settings.</p>
 		<p style="color:#aaa;font-size:12px;margin:8px">Action name and key text are only used with "Custom game action": any action from the game's Controls menu, fired directly (no key binding needed).</p>
 		<sdpi-item label="In-game message">
