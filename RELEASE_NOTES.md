@@ -45,6 +45,10 @@ pressing starts / stops the engine, and it doubles as a shift light (yellow, the
 The icon pack now has all the key icons the plugin uses (183), in each colour and without text, so Hotkeys and
 Multi Actions can match the plugin's keys, plus the folder, page and gravity icons. All BeamDeckNG's own drawings.
 
+It also has **tab icons for your own profiles**: GAME, CAR, CAMERA and a new WORLD tab (teal, for environment,
+weather, time, gravity...), each for 1 to 4 pages (CAR up to 5), lit for each page (filled dot = the page you're
+on) and unlit. Search "tab" in the Icon Library.
+
 ## Other changes and fixes
 
 - Day length cycles through 15 min, 20 min, 30 min, 1 h, 2 h and 24 h.

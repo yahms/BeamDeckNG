@@ -16,6 +16,11 @@ export const GROUPS = {
 	car: { color: "#8CD419", glyph: "directions_car", name: "CAR" },
 	cam: { color: "#9D4EDD", glyph: "videocam", name: "CAMERA" },
 };
+// Not used by the example profiles: a fourth tab for your own pages (weather, time, gravity, traffic...).
+export const EXTRA_GROUPS = {
+	world: { color: "#14B8A6", glyph: "landscape", name: "WORLD" },
+};
+const groupOf = (g) => GROUPS[g] ?? EXTRA_GROUPS[g];
 
 const sym = (name) =>
 	readFileSync(path.join(MS, `${name}-fill.svg`), "utf8").replace(/^<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
@@ -33,7 +38,7 @@ function dots(n, cur, color, active) {
 
 // active: this group's page is showing. label: page name when active, group name otherwise.
 export function tabSvg(group, { active, page = 0, pages = 1, label }) {
-	const g = GROUPS[group];
+	const g = groupOf(group);
 	const fg = active ? "#000" : g.color;
 	const text = label ?? g.name;
 	const fs = text.length > 6 ? 19 : 22;
@@ -114,5 +119,27 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 		.map((c, i) => `<g transform="translate(${(i % 3) * 150},${Math.floor(i / 3) * 150})">${c.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "")}</g>`)
 		.join("")}</svg>`;
 	writeFileSync(path.join(OUT, "preview.png"), new Resvg(prev).render().asPng());
+	// Tab sets for your own profiles: each tab for 1-4 pages (car: up to 5), lit on each page, and unlit.
+	// sets/tab-<group>-<n>pages-page<i>.png (lit, page i of n) and sets/tab-<group>-<n>pages-off.png
+	const SETS = path.join(OUT, "sets");
+	mkdirSync(SETS, { recursive: true });
+	const rowsOut = [];
+	for (const g of [...Object.keys(GROUPS), ...Object.keys(EXTRA_GROUPS)]) {
+		for (let n = 1; n <= (g === "car" ? 5 : 4); n++) {
+			const row = [];
+			for (let i = 0; i < n; i++) {
+				writeFileSync(path.join(SETS, `tab-${g}-${n}pages-page${i + 1}.png`), tabPng(g, { active: true, page: i, pages: n }));
+				row.push(tabSvg(g, { active: true, page: i, pages: n }));
+			}
+			writeFileSync(path.join(SETS, `tab-${g}-${n}pages-off.png`), tabPng(g, { active: false, pages: n }));
+			row.push(tabSvg(g, { active: false, pages: n }));
+			rowsOut.push(row);
+		}
+	}
+	const W = 6 * 150;
+	const sheet = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${rowsOut.length * 150}"><rect width="100%" height="100%" fill="#333"/>${rowsOut
+		.map((row, r) => row.map((c, i) => `<g transform="translate(${i * 150 + 3},${r * 150 + 3})">${c.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "")}</g>`).join(""))
+		.join("")}</svg>`;
+	writeFileSync(path.join(SETS, "preview.png"), new Resvg(sheet, { font: { loadSystemFonts: true } }).render().asPng());
 	console.log("wrote", OUT);
 }

@@ -1,7 +1,7 @@
 // Builds the BeamDeckNG icon pack for the Stream Deck Icon Library:
 //   dist/com.yahms.beamdeckng.streamDeckIconPack  (double-click to install)
 // Contents: the folder / page icons (white and green, plus yes / no) from com.yahms.beamdeckng.sdPlugin/icons,
-// the gravity preset icons from profiles/tabs, and every key icon the plugin uses, in each of its colours
+// the gravity preset icons and the tab icon sets (1-4 pages) from profiles/tabs, and every key icon the plugin uses, in each of its colours
 // (BeamDeckNG's own drawings only: the game's icons are never shipped). Run after scripts/icons.mjs and
 // scripts/tabicons.mjs; it compiles the plugin's modules (test/compile.mjs) to read the key icons.
 // Run: node scripts/iconpack.mjs
@@ -16,6 +16,8 @@ const ID = "com.yahms.beamdeckng";
 const OUT = path.join(root, "dist");
 const PACK = path.join(OUT, `${ID}.sdIconPack`);
 const pkg = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"));
+// the plugin's version, plus a fourth number when the pack changes between plugin releases
+const ICONPACK_VERSION = `${pkg.version}.1`;
 
 rmSync(PACK, { recursive: true, force: true });
 mkdirSync(path.join(PACK, "icons"), { recursive: true });
@@ -106,6 +108,18 @@ for (const [key, row] of Object.entries(GLYPHS))
 	for (const [state, e] of Object.entries(row)) addKey(e.g, e.t, nice(`${key} - ${state}`), [key.replace(/_/g, " "), state]);
 console.log(`key icons: ${keyIcons}`);
 
+// tab icons for your own profiles (scripts/tabicons.mjs): game / car / camera / world, 1-4 pages (car 5)
+const sets = path.join(tabs, "sets");
+for (const f of existsSync(sets) ? readdirSync(sets).filter((f) => /^tab-.*\.png$/.test(f)).sort() : []) {
+	const m = f.match(/^tab-(\w+)-(\d)pages-(page(\d)|off)\.png$/);
+	if (!m) continue;
+	const grp = { game: "Game", car: "Car", cam: "Camera", world: "World" }[m[1]] ?? title(m[1]);
+	const pages = m[2] === "1" ? "1 page" : `${m[2]} pages`;
+	const name = m[3] === "off" ? `${grp} tab - ${pages} (not selected)` : `${grp} tab - ${pages} - page ${m[4]}`;
+	copyFileSync(path.join(sets, f), path.join(PACK, "icons", f));
+	list.push({ path: f, name, tags: ["beamng", "beamdeckng", "tab", m[1] === "cam" ? "camera" : m[1], pages, m[3] === "off" ? "not selected" : "selected"] });
+}
+
 writeFileSync(path.join(PACK, "icons.json"), JSON.stringify(list, null, "\t"));
 
 // pack icon (56px): the plugin's own mark, green on black
@@ -119,8 +133,8 @@ writeFileSync(
 	JSON.stringify(
 		{
 			Name: "BeamDeckNG",
-			Version: pkg.version,
-			Description: "BeamNG.drive icons for Stream Deck (BeamDeckNG): every key icon the plugin uses, in each colour, plus folder, page and tab icons. For Hotkeys, folders and Multi Actions that should match the plugin's keys.",
+			Version: ICONPACK_VERSION,
+			Description: "BeamNG.drive icons for Stream Deck (BeamDeckNG): every key icon the plugin uses, in each colour, plus folder, page and tab icons (game / car / camera / world tabs for 1-4 pages). For Hotkeys, folders and Multi Actions that should match the plugin's keys.",
 			Author: "yahms",
 			URL: "https://github.com/yahms/BeamDeckNG",
 			Icon: "icon.png",
