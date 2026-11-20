@@ -69,7 +69,7 @@ shows what it does: the title says it, and the reading sits over that control's 
 | Gauge | When pressed |
 | --- | --- |
 | Damage | repair (default; via MCP or via the keyboard Insert key), recover to road, respawn, or nothing |
-| RPM, Gear | start / stop the engine: STOP ENGINE / START ENGINE on top, RPM and gear over the engine icon (green running, red stalled or off), shift light frame |
+| RPM, Gear | start / stop the engine: STOP ENGINE / START ENGINE, RPM and gear over the engine icon (green running, red stalled or off), inside a thin tacho arc |
 | Speed, Speed + gear | traction control / drive mode, like the Traction key: the ESC badge in the mode's colour, the mode underneath, the speed over it. A car without traction control just shows its speed |
 
 **Real keys for timing.** Some Game functions come in two kinds, side by side in the list: **via MCP** (the

@@ -57,7 +57,7 @@ export type Face = {
 	head?: string; // top title, when it differs from label (e.g. "PATTERN 2/4", "TIME +10 MIN")
 	engine?: { gear: string; rpm?: string; shift?: string }; // engine key: gear and RPM drawn over the icon
 	/** A reading drawn over the key's icon (faint, behind): gauges that also do something when pressed. */
-	readout?: { big: string; small?: string; fg?: string };
+	readout?: { big: string; small?: string; fg?: string; arc?: { value?: number } };
 	/** Keys that send a real keyboard key: the key's name, drawn as a keycap at the bottom. */
 	keycap?: string;
 	color: string;
@@ -333,14 +333,20 @@ function readoutSvg(f: Face, g: Glyph | undefined, dark: boolean): string {
 		icon = `<g transform="translate(${n(tx)} ${n(ty)}) scale(${n(k)})" fill="${tint}" opacity="0.4">${inner}</g>`;
 	}
 	const len = r.big.length;
-	const size = Math.min(len <= 2 ? 56 : len <= 3 ? 48 : len <= 4 ? 40 : len <= 5 ? 33 : 26, r.small ? 46 : 56);
-	const by = tight ? 72 : r.small ? 78 : bottom || sub ? 86 : 92;
-	const sy = tight ? 93 : 100;
+	// with a rev arc round the edge, the title goes inside the arc and the reading sits a little lower
+	const arc = !!r.arc;
+	const size = Math.min(len <= 2 ? 56 : len <= 3 ? 48 : len <= 4 ? 40 : len <= 5 ? 33 : 26, arc ? 40 : r.small ? 46 : 56);
+	const by = arc ? (r.small ? 86 : 92) : tight ? 72 : r.small ? 78 : bottom || sub ? 86 : 92;
+	const sy = arc ? 106 : tight ? 93 : 100;
+	const title = arc
+		? `<text x="72" y="40" ${FONT} font-size="${top.length > 11 ? 11 : 12}" fill="${dark || f.dim ? P.off : "#fff"}" fill-opacity="0.9">${esc(clip(top, 14))}</text>`
+		: topText(top, dark || f.dim ? P.off : "#fff");
 	const ui = { ...f, overlay: undefined, value: bottom, sub };
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
 <rect x="0" y="0" width="144" height="144" fill="#000"/>
 ${icon}
-${topText(top, dark || f.dim ? P.off : "#fff")}
+${r.arc ? revArc(r.arc.value, !!f.dim || dark, true) : ""}
+${title}
 <text x="72" y="${by}" ${FONT} font-size="${size}" fill="${fg}" stroke="#000" stroke-width="4" paint-order="stroke" stroke-linejoin="round">${esc(clip(r.big, 8))}</text>
 ${r.small ? `<text x="72" y="${sy}" ${FONT} font-size="15" fill="${dark || f.dim ? P.off : "#fff"}" stroke="#000" stroke-width="3" paint-order="stroke">${esc(clip(r.small.toUpperCase(), 16))}</text>` : ""}
 ${f.keycap ? keycapSvg(f.keycap, dark || f.dim ? P.off : "#fff") : bottomText(ui.value, ui.sub, dark || f.dim ? P.off : "#fff")}
@@ -357,8 +363,9 @@ export const ORANGE = "#FF8A00";
 export const revZone = (k?: number) => (k === undefined || k < REV_ORANGE ? "#fff" : k < REV_RED ? ORANGE : P.red);
 
 /** Tacho arc round the key, from bottom left over the top to bottom right: faint zones, lit up to the revs. */
-function revArc(value: number | undefined, dim: boolean): string {
-	const cx = 72, cy = 76, r = 61, sw = 10;
+function revArc(value: number | undefined, dim: boolean, thin = false): string {
+	// thin: hugging the edge of the key, clear of a title on top
+	const cx = 72, cy = thin ? 74 : 76, r = thin ? 66 : 61, sw = thin ? 5 : 10;
 	const pt = (t: number) => {
 		const a = ((225 - 270 * t) * Math.PI) / 180;
 		return `${(cx + r * Math.cos(a)).toFixed(2)} ${(cy - r * Math.sin(a)).toFixed(2)}`;

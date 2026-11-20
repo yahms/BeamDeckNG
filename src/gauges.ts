@@ -3,7 +3,7 @@ import { action } from "@elgato/streamdeck";
 
 import { Command, DeckAction, Ignition, Settings, Traction, unitOf } from "./actions";
 import { VehicleStatus } from "./game";
-import { C, Face, P, REV_RED, revZone } from "./icons";
+import { C, Face, P, REV_ORANGE, REV_RED, revZone } from "./icons";
 
 type G = NonNullable<VehicleStatus["g"]>;
 type Panel = NonNullable<Face["panel"]>;
@@ -11,13 +11,6 @@ type Reading = { panel: Panel; flash?: boolean } | undefined;
 
 const gearName = (g: G) => g.gear ?? (g.gi === undefined ? undefined : g.gi < 0 ? "R" : g.gi === 0 ? "N" : String(g.gi));
 const rev = (g: G) => (g.rpm !== undefined && g.maxrpm ? g.rpm / g.maxrpm : undefined);
-/** Shift light: green, then yellow, then red (flashing) as the revs near the limit. */
-const revColor = (k?: number) => (k === undefined || k < 0.8 ? undefined : k < 0.9 ? P.green : k < 0.96 ? P.yellow : P.red);
-/** Rev share and shift colour. Without the rev limit (OutGauge), the game's own shift light turns it red. */
-const revs = (g: G) => {
-	const k = rev(g);
-	return { k, c: k === undefined ? (g.shift ? P.red : undefined) : revColor(k) };
-};
 const dmgText = (d: number) => (d >= 1e6 ? `${(d / 1e6).toFixed(1)}M` : d >= 1000 ? `${Math.round(d / 1000)}k` : String(Math.round(d)));
 
 export const GAUGES: Record<string, { label: string; read: (g: G, st: Settings) => Reading }> = {
@@ -30,16 +23,17 @@ export const GAUGES: Record<string, { label: string; read: (g: G, st: Settings) 
 		read: (g, st) => {
 			if (g.spd === undefined) return undefined;
 			const name = gearName(g);
-			const { k, c } = revs(g);
+			const k = rev(g);
+			const red = k === undefined ? !!g.shift : k >= REV_RED || !!g.shift;
 			const u = unitOf(st).name.toUpperCase();
 			return {
 				panel: {
 					big: String(Math.round(Math.abs(g.spd) * unitOf(st).k)),
 					top: "Speed",
 					unit: name === undefined ? u : `GEAR ${name} · ${u}`,
-					bar: k === undefined ? undefined : { value: k, color: c ?? "#fff" },
+					bar: k === undefined ? undefined : { value: k, color: red ? P.red : revZone(k) },
 				},
-				flash: c === P.red,
+				flash: red,
 			};
 		},
 	},
@@ -167,7 +161,9 @@ export class Gauge extends DeckAction {
 			const g = s.g ?? {};
 			const gear = gearName(g);
 			const rpm = g.rpm === undefined ? undefined : String(Math.round(g.rpm / 50) * 50);
-			const { c } = revs(g);
+			// the same tacho arc as the plain gauge, thin, round the edge of the key
+			const k = s.running ? rev(g) : undefined;
+			const red = s.running && (k === undefined ? !!g.shift : k >= REV_RED || !!g.shift);
 			const tint = s.running ? P.green : ig.state === "cranking" ? P.yellow : P.red;
 			const big = !s.running ? ig.value : id === "gear" ? gear ?? "-" : rpm ?? "-";
 			const small = !s.running ? undefined : id === "gear" ? (rpm ? `${rpm} RPM` : undefined) : gear ? `GEAR ${gear}` : undefined;
@@ -177,9 +173,8 @@ export class Gauge extends DeckAction {
 				tint,
 				head: s.running ? "Stop engine" : "Start engine",
 				value: s.running ? (id === "gear" ? "" : "RPM") : "",
-				readout: { big, small, fg: s.running && c && c !== P.green ? c : undefined },
-				frame: s.running ? c && c !== P.green ? c : undefined : undefined,
-				flash: ig.flash || (s.running && c === P.red),
+				readout: { big, small, fg: red ? P.red : s.running && k !== undefined && k >= REV_ORANGE ? revZone(k) : undefined, arc: { value: k } },
+				flash: ig.flash || red,
 			};
 		}
 		// traction: like the traction key (ESC icon in the mode's colour, mode underneath), speed over it;
