@@ -1,3 +1,39 @@
+# BeamDeckNG 0.2.15
+
+## What's new since 0.2.14
+
+**Keyboard keys are their own functions.** Instead of an Input setting, the Game function list now has each of
+these twice, side by side: "Up (via MCP)" and "Up (via keyboard Up key)", and so on. The keyboard ones show the
+key they send as a keycap on the button.
+
+| Function | via keyboard sends |
+| --- | --- |
+| Up / Down / Left / Right | the arrow keys |
+| Accept / Back | Enter / Esc |
+| Repair | Insert (rewinds while held) |
+| Sprint | Shift (new) |
+| Camera / seat up / down | Page Up / Page Down (new) |
+
+The Damage gauge's "When pressed" also has "Repair (via MCP)" and "Repair (via keyboard Insert key)".
+
+**Upgrading from 0.2.14:** the plain Up / Down / Left / Right, Repair and Damage-gauge repair are now the via MCP
+kind. Keys you'd set to "Real keyboard key" stay keyboard keys; for the rest, pick the "via keyboard" function.
+
+## Downloads
+
+| File | What it is |
+| --- | --- |
+| `com.yahms.beamdeckng.streamDeckPlugin` | the plugin: double-click to install (Stream Deck 7.1 or later) |
+| `com.yahms.beamdeckng.streamDeckIconPack` | icon pack for the Stream Deck Icon Library: double-click to install |
+| `BeamDeckNG-icons.zip` | the same icons as plain PNGs, for Set from File |
+| `BeamDeckNGv0.2.15-15keyExample.streamDeckProfile` | example 15-key profile (arrows, Repair, Sprint and camera up / down set to the keyboard kind): double-click to import |
+| `BeamDeckNG-MP-MCP.zip` | for BeamMP server owners: the server-side add-on (goes in the server's client mods) |
+
+**Install:** double-click the plugin, then drag buttons from the **BeamDeckNG** category, or import the example
+profile. Enable MCP in BeamNG.drive; Stream Deck must be on the same computer as the game.
+
+Feedback and bug reports are welcome on the Issues page.
+
 # BeamDeckNG 0.2.14
 
 Everything since 0.2.11 (0.2.12, 0.2.13 and 0.2.14 together).
@@ -61,21 +97,6 @@ on) and unlit. Search "tab" in the Icon Library.
 
 - Damage gauges now say REPAIR on top (repair is the default press); pick Nothing in "When pressed" for a plain gauge.
 - The arrow keys now act as the real arrow keys, so in the car they drive (with the default bindings).
-
-## Downloads
-
-| File | What it is |
-| --- | --- |
-| `com.yahms.beamdeckng.streamDeckPlugin` | the plugin: double-click to install (Stream Deck 7.1 or later) |
-| `com.yahms.beamdeckng.streamDeckIconPack` | icon pack for the Stream Deck Icon Library: double-click to install |
-| `BeamDeckNG-icons.zip` | the same icons as plain PNGs, for Set from File |
-| `BeamDeckNGv0.2.11-15keyExample.streamDeckProfile` | example 15-key profile: double-click to import |
-| `BeamDeckNG-MP-MCP.zip` | for BeamMP server owners: the server-side add-on (goes in the server's client mods) |
-
-**Install:** double-click the plugin, then drag buttons from the **BeamDeckNG** category, or import the example
-profile. Enable MCP in BeamNG.drive; Stream Deck must be on the same computer as the game.
-
-Feedback and bug reports are welcome on the Issues page.
 
 ## From 0.2.11: overview
 

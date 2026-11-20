@@ -18,6 +18,9 @@ export const KEYS: Record<string, [number, boolean]> = {
 	home: [0x47, true],
 	escape: [0x01, false],
 	enter: [0x1c, false],
+	lshift: [0x2a, false],
+	pageup: [0x49, true],
+	pagedown: [0x51, true],
 };
 
 const SCRIPT = String.raw`$ErrorActionPreference = 'Stop'

@@ -24,7 +24,8 @@
 				<option value="">Default (Damage: repair, others: nothing)</option>
 				<option value="none">Nothing</option>
 				<optgroup label="Damage">
-					<option value="repair">Repair</option>
+					<option value="repair">Repair (via MCP)</option>
+					<option value="repair_key">Repair (via keyboard Insert key, hold to rewind)</option>
 					<option value="recover">Recover to road</option>
 					<option value="respawn">Respawn</option>
 				</optgroup>
@@ -36,10 +37,7 @@
 				</optgroup>
 			</sdpi-select>
 		</sdpi-item>
-		<sdpi-item label="Keyboard">
-			<sdpi-checkbox setting="kbd" default="true" label="Repair sends the real Insert key"></sdpi-checkbox>
-		</sdpi-item>
-		<p style="color:#aaa;font-size:12px;margin:8px">With a press set, the key shows what it does: the title says it (REPAIR, STOP ENGINE, DRIVE MODE) and the reading sits over its icon (the engine in green / red, the ESC badge in the drive mode's colour). A car without traction control just shows its speed. Repair holds the Insert key while you hold the button (the game window must be focused); untick to repair through the game instead.</p>
+		<p style="color:#aaa;font-size:12px;margin:8px">With a press set, the key shows what it does: the title says it (REPAIR, STOP ENGINE, DRIVE MODE) and the reading sits over its icon (the engine in green / red, the ESC badge in the drive mode's colour). A car without traction control just shows its speed. Repair via keyboard holds the Insert key while you hold the button (the game window must be focused) and shows the key on the button.</p>
 		<sdpi-item label="Speed units">
 			<sdpi-select setting="units" default="kmh">
 				<option value="kmh">km/h</option>

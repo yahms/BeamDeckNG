@@ -58,6 +58,8 @@ export type Face = {
 	engine?: { gear: string; rpm?: string; shift?: string }; // engine key: gear and RPM drawn over the icon
 	/** A reading drawn over the key's icon (faint, behind): gauges that also do something when pressed. */
 	readout?: { big: string; small?: string; fg?: string };
+	/** Keys that send a real keyboard key: the key's name, drawn as a keycap at the bottom. */
+	keycap?: string;
 	color: string;
 	flash?: boolean;
 	dim?: boolean;
@@ -97,6 +99,14 @@ function bottomText(bottom: string, sub: string | undefined, fill: string): stri
 	}
 	if (sub) out += `<text x="72" y="${bottom ? 135 : 131}" ${FONT} font-size="13" fill="${fill}" fill-opacity="0.8">${esc(clip(sub, 18))}</text>`;
 	return out;
+}
+
+/** A keycap at the bottom of the key: the keyboard key this button sends. */
+function keycapSvg(name: string, fill: string): string {
+	const w = Math.max(44, name.length * 11 + 22);
+	return `<rect x="${72 - w / 2}" y="108" width="${w}" height="28" rx="6" fill="none" stroke="${fill}" stroke-width="2.5"/>
+<rect x="${72 - w / 2 + 4}" y="111" width="${w - 8}" height="19" rx="4" fill="${fill}" fill-opacity="0.12"/>
+<text x="72" y="127" ${FONT} font-size="16" fill="${fill}">${esc(clip(name, 8))}</text>`;
 }
 
 /** No icon at all: title on top, the mode big in the middle. */
@@ -262,7 +272,7 @@ function glyphSvg(f: Face, g: Glyph, dark: boolean): string {
 	// every key: what it is on top, its current mode underneath (when that adds anything)
 	const { top, bottom, sub } = titleOf(f);
 	const y0 = top ? 32 : 8;
-	const y1 = sub && bottom ? 96 : bottom || sub ? 108 : 136;
+	const y1 = f.keycap ? 104 : sub && bottom ? 96 : bottom || sub ? 108 : 136;
 	const size = Math.min(y1 - y0, 78);
 	const [vx, vy, vw, vh] = (g.viewBox.trim().split(/[\s,]+/).map(Number) ?? []).map((n) => (Number.isFinite(n) ? n : 0));
 	const k = size / Math.max(vw || 24, vh || 24);
@@ -277,7 +287,7 @@ function glyphSvg(f: Face, g: Glyph, dark: boolean): string {
 <g transform="translate(${n(tx)} ${n(ty)}) scale(${n(k)})" fill="${tint}">${inner}</g>
 ${decorations({ ...f, overlay: undefined })}
 ${topText(top, fg)}
-${bottomText(bottom, sub, fg)}
+${f.keycap ? keycapSvg(f.keycap, fg) : bottomText(bottom, sub, fg)}
 </svg>`;
 }
 
@@ -333,7 +343,7 @@ ${icon}
 ${topText(top, dark || f.dim ? P.off : "#fff")}
 <text x="72" y="${by}" ${FONT} font-size="${size}" fill="${fg}" stroke="#000" stroke-width="4" paint-order="stroke" stroke-linejoin="round">${esc(clip(r.big, 8))}</text>
 ${r.small ? `<text x="72" y="${sy}" ${FONT} font-size="15" fill="${dark || f.dim ? P.off : "#fff"}" stroke="#000" stroke-width="3" paint-order="stroke">${esc(clip(r.small.toUpperCase(), 16))}</text>` : ""}
-${bottomText(ui.value, ui.sub, dark || f.dim ? P.off : "#fff")}
+${f.keycap ? keycapSvg(f.keycap, dark || f.dim ? P.off : "#fff") : bottomText(ui.value, ui.sub, dark || f.dim ? P.off : "#fff")}
 ${decorations({ frame: f.frame })}
 </svg>`;
 }

@@ -17,7 +17,7 @@ const OUT = path.join(root, "dist");
 const PACK = path.join(OUT, `${ID}.sdIconPack`);
 const pkg = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"));
 // the plugin's version, plus a fourth number when the pack changes between plugin releases
-const ICONPACK_VERSION = `${pkg.version}.1`;
+const ICONPACK_VERSION = pkg.version;
 
 rmSync(PACK, { recursive: true, force: true });
 mkdirSync(path.join(PACK, "icons"), { recursive: true });

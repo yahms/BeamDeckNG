@@ -68,19 +68,25 @@ shows what it does: the title says it, and the reading sits over that control's 
 
 | Gauge | When pressed |
 | --- | --- |
-| Damage | repair (default), recover to road, respawn, or nothing |
+| Damage | repair (default; via MCP or via the keyboard Insert key), recover to road, respawn, or nothing |
 | RPM, Gear | start / stop the engine: STOP ENGINE / START ENGINE on top, RPM and gear over the engine icon (green running, red stalled or off), shift light frame |
 | Speed, Speed + gear | traction control / drive mode, like the Traction key: the ESC badge in the mode's colour, the mode underneath, the speed over it. A car without traction control just shows its speed |
 
-**Real keys for timing.** The Up / Down / Left / Right arrows and Repair (and the Damage gauge set to repair)
-press the real arrow keys and Insert, held for as long as you hold the button, so you can time a rewind or
-a nudge exactly. They do whatever those keys do in the game (menus, walking, the free camera, driving;
-Insert rewinds while held). Back and Accept can do the same with Esc and Enter: set their **Input** to
-"Real keyboard key". The game window must be the focused window, as with any hotkey, but real keys keep
-working without MCP (e.g. on a BeamMP server without the add-on). Set **Input** to "The game's action" to
-use the game's actions instead, which don't need focus. (Windows only; elsewhere they use the game's actions.)
+**Real keys for timing.** Some Game functions come in two kinds, side by side in the list: **via MCP** (the
+game's own action, works without the game focused) and **via keyboard** (presses the real key, held for as long as
+you hold the button, so you can time a rewind or a nudge exactly; the key it sends is shown on the button as a
+keycap). The game does exactly what that key does, but its window must be the focused window, as with any hotkey.
+Keyboard keys keep working without MCP (e.g. on a BeamMP server without the add-on). Windows only.
 
-**Back** (the game's action) works like Esc: in the game it opens the pause menu, in a menu it steps back a
+| Function | via keyboard sends |
+| --- | --- |
+| Up / Down / Left / Right | the arrow keys |
+| Accept / Back | Enter / Esc |
+| Repair (and the Damage gauge's "Repair (via keyboard)") | Insert (rewinds while held) |
+| Sprint | Shift |
+| Camera / seat up / down | Page Up / Page Down |
+
+**Back (via MCP)** works like Esc: in the game it opens the pause menu, in a menu it steps back a
 page, and from the pause menu it returns to the game. (In the vehicle list the first press only leaves the
 search / selection, as in the game; a second press goes back.)
 

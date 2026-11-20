@@ -22,7 +22,8 @@ const KEYS = [
 	[Gauge, { gauge: "damage", gpress: "repair" }], [Gauge, { gauge: "damage", gpress: "recover" }], [Gauge, { gauge: "damage", gpress: "respawn" }],
 	...["accept", "back", "pause", "repair", "recover", "respawn", "walk", "map", "vehicles", "radial", "slowmo", "slower", "ui", "photo", "traffic", "trailer",
 		"nextveh", "up", "turn_left", "cam_up", "zoom_in", "sprint", "cam_cycle", "cam_free", "cam_center", "cam_orbit", "cam_driver", "look_back",
-		"replay_eject", "replay_ctl"].map((fn) => [GameFunction, { fn }]),
+		"replay_eject", "replay_ctl", "up_key", "left_key", "back_key", "accept_key", "repair_key", "sprint_key", "cam_up_key", "cam_down_key"].map((fn) => [GameFunction, { fn }]),
+	[Gauge, { gauge: "damage", gpress: "repair_key" }],
 	[GameFunction, { fn: "cam_cycle", gamecams: true }], [GameFunction, { fn: "cam_prev" }], [GameFunction, { fn: "cam_prev", gamecams: true }],
 	...["clock", "daylen", "time_sunrise", "time_sunset", "time_p1h", "wx_cycle", "wx_rain", "cloud_up", "cloud_down", "fog_up", "fog_down", "fogh_up", "fogh_down", "rain_up", "rain_down", "wind_up", "wind_down", "grav_cycle", "grav_moon"].map((fn) => [World, { fn }]),
 ];

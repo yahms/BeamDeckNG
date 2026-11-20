@@ -100,11 +100,11 @@ export const GAUGES: Record<string, { label: string; read: (g: G, st: Settings) 
 const GAUGE_GLYPH: Record<string, string> = { gear: "own_g_gear", speed: "own_g_speed", speedgear: "own_g_speed", kmh: "own_g_speed", mph: "own_g_speed", rpm: "own_g_speed", fuel: "own_g_fuel", water: "own_g_temp", oil: "own_g_oil", boost: "own_g_boost", damage: "own_g_damage" };
 
 // What a gauge does when pressed (the "Press" setting), per gauge. The first is the default.
-//   damage: repair (Insert, held, like the game's recover key) / recover to road / respawn / nothing
+//   damage: repair (the game's action, or the real Insert key held) / recover to road / respawn / nothing
 //   rpm, gear: start / stop the engine (the engine icon behind the reading shows its state)
 //   speed, speed + gear: traction control / drive mode (the ESC icon behind, in the mode's colour)
 const PRESS: Record<string, string[]> = {
-	damage: ["repair", "recover", "respawn", "none"],
+	damage: ["repair", "repair_key", "recover", "respawn", "none"],
 	rpm: ["none", "ignition"],
 	gear: ["none", "ignition"],
 	speed: ["none", "tcs"],
@@ -112,6 +112,7 @@ const PRESS: Record<string, string[]> = {
 };
 const DMG_ACTION: Record<string, { head: string; glyph: string[]; cmd: NonNullable<Command> }> = {
 	repair: { head: "Repair", glyph: ["material_build"], cmd: { tool: "trigger_action", args: { action: "recover_vehicle_alt" } } },
+	repair_key: { head: "Repair", glyph: ["material_build"], cmd: { tool: "trigger_action", args: { action: "recover_vehicle_alt" } } },
 	recover: { head: "Recover to road", glyph: ["own_recover_road"], cmd: { tool: "recover_vehicle", args: {} } },
 	respawn: { head: "Respawn", glyph: ["radial_home", "material_home"], cmd: { tool: "trigger_action", args: { action: "loadHome" } } },
 };
@@ -129,9 +130,9 @@ export class Gauge extends DeckAction {
 		const opts = PRESS[this.id(st)] ?? ["none"];
 		return st.gpress && opts.includes(st.gpress) ? st.gpress : opts[0];
 	}
-	/** Damage gauge set to repair: Insert, held, like the arrows (unless real keys are turned off). */
+	/** Damage gauge set to "Repair (via keyboard Insert key)": Insert, held while the button is. */
 	override keyboard(st: Settings): string | undefined {
-		return this.press(st) === "repair" && st.kbd !== false ? "insert" : undefined;
+		return this.press(st) === "repair_key" ? "insert" : undefined;
 	}
 	face(s: VehicleStatus, st: Settings, held?: boolean): Face {
 		const id = this.id(st), def = GAUGES[id], press = this.press(st);
@@ -150,6 +151,7 @@ export class Gauge extends DeckAction {
 				tint: held ? P.green : P.white,
 				head: a.head,
 				value: "DAMAGE",
+				keycap: press === "repair_key" ? "INSERT" : undefined,
 				readout: { big: r.panel.big, fg: r.panel.fg },
 			};
 		}
