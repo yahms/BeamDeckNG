@@ -1,7 +1,7 @@
 // Gauge keys: live readouts of the vehicle you're driving (speed, gear, rpm, fuel, temperatures, boost, damage).
 import { action } from "@elgato/streamdeck";
 
-import { Command, DeckAction, Settings, unitOf } from "./actions";
+import { Command, DeckAction, Ignition, Settings, Traction, unitOf } from "./actions";
 import { VehicleStatus } from "./game";
 import { C, Face, P } from "./icons";
 
@@ -24,6 +24,24 @@ export const GAUGES: Record<string, { label: string; read: (g: G, st: Settings) 
 	speed: {
 		label: "Speed",
 		read: (g, st) => (g.spd === undefined ? undefined : { panel: { big: String(Math.round(Math.abs(g.spd) * unitOf(st).k)), unit: unitOf(st).name } }),
+	},
+	speedgear: {
+		label: "Speed + gear",
+		read: (g, st) => {
+			if (g.spd === undefined) return undefined;
+			const name = gearName(g);
+			const { k, c } = revs(g);
+			const u = unitOf(st).name.toUpperCase();
+			return {
+				panel: {
+					big: String(Math.round(Math.abs(g.spd) * unitOf(st).k)),
+					top: "Speed",
+					unit: name === undefined ? u : `GEAR ${name} · ${u}`,
+					bar: k === undefined ? undefined : { value: k, color: c ?? "#fff" },
+				},
+				flash: c === P.red,
+			};
+		},
 	},
 	gear: {
 		label: "Gear",
@@ -73,13 +91,32 @@ export const GAUGES: Record<string, { label: string; read: (g: G, st: Settings) 
 		read: (g) => {
 			if (g.dmg === undefined) return undefined;
 			const d = g.dmg;
-			return { panel: { big: d < 1 ? "OK" : dmgText(d), top: "Damage", unit: d < 1 ? undefined : "press: repair", fg: d < 1 ? P.green : d < 20000 ? P.yellow : P.red } };
+			return { panel: { big: d < 1 ? "OK" : dmgText(d), top: "Damage", fg: d < 1 ? P.green : d < 20000 ? P.yellow : P.red } };
 		},
 	},
 };
 
 /** Icon for each gauge, shown when there's no reading (no game, not on this vehicle). */
-const GAUGE_GLYPH: Record<string, string> = { gear: "own_g_gear", speed: "own_g_speed", kmh: "own_g_speed", mph: "own_g_speed", rpm: "own_g_speed", fuel: "own_g_fuel", water: "own_g_temp", oil: "own_g_oil", boost: "own_g_boost", damage: "own_g_damage" };
+const GAUGE_GLYPH: Record<string, string> = { gear: "own_g_gear", speed: "own_g_speed", speedgear: "own_g_speed", kmh: "own_g_speed", mph: "own_g_speed", rpm: "own_g_speed", fuel: "own_g_fuel", water: "own_g_temp", oil: "own_g_oil", boost: "own_g_boost", damage: "own_g_damage" };
+
+// What a gauge does when pressed (the "Press" setting), per gauge. The first is the default.
+//   damage: repair (Insert, held, like the game's recover key) / recover to road / respawn / nothing
+//   rpm, gear: start / stop the engine (the engine icon behind the reading shows its state)
+//   speed, speed + gear: traction control / drive mode (the ESC icon behind, in the mode's colour)
+const PRESS: Record<string, string[]> = {
+	damage: ["repair", "recover", "respawn", "none"],
+	rpm: ["none", "ignition"],
+	gear: ["none", "ignition"],
+	speed: ["none", "tcs"],
+	speedgear: ["none", "tcs"],
+};
+const DMG_ACTION: Record<string, { head: string; glyph: string[]; cmd: NonNullable<Command> }> = {
+	repair: { head: "Repair", glyph: ["material_build"], cmd: { tool: "trigger_action", args: { action: "recover_vehicle_alt" } } },
+	recover: { head: "Recover to road", glyph: ["own_recover_road"], cmd: { tool: "recover_vehicle", args: {} } },
+	respawn: { head: "Respawn", glyph: ["radial_home", "material_home"], cmd: { tool: "trigger_action", args: { action: "loadHome" } } },
+};
+const ignition = new Ignition();
+const traction = new Traction();
 
 @action({ UUID: "com.yahms.beamdeckng.gauge" })
 export class Gauge extends DeckAction {
@@ -87,16 +124,82 @@ export class Gauge extends DeckAction {
 	private id(st: Settings) {
 		return st.gauge && GAUGES[st.gauge] ? st.gauge : "speed";
 	}
-	face(s: VehicleStatus, st: Settings): Face {
-		const id = this.id(st), def = GAUGES[id];
+	/** What a press does for this gauge (none = nothing). */
+	private press(st: Settings): string {
+		const opts = PRESS[this.id(st)] ?? ["none"];
+		return st.gpress && opts.includes(st.gpress) ? st.gpress : opts[0];
+	}
+	/** Damage gauge set to repair: Insert, held, like the arrows (unless real keys are turned off). */
+	override keyboard(st: Settings): string | undefined {
+		return this.press(st) === "repair" && st.kbd !== false ? "insert" : undefined;
+	}
+	face(s: VehicleStatus, st: Settings, held?: boolean): Face {
+		const id = this.id(st), def = GAUGES[id], press = this.press(st);
 		const r = s.g ? def.read(s.g, st) : undefined;
 		const base = { key: "gauge", state: id, label: def.label, color: C.off, glyph: [GAUGE_GLYPH[id] ?? "own_g_speed"] };
 		// not on this vehicle (no turbo, electric car without oil temperature...): its icon, greyed
 		if (!r) return { ...base, value: "N/A", dim: true };
-		return { ...base, value: r.panel.big, panel: r.panel, flash: r.flash };
+		const plain: Face = { ...base, value: r.panel.big, panel: r.panel, flash: r.flash };
+		if (press === "none") return plain;
+		// damage: the reading over the icon of what a press does (repair / recover / respawn)
+		if (id === "damage") {
+			const a = DMG_ACTION[press];
+			return {
+				...base,
+				glyph: a.glyph,
+				tint: held ? P.green : P.white,
+				head: a.head,
+				value: "DAMAGE",
+				readout: { big: r.panel.big, fg: r.panel.fg },
+			};
+		}
+		// start / stop: the engine icon behind, coloured for the engine's state; the title says what a press does
+		if (press === "ignition") {
+			const ig = ignition.face(s, {});
+			if (ig.state === "unsupported") return plain;
+			const g = s.g ?? {};
+			const gear = gearName(g);
+			const rpm = g.rpm === undefined ? undefined : String(Math.round(g.rpm / 50) * 50);
+			const { c } = revs(g);
+			const tint = s.running ? P.green : ig.state === "cranking" ? P.yellow : P.red;
+			const big = !s.running ? ig.value : id === "gear" ? gear ?? "-" : rpm ?? "-";
+			const small = !s.running ? undefined : id === "gear" ? (rpm ? `${rpm} RPM` : undefined) : gear ? `GEAR ${gear}` : undefined;
+			return {
+				...base,
+				glyph: ["powertrain_engine"],
+				tint,
+				head: s.running ? "Stop engine" : "Start engine",
+				value: s.running ? (id === "gear" ? "" : "RPM") : "",
+				readout: { big, small, fg: s.running && c && c !== P.green ? c : undefined },
+				frame: s.running ? c && c !== P.green ? c : undefined : undefined,
+				flash: ig.flash || (s.running && c === P.red),
+			};
+		}
+		// traction: like the traction key (ESC icon in the mode's colour, mode underneath), speed over it;
+		// a car without traction control just shows the speed
+		const tc = traction.face(s, {});
+		if (tc.state === "unsupported") return plain;
+		const on = s.tc !== false;
+		const tint = tc.tint ?? (on ? P.blue : P.off);
+		const g = s.g ?? {};
+		const gear = gearName(g);
+		const u = unitOf(st).name.toUpperCase();
+		return {
+			...base,
+			glyph: tc.glyph ?? ["powertrain_esc", "systems_esc"],
+			tint,
+			head: tc.label,
+			value: tc.value,
+			sub: tc.sub,
+			readout: { big: r.panel.big, small: id === "speedgear" && gear !== undefined ? `${gear} · ${u}` : u },
+			flash: r.flash,
+		};
 	}
-	/** Only the damage gauge does something: repair in place. */
 	command(s: VehicleStatus, st: Settings): Command {
-		return this.id(st) === "damage" && (s.g?.dmg ?? 0) >= 1 ? { tool: "trigger_action", args: { action: "recover_vehicle_alt" } } : null;
+		const id = this.id(st), press = this.press(st);
+		if (id === "damage") return DMG_ACTION[press]?.cmd ?? null;
+		if (press === "ignition") return s.ign === undefined && s.running === undefined ? null : ignition.command(s);
+		if (press === "tcs") return traction.command(s, {});
+		return null;
 	}
 }

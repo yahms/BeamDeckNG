@@ -1,6 +1,25 @@
-# BeamDeckNG 0.2.13
+# BeamDeckNG 0.2.14
 
-## What's new since 0.2.11
+## What's new since 0.2.13
+
+**Real keys for timing.** Up / Down / Left / Right and Repair now press the real arrow keys and Insert,
+held for as long as you hold the button: time a rewind (Insert) or a nudge exactly. They do what those keys
+do in the game (menus, walking, the free camera, driving) and work without MCP, but need the game window
+focused. Untick "Keyboard" in a key's settings to go back to the game's actions.
+
+**Gauges that do something** (new "When pressed" setting; the key shows what it does)
+- Damage: repair, recover to road or respawn; the damage reading sits over that action's icon.
+- RPM and Gear: start / stop the engine. STOP ENGINE / START ENGINE on top, RPM and gear over the engine
+  icon (green running, red stalled or off), and the shift light.
+- Speed: traction control / drive mode, shown like the Traction key (ESC badge in the mode's colour, mode
+  underneath) with the speed over it. Cars without traction control just show the speed.
+- New gauge: Speed + gear (same options as Speed).
+
+**Icon pack: every key icon.** The icon pack now has all the key icons the plugin uses, in each colour,
+without text, so Hotkeys and Multi Actions can match the plugin's keys (183 key icons, plus the folder,
+page and gravity icons).
+
+## Since 0.2.11 (0.2.12, 0.2.13)
 
 **Keys that know where you are**
 - Back (red X) in the game opens the pause menu, like Escape; in a menu it goes back a page.

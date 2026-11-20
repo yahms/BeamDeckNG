@@ -18,6 +18,8 @@ const KEYS = [
 	[A.Horn, {}], [A.Cruise, {}], [A.Cruise, { op: "plus" }], [A.EngineBrake, {}], [A.Retarder, {}], [A.AirSuspension, { dir: "raise" }],
 	[A.Doors, {}], [A.Doors, { part: "hood" }], [A.Nitrous, {}], [A.Jato, {}], [Tires, { tdir: "inflate" }], [Powertrain, { index: "1" }], [VehicleControl, { slot: 1 }],
 	[Gauge, { gauge: "gear" }], [Gauge, { gauge: "speed" }], [Gauge, { gauge: "rpm" }], [Gauge, { gauge: "fuel" }], [Gauge, { gauge: "damage" }],
+	[Gauge, { gauge: "speedgear" }], [Gauge, { gauge: "speed", gpress: "tcs" }], [Gauge, { gauge: "speedgear", gpress: "tcs" }], [Gauge, { gauge: "rpm", gpress: "ignition" }], [Gauge, { gauge: "gear", gpress: "ignition" }],
+	[Gauge, { gauge: "damage", gpress: "repair" }], [Gauge, { gauge: "damage", gpress: "recover" }], [Gauge, { gauge: "damage", gpress: "respawn" }],
 	...["accept", "back", "pause", "repair", "recover", "respawn", "walk", "map", "vehicles", "radial", "slowmo", "slower", "ui", "photo", "traffic", "trailer",
 		"nextveh", "up", "turn_left", "cam_up", "zoom_in", "sprint", "cam_cycle", "cam_free", "cam_center", "cam_orbit", "cam_driver", "look_back",
 		"replay_eject", "replay_ctl"].map((fn) => [GameFunction, { fn }]),

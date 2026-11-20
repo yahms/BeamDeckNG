@@ -51,7 +51,7 @@ icons where it has one.*
 | JATO | ready / firing, fuel % | hold to fire, or toggle (setting) |
 | Powertrain (game bar) | the Nth button of the game's powertrain bar, with its icon and coloured ring | whatever the game's button does |
 | World | **time of day** clock with a sky-coloured background (night blue, dawn/dusk orange, day blue); time presets (sunrise, noon, sunset, midnight), ±1 hour, day length; **weather** presets (clear, cloudy, fog, rain, storm) and separate rain / fog / wind keys; **gravity** (Earth, Moon, Mars, Zero-G, Jupiter). Preset keys are green when that preset is current | apply the preset, or cycle. The clock key runs / freezes time |
-| Gauge | speed, gear with shift light (green > yellow > red flash near the limiter), rpm, fuel, coolant and oil temperature, boost, damage | none (damage: repair) |
+| Gauge | speed, speed + gear, gear with shift light (green > yellow > red flash near the limiter), rpm, fuel, coolant and oil temperature, boost, damage | set per gauge (below) |
 | Tyre pressure | one axle or all wheels, with that group's pressure in psi (vehicles with a central tyre inflation system, e.g. the Stambecco 6x6) | hold to inflate or deflate |
 | Vehicle control (auto) | slot N of the vehicle's own controls: tray tilt, hydraulics, fifth wheel, spinner speed... (see [Vehicle controls](#vehicle-controls-auto)) | hold to move, or tap to toggle |
 | Game function | pause, repair, recover, respawn, accept, back, get in/out, map, vehicles, radial menu, slow motion (1x <-> last slow speed), slower/faster, game UI, photo mode, traffic, trailer, next vehicle (shows the car you are in, in its paint colour), menu arrows, next / previous camera (every camera the vehicle has: driver, hood, chase, orbit, external, top...), free camera on / off, fixed camera keys, look back, replay record / stop, eject replay, reload Lua | per function |
@@ -62,6 +62,22 @@ game running. Icons already read from the game are kept in the plugin's `cache` 
 for this. Other faces: **PAUSED** (dimmed last state while the vehicle isn't answering), **N/A**
 (this vehicle doesn't have it), **NO MAP** (World keys with no map loaded). After a press the
 button flashes until the game confirms. If the command fails it flashes red **ERROR**.
+
+**Gauges that do something.** A gauge's **When pressed** setting turns it into a control, and the key then
+shows what it does: the title says it, and the reading sits over that control's icon.
+
+| Gauge | When pressed |
+| --- | --- |
+| Damage | repair (default), recover to road, respawn, or nothing |
+| RPM, Gear | start / stop the engine: STOP ENGINE / START ENGINE on top, RPM and gear over the engine icon (green running, red stalled or off), shift light frame |
+| Speed, Speed + gear | traction control / drive mode, like the Traction key: the ESC badge in the mode's colour, the mode underneath, the speed over it. A car without traction control just shows its speed |
+
+**Real keys for timing.** The Up / Down / Left / Right arrows and Repair (and the Damage gauge set to repair)
+press the real arrow keys and Insert, held for as long as you hold the button, so you can time a rewind or
+a nudge exactly. They do whatever those keys do in the game (menus, walking, the free camera, driving;
+Insert rewinds while held). The game window must be the focused window, as with any hotkey, but they keep
+working without MCP (e.g. on a BeamMP server without the add-on). Untick **Keyboard** in the key's
+settings to use the game's actions instead. (Windows only; elsewhere they use the game's actions.)
 
 Every key has an **In-game message** setting (on by default): after a press, the game's message
 app shows what happened, e.g. "Stream Deck: Rear diff: LOCKED", or why nothing did. Each new
@@ -77,6 +93,11 @@ parking_brake, cruise, boost, jato, hydraulics, camera, replay, time, map, game_
 garage, repair, recover, home, on_foot, traffic, back, next, mech, weather, dashboard, lightbar, gravity.
 
 Plus **yes** (green tick) and **no** (red cross), e.g. for Hotkey buttons mapped to Enter / Esc.
+
+The icon pack also has **every key icon the plugin uses**, in each of its colours (headlights low / high,
+hazards, drive modes in the game's colours, weather +/-, cameras, arrows...), without the text, so a Hotkey
+or Multi Action can look just like the plugin's own key. These are BeamDeckNG's own drawings; icons the
+plugin reads from your copy of the game are never put in the pack.
 
 **Plugin keys or keyboard hotkeys?** Not everything has to be a BeamDeckNG key. Some controls suit a
 plain Stream Deck **Hotkey** better, or you may simply prefer one: anything you've bound to a key in
