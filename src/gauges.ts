@@ -3,7 +3,7 @@ import { action } from "@elgato/streamdeck";
 
 import { Command, DeckAction, Ignition, Settings, Traction, unitOf } from "./actions";
 import { VehicleStatus } from "./game";
-import { C, Face, P } from "./icons";
+import { C, Face, P, REV_RED, revZone } from "./icons";
 
 type G = NonNullable<VehicleStatus["g"]>;
 type Panel = NonNullable<Face["panel"]>;
@@ -48,16 +48,21 @@ export const GAUGES: Record<string, { label: string; read: (g: G, st: Settings) 
 		read: (g) => {
 			const name = gearName(g);
 			if (name === undefined) return undefined;
-			const { k, c } = revs(g);
-			return { panel: { big: name, top: "Gear", bg: c === P.red ? P.red : undefined, fg: c && c !== P.red ? c : "#fff", bar: k === undefined ? undefined : { value: k, color: c && c !== P.red ? c : "#fff" } }, flash: c === P.red };
+			// tacho arc round the key (white, orange near the redline, red at it), the RPM underneath
+			const k = rev(g);
+			const red = k === undefined ? !!g.shift : k >= REV_RED || !!g.shift;
+			const rpm = g.rpm === undefined ? undefined : `${Math.round(g.rpm / 50) * 50} RPM`;
+			return { panel: { big: name, top: "Gear", unit: rpm, fg: red ? P.red : revZone(k), arc: { value: k } }, flash: red };
 		},
 	},
 	rpm: {
 		label: "RPM",
 		read: (g) => {
 			if (g.rpm === undefined) return undefined;
-			const { k, c } = revs(g);
-			return { panel: { big: String(Math.round(g.rpm / 50) * 50), unit: "rpm", fg: c ?? "#fff", bar: k === undefined ? undefined : { value: k, color: c ?? "#fff" } }, flash: c === P.red };
+			const k = rev(g);
+			const red = k === undefined ? !!g.shift : k >= REV_RED || !!g.shift;
+			const gear = gearName(g);
+			return { panel: { big: String(Math.round(g.rpm / 50) * 50), top: "RPM", unit: gear === undefined ? "RPM" : `GEAR ${gear}`, fg: red ? P.red : revZone(k), arc: { value: k } }, flash: red };
 		},
 	},
 	fuel: {
