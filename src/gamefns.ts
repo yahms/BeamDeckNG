@@ -16,10 +16,9 @@ type GameFn = {
 	walk?: string;
 	/** In the free camera: held as this input action instead (the arrows fly the camera). */
 	fly?: string;
-	/** Can be sent as this real keyboard key instead (keys.ts); see the key's "input" setting. */
+	/** "... (via keyboard)" functions: the real keyboard key sent instead (keys.ts), and its name on the key. */
 	kbd?: string;
-	/** False: uses the game's action unless the key is set to send the real key (Back, Accept). */
-	kbdDefault?: boolean;
+	keyName?: string;
 	/** Tap: trigger_action name (or picked from the game state, e.g. the menu page that's open). */
 	act?: string | ((ge: GeStatus) => string);
 	/** Hold: trigger_action with down/up. */
@@ -89,12 +88,11 @@ const walkHeld = new Map<string, string>();
 
 export const GAME_FUNCS: Record<string, GameFn> = {
 	// fixed buttons
-	accept: { label: "Accept", key: "accept", act: "menu_item_select", kbd: "enter", kbdDefault: false },
+	accept: { label: "Accept", key: "accept", act: "menu_item_select" },
 	// in the game (no menu open) Back opens the pause menu, like Escape; in a menu it goes back
-	back: { label: "Back", key: "back", act: (g) => (g.route === "play" ? "toggleMenues" : "menu_item_back"), kbd: "escape", kbdDefault: false },
+	back: { label: "Back", key: "back", act: (g) => (g.route === "play" ? "toggleMenues" : "menu_item_back") },
 	pause: { label: "Pause", key: "pause", act: "pause", state: (g) => (g.paused ? { state: "on", value: "PAUSED" } : { state: "off", value: "RUNNING" }) },
-	// Insert, held: the game's recover (rewinds while held, so it can be timed)
-	repair: { label: "Repair", key: "repair", act: "recover_vehicle_alt", kbd: "insert" },
+	repair: { label: "Repair", key: "repair", act: "recover_vehicle_alt" },
 	recover: { label: "Recover", key: "recover", tool: ["recover_vehicle", {}] },
 	respawn: { label: "Respawn", key: "home", act: "loadHome" },
 	// game tab
@@ -138,10 +136,10 @@ export const GAME_FUNCS: Record<string, GameFn> = {
 		state: (g) => ({ state: "off", value: g.veh?.name ?? "NEXT CAR", glyph: ["own_nextveh"], tint: paint(g.veh?.color) }),
 	},
 	// menu arrows; on foot they walk (held), like the keyboard's arrow keys
-	up: { label: "Up", key: "up", kbd: "up", act: "menu_item_up", walk: "unicycle__walkUp", fly: "moveforward", state: walkState },
-	down: { label: "Down", key: "down", kbd: "down", act: "menu_item_down", walk: "unicycle__walkDown", fly: "movebackward", state: walkState },
-	left: { label: "Left", key: "left", kbd: "left", act: "menu_item_left", walk: "unicycle__walkLeft", fly: "moveleft", state: walkState },
-	right: { label: "Right", key: "right", kbd: "right", act: "menu_item_right", walk: "unicycle__walkRight", fly: "moveright", state: walkState },
+	up: { label: "Up", key: "up", act: "menu_item_up", walk: "unicycle__walkUp", fly: "moveforward", state: walkState },
+	down: { label: "Down", key: "down", act: "menu_item_down", walk: "unicycle__walkDown", fly: "movebackward", state: walkState },
+	left: { label: "Left", key: "left", act: "menu_item_left", walk: "unicycle__walkLeft", fly: "moveleft", state: walkState },
+	right: { label: "Right", key: "right", act: "menu_item_right", walk: "unicycle__walkRight", fly: "moveright", state: walkState },
 	// on foot: turn the camera (and so where you walk), and run
 	turn_left: { label: "Turn camera left", key: "turn_left", hold: "rotate_camera_left", state: () => ({ state: "off", value: "LEFT" }) },
 	turn_right: { label: "Turn camera right", key: "turn_right", hold: "rotate_camera_right", state: () => ({ state: "off", value: "RIGHT" }) },
@@ -236,6 +234,26 @@ function camState(g: GeStatus, name: string) {
 }
 
 /** The "Game function" button: one action type, the function is picked in its settings. */
+
+// "... (via keyboard)": the same function as a real keyboard key, held while the button is (keys.ts).
+// The game does whatever that key does; the game window must be focused.
+const KEY_FUNCS: Record<string, [string, string]> = {
+	accept: ["enter", "ENTER"],
+	back: ["escape", "ESC"],
+	repair: ["insert", "INSERT"],
+	up: ["up", "UP"],
+	down: ["down", "DOWN"],
+	left: ["left", "LEFT"],
+	right: ["right", "RIGHT"],
+	sprint: ["lshift", "SHIFT"],
+	cam_up: ["pageup", "PG UP"],
+	cam_down: ["pagedown", "PG DN"],
+};
+for (const [id, [kbd, keyName]] of Object.entries(KEY_FUNCS)) {
+	const { label, key } = GAME_FUNCS[id];
+	GAME_FUNCS[`${id}_key`] = { label, key, kbd, keyName };
+}
+
 @action({ UUID: "com.yahms.beamdeckng.gamefn" })
 export class GameFunction extends DeckAction {
 	override vehicle = false;
@@ -246,18 +264,14 @@ export class GameFunction extends DeckAction {
 			const name = (st.action ?? "").trim();
 			return ["custom", { label: (st.label ?? "").trim() || name || "Action", key: "custom", act: name || undefined }];
 		}
-		const id = st.fn && GAME_FUNCS[st.fn] ? st.fn : "pause";
+		let id = st.fn && GAME_FUNCS[st.fn] ? st.fn : "pause";
+		// 0.2.14 keys set to "Real keyboard key": the keyboard function
+		if (st.input === "key" && GAME_FUNCS[`${id}_key`]) id = `${id}_key`;
 		return [id, GAME_FUNCS[id]];
 	}
 
 	override keyboard(st: Settings): string | undefined {
-		const f = GameFunction.fn(st)[1];
-		if (!f.kbd) return undefined;
-		// "key" / "game", or the default: arrows and Repair send the real key, Back and Accept use the game
-		const mode = st.input || (st.kbd === false ? "game" : "");
-		if (mode === "key") return f.kbd;
-		if (mode === "game") return undefined;
-		return f.kbdDefault === false ? undefined : f.kbd;
+		return GameFunction.fn(st)[1].kbd;
 	}
 
 	face(_s: VehicleStatus, st: Settings, held?: boolean, ge: GeStatus = {}): Face {
@@ -266,6 +280,8 @@ export class GameFunction extends DeckAction {
 		const on = s.state === "on";
 		// next / previous camera through the game's own camera list: its own icon, and says so
 		const gameList = (id === "cam_cycle" || id === "cam_prev") && !!st.gamecams;
+		// keyboard functions: the key that's sent, as a keycap under the icon
+		if (f.keyName) return { key: f.key, label: f.label, state: held ? "on" : "off", alt: ["off"], value: "", keycap: f.keyName, color: held ? C.warn : C.off };
 		return {
 			key: gameList ? `${f.key}_game` : f.key,
 			sub: gameList ? "GAME LIST" : undefined,

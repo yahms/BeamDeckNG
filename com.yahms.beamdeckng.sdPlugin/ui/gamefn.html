@@ -9,10 +9,13 @@
 		<sdpi-item label="Function">
 			<sdpi-select setting="fn" default="pause">
 				<optgroup label="Fixed buttons">
-					<option value="accept">Accept (Enter)</option>
-					<option value="back">Back (Esc)</option>
+					<option value="accept">Accept (via MCP)</option>
+					<option value="accept_key">Accept (via keyboard Enter key)</option>
+					<option value="back">Back (via MCP)</option>
+					<option value="back_key">Back (via keyboard Esc key)</option>
 					<option value="pause">Pause</option>
-					<option value="repair">Repair (Insert, hold to rewind)</option>
+					<option value="repair">Repair (via MCP)</option>
+					<option value="repair_key">Repair (via keyboard Insert key, hold to rewind)</option>
 					<option value="recover">Recover</option>
 					<option value="respawn">Respawn</option>
 				</optgroup>
@@ -31,15 +34,22 @@
 					<option value="nextveh">Next vehicle</option>
 				</optgroup>
 				<optgroup label="Menu navigation / walking">
-					<option value="up">Up arrow</option>
-					<option value="down">Down arrow</option>
-					<option value="left">Left arrow</option>
-					<option value="right">Right arrow</option>
+					<option value="up">Up (via MCP)</option>
+					<option value="up_key">Up (via keyboard Up key)</option>
+					<option value="down">Down (via MCP)</option>
+					<option value="down_key">Down (via keyboard Down key)</option>
+					<option value="left">Left (via MCP)</option>
+					<option value="left_key">Left (via keyboard Left key)</option>
+					<option value="right">Right (via MCP)</option>
+					<option value="right_key">Right (via keyboard Right key)</option>
 					<option value="turn_left">Turn camera left (hold)</option>
 					<option value="turn_right">Turn camera right (hold)</option>
-					<option value="sprint">Sprint / shift (hold, on foot)</option>
-					<option value="cam_up">Camera / seat up (Page Up, hold)</option>
-					<option value="cam_down">Camera / seat down (Page Down, hold)</option>
+					<option value="sprint">Sprint (via MCP, hold, on foot)</option>
+					<option value="sprint_key">Sprint (via keyboard Shift key, hold)</option>
+					<option value="cam_up">Camera / seat up (via MCP, hold)</option>
+					<option value="cam_up_key">Camera / seat up (via keyboard Page Up key, hold)</option>
+					<option value="cam_down">Camera / seat down (via MCP, hold)</option>
+					<option value="cam_down_key">Camera / seat down (via keyboard Page Down key, hold)</option>
 					<option value="zoom_in">Zoom in / FOV - (Shift + Page Up, hold)</option>
 					<option value="zoom_out">Zoom out / FOV + (Shift + Page Down, hold)</option>
 				</optgroup>
@@ -64,13 +74,6 @@
 				</optgroup>
 			</sdpi-select>
 		</sdpi-item>
-		<sdpi-item label="Input">
-			<sdpi-select setting="input" default="">
-				<option value="">Default (arrows, Repair: real key; Back, Accept: game)</option>
-				<option value="key">Real keyboard key (arrows, Insert, Esc, Enter)</option>
-				<option value="game">The game's action</option>
-			</sdpi-select>
-		</sdpi-item>
 		<sdpi-item label="Cameras">
 			<sdpi-checkbox setting="gamecams" label="only the ones enabled in the game"></sdpi-checkbox>
 		</sdpi-item>
@@ -80,7 +83,7 @@
 		<sdpi-item label="Key text">
 			<sdpi-textfield setting="label" placeholder="shown on the key"></sdpi-textfield>
 		</sdpi-item>
-		<p style="color:#aaa;font-size:12px;margin:8px">Input (arrows, Repair, Back, Accept): "Real keyboard key" presses the arrow / Insert / Esc / Enter key, held for as long as you hold the button, so the game does exactly what that key does (menus, walking, the free camera, driving; Insert rewinds while held). The game window must be the focused window. "The game's action" works without focus: Back opens the pause menu in the game and steps back through menus, Accept selects. By default the arrows and Repair send the real key and Back / Accept use the game's action.</p>
+		<p style="color:#aaa;font-size:12px;margin:8px">"via keyboard" functions press the real key (shown on the button), held for as long as you hold the button, so the game does exactly what that key does (menus, walking, the free camera, driving; Insert rewinds while held). The game window must be the focused window. "via MCP" functions use the game's own actions and work without focus: Back opens the pause menu in the game and steps back through menus, Accept selects, the arrows move through menus, walk on foot and fly the free camera.</p>
 		<p style="color:#aaa;font-size:12px;margin:8px">Next / previous camera step through every camera the vehicle has (driver, hood, chase, orbit, external, top...). Tick the box to follow the game's own camera list instead, which only includes the cameras enabled in its camera settings.</p>
 		<p style="color:#aaa;font-size:12px;margin:8px">Action name and key text are only used with "Custom game action": any action from the game's Controls menu, fired directly (no key binding needed).</p>
 		<sdpi-item label="In-game message">

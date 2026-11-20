@@ -22,10 +22,10 @@ const GRAVITY = (page) => ["FOLDER", { name: "Gravity", icon: "gravity-folder.pn
 
 // 12-key blocks, row-major: 2 keys top-right, then two rows of 5.
 const MENU = [G("back"), G("accept"),
-	G("pause"), G("turn_left"), G("up"), G("turn_right"), G("radial"),
-	G("sprint"), G("left"), G("down"), G("right"), G("walk")];
+	G("pause"), G("turn_left"), G("up_key"), G("turn_right"), G("radial"),
+	G("sprint_key"), G("left_key"), G("down_key"), G("right_key"), G("walk")];
 const TOOLS = [G("map"), G("replay_ctl"),
-	G("repair"), G("recover"), G("respawn"), G("vehicles"), G("nextveh"),
+	G("repair_key"), G("recover"), G("respawn"), G("vehicles"), G("nextveh"),
 	G("trailer"), G("traffic"), G("slowmo"), G("slower"), G("faster")];
 const WEATHER = (gravPage) => [W("wx_cycle"), GRAVITY(gravPage),
 	W("cloud_up"), W("fog_up"), W("fogh_up"), W("rain_up"), W("wind_up"),
