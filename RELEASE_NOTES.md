@@ -8,6 +8,9 @@ the redline on. The arc carries on past the redline, so an over-rev (a missed do
 orange and red zones always show faintly, so you can see where the limit is, and the number turns orange and
 then red (flashing) to match. The Gear gauge shows the RPM underneath, the RPM gauge shows the gear.
 
+Set to start / stop the engine, both gauges keep the arc too (a thinner one round the edge, with START / STOP
+ENGINE inside it, over the engine icon). The Speed + gear gauge's rev bar uses the same white / orange / red.
+
 ## Downloads
 
 | File | What it is |
